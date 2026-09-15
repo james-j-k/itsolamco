@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Event {
+  id        String    @id @default(cuid())
+  title     String
+  theme     String?
+  date      DateTime
+  venueName String
+  venueArea String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  teamName    String
+  contactName String
+  email       String
+  phone       String?
+  teamSize    Int      @default(1)
+  message     String?
+  status      String   @default("pending") // pending | confirmed | cancelled
+  isRead      Boolean  @default(false)
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  eventId     String?
+  createdAt   DateTime @default(now())
+}
+
+model VenueInquiry {
+  id          String   @id @default(cuid())
+  venueName   String
+  contactName String
+  email       String
+  phone       String?
+  message     String?
+  status      String   @default("new") // new | contacted | closed
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// A round in the "How We Roll" format section on the homepage.
+model QuizRound {
+  id          String   @id @default(cuid())
+  order       Int
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// A partner venue tile in the "Where the Magic Happens" section on the homepage.
+model Venue {
+  id        String   @id @default(cuid())
+  order     Int
+  name      String
+  area      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

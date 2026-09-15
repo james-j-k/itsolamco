@@ -1,26 +1,267 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #F5F0E6;
+  --paper-alt: #EEE7D8;
+  --ink: #1C1712;
+  --rust: #B8451D;
+  --rust-deep: #8F3517;
+  --grey: #8C8477;
+  --hairline: rgba(28, 23, 18, .16);
+  --grid-size: 44px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* overflow-x lives on html, not body: setting it on body alone makes body its
+   own nested scroll container per the CSS overflow spec (an unset overflow-y
+   computes to auto), which breaks position:sticky and confuses touch-scroll
+   gesture recognition on mobile. html is already the real scrolling element. */
+html {
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-archivo), sans-serif;
+  max-width: 100%;
+}
+
+.font-display {
+  font-family: var(--font-anton), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.88;
+}
+
+.font-mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+}
+
+.font-malayalam {
+  font-family: var(--font-baloo-chettan-2), cursive;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(var(--hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
+/* background-attachment: fixed is a well-known cause of janky/frozen scroll
+   on mobile browsers (touch devices repaint the fixed background on every
+   scroll frame). Keep the parallax texture for desktop pointer devices only. */
+@media (hover: hover) and (pointer: fine) {
+  .grid-bg {
+    background-attachment: fixed;
+  }
+}
+
+.section-border {
+  border-top: 2px solid var(--ink);
+}
+
+.row-divider {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.reveal-char {
+  display: inline-block;
+  transform: translateY(105%);
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-rust {
+  background-color: var(--rust);
+  color: var(--paper);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-rust:hover {
+  background-color: var(--rust-deep);
+  transform: scale(1.02);
+}
+
+.btn-rust:active {
+  background-color: var(--rust-deep);
+  transform: scale(0.97);
+}
+
+.trivia-card {
+  perspective: 1200px;
+}
+
+.trivia-card-inner {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.trivia-card.flipped .trivia-card-inner {
+  transform: rotateY(180deg);
+}
+
+.trivia-card-front, .trivia-card-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Public-facing modals (Booking, Venue Inquiry) become bottom sheets below
+   the sm breakpoint — the desktop centered-box presentation is untouched. */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@media (max-width: 639px) {
+  .modal-sheet {
+    animation: sheet-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.trivia-card-back {
+  transform: rotateY(180deg);
+}
+
+.nav-link {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--rust);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.venue-item {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.venue-item:hover,
+.venue-item:active {
+  background-color: var(--ink);
+  color: var(--paper);
+  transform: translateY(-8px);
+}
+
+.wipe-text {
+  -webkit-text-stroke: 1px rgba(245, 240, 230, .28);
+  color: transparent;
+  position: relative;
+}
+
+.wipe-text-fill {
+  position: absolute;
+  inset: 0;
+  color: var(--rust);
+  clip-path: inset(0 100% 0 0);
+  pointer-events: none;
+}
+
+/* Ambient hero hairline: one slow sweep, never a repeating marquee */
+.ambient-hairline {
+  position: relative;
+  overflow: hidden;
+  background: rgba(28, 23, 18, .12);
+}
+.ambient-hairline::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -30%;
+  width: 30%; height: 100%;
+  background: var(--rust);
+  animation: hairline-sweep 38s linear infinite;
+}
+@keyframes hairline-sweep {
+  0%   { left: -30%; }
+  100% { left: 100%; }
+}
+
+/* Round rows: opacity driven by JS via data-active */
+.round-row {
+  opacity: .32;
+  transition: opacity .4s ease;
+}
+.round-row[data-active="true"] {
+  opacity: 1;
+}
+
+/* Generic scroll-reveal atoms, lit by one IntersectionObserver */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1);
+  transition-delay: calc(var(--d, 0) * 1ms);
+}
+[data-reveal].revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Venue canvas + tooltip. The route-trace tooltip only fires on mousemove,
+   so on touch devices the canvas is hidden entirely (and never drawn to —
+   see HomePage.tsx) rather than shipped as unlabeled, non-interactive
+   decoration; the venue card grid is the real information source there. */
+#venue-map-canvas {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: multiply;
+  pointer-events: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  #venue-map-canvas {
+    display: block;
+  }
+}
+#venue-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  opacity: 0;
+  transition: opacity .15s ease;
+  white-space: nowrap;
+}
+#venue-tooltip.visible {
+  opacity: 1;
+  transform: translate(-50%, calc(-100% - 14px));
+}
+
+/* Magnetic buttons */
+.magnetic {
+  will-change: transform;
+  transition: transform .25s cubic-bezier(.16,1,.3,1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-hairline::after { animation: none; display: none; }
+  [data-reveal] { transition: none; opacity: 1; transform: none; }
+  .round-row { transition: none; opacity: 1; }
+  .magnetic { transition: none !important; transform: none !important; }
 }
