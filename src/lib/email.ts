@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const FROM = process.env.EMAIL_FROM ?? "It's Olam Company <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM ?? "It's Olam Company <notify@itsolamco.in>";
 const ADMIN_TO = process.env.EMAIL_TO ?? "itsolamco@gmail.com";
 
 function getClient() {
