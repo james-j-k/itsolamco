@@ -3,15 +3,8 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-function daysFromNow(days: number, hour = 20) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(hour, 0, 0, 0);
-  return d;
-}
-
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@theolamcompany.com";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@itsolamco.in";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "changeme123";
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
@@ -21,38 +14,6 @@ async function main() {
     create: { email: adminEmail, passwordHash },
   });
   console.log(`Admin ready: ${adminEmail}`);
-
-  const existingCount = await prisma.event.count();
-  if (existingCount === 0) {
-    await prisma.event.createMany({
-      data: [
-        {
-          title: "Mammootty 90s Era",
-          theme: "The 90s Mammootty Special",
-          date: daysFromNow(12),
-          venueName: "Watson's",
-          venueArea: "MG Road, Kochi",
-        },
-        {
-          title: "Prithviraj Varsity",
-          theme: "Prithviraj Varsity Night",
-          date: daysFromNow(22),
-          venueName: "Fly High",
-          venueArea: "Edappally, Kochi",
-        },
-        {
-          title: "Lalettan Comedy Gold",
-          theme: "Lalettan Comedy Gold",
-          date: daysFromNow(31),
-          venueName: "Rocks & Brews",
-          venueArea: "Kakkanad, Kochi",
-        },
-      ],
-    });
-    console.log("Seeded 3 sample events.");
-  } else {
-    console.log(`Events already exist (${existingCount}), skipping seed.`);
-  }
 
   const roundCount = await prisma.quizRound.count();
   if (roundCount === 0) {
