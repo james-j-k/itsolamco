@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Archivo, JetBrains_Mono, Baloo_Chettan_2 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const anton = Anton({
@@ -47,7 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`scroll-smooth ${anton.variable} ${archivo.variable} ${jetbrainsMono.variable} ${balooChettan2.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
