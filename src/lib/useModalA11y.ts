@@ -11,6 +11,13 @@ const FOCUSABLE_SELECTOR =
 // bottom-sheet scrolls along with — or instead of — the sheet's own content).
 export function useModalA11y(open: boolean, onClose: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Keep a ref to the latest onClose so the focus-trap effect below doesn't
+  // need it as a dependency — onClose is an inline arrow function at every
+  // call site, so a fresh reference on every parent render (e.g. HomePage's
+  // 1s countdown tick) would otherwise re-run that effect constantly,
+  // yanking focus back to the modal's first field mid-keystroke.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +46,7 @@ export function useModalA11y(open: boolean, onClose: () => void) {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab" || !container) return;
@@ -61,7 +68,7 @@ export function useModalA11y(open: boolean, onClose: () => void) {
       document.removeEventListener("keydown", handleKeyDown, true);
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return containerRef;
 }
