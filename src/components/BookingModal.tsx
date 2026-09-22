@@ -93,7 +93,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
             <h3 className="font-display text-4xl mb-6">GOT IT.</h3>
             <p className="text-[#8C8477]">
               We&apos;ve noted your interest. Final headcount and table confirmation happens at the venue or via our{" "}
-              <a href="mailto:itsolamco@gmail.com" className="text-[#B8451D] hover:underline">Instagram</a> closer to the night — we&apos;ll be in touch.
+              <a href="https://www.instagram.com/itsolamco/" target="_blank" rel="noopener noreferrer" className="text-[#B8451D] hover:underline">Instagram</a> closer to the night — we&apos;ll be in touch.
             </p>
             <button
               onClick={onClose}

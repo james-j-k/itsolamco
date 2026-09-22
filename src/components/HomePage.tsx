@@ -22,8 +22,10 @@ import type { EventDTO } from "@/types/event";
 import type { QuizRoundDTO, VenueDTO } from "@/types/content";
 import BookingModal from "@/components/BookingModal";
 import VenueInquiryModal from "@/components/VenueInquiryModal";
-import ComingSoonModal from "@/components/ComingSoonModal";
 import { useModalA11y } from "@/lib/useModalA11y";
+
+const INSTAGRAM_URL = "https://www.instagram.com/itsolamco/";
+const X_URL = "https://x.com/itsOlamco";
 
 const NAV_LINKS = [
   { href: "#statement-wipe", label: "Manifesto" },
@@ -108,7 +110,6 @@ export default function HomePage({ events, rounds, venues }: Props) {
   const [bookingPreselect, setBookingPreselect] = useState<string | null>(null);
   const [bookingKey, setBookingKey] = useState(0);
   const [venueOpen, setVenueOpen] = useState(false);
-  const [comingSoon, setComingSoon] = useState<string | null>(null);
   const [countdown, setCountdown] = useState({ d: "00", h: "00", m: "00", s: "00" });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const canHover = useSyncExternalStore(
@@ -818,20 +819,24 @@ export default function HomePage({ events, rounds, venues }: Props) {
                 Kochi&apos;s hyper-local trivia outfit. Born in the pubs, lived in the screens, thriving in the collective memory of 90s cinema.
               </p>
               <div className="flex gap-6">
-                <button
-                  type="button"
-                  onClick={() => setComingSoon("Instagram")}
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
                   className="w-12 h-12 border border-[#8C8477]/40 flex items-center justify-center hover:bg-[#B8451D] hover:border-[#B8451D] active:bg-[#B8451D] active:border-[#B8451D] transition-all"
                 >
                   <InstagramIcon />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setComingSoon("X")}
+                </a>
+                <a
+                  href={X_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="X (Twitter)"
                   className="w-12 h-12 border border-[#8C8477]/40 flex items-center justify-center hover:bg-[#B8451D] hover:border-[#B8451D] active:bg-[#B8451D] active:border-[#B8451D] transition-all"
                 >
                   <XLogoIcon />
-                </button>
+                </a>
                 <a href="mailto:itsolamco@gmail.com" className="w-12 h-12 border border-[#8C8477]/40 flex items-center justify-center hover:bg-[#B8451D] hover:border-[#B8451D] active:bg-[#B8451D] active:border-[#B8451D] transition-all">
                   <Mail size="1em" />
                 </a>
@@ -897,7 +902,6 @@ export default function HomePage({ events, rounds, venues }: Props) {
         preselectedEventId={bookingPreselect}
       />
       <VenueInquiryModal open={venueOpen} onClose={() => setVenueOpen(false)} />
-      <ComingSoonModal open={comingSoon !== null} onClose={() => setComingSoon(null)} label={comingSoon ?? ""} />
     </div>
   );
 }
