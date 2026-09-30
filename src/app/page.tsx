@@ -6,7 +6,7 @@ import type { QuizRoundDTO, VenueDTO } from "@/types/content";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [events, rounds, venues] = await Promise.all([
+  const [events, rounds, venues, unassignedBookingCount] = await Promise.all([
     prisma.event.findMany({
       where: { date: { gte: new Date() } },
       orderBy: { date: "asc" },
@@ -17,16 +17,20 @@ export default async function Page() {
     }),
     prisma.quizRound.findMany({ orderBy: { order: "asc" } }),
     prisma.venue.findMany({ orderBy: { order: "asc" } }),
+    // Bookings made for "Any upcoming night" (no specific event picked)
+    // aren't tied to an event's id, so they'd otherwise be invisible to
+    // the count above — they belong to whichever night comes first.
+    prisma.booking.count({ where: { eventId: null, status: { not: "cancelled" } } }),
   ]);
 
-  const eventDTOs: EventDTO[] = events.map((e) => ({
+  const eventDTOs: EventDTO[] = events.map((e, i) => ({
     id: e.id,
     title: e.title,
     theme: e.theme,
     date: e.date.toISOString(),
     venueName: e.venueName,
     venueArea: e.venueArea,
-    teamsBooked: e._count.bookings,
+    teamsBooked: e._count.bookings + (i === 0 ? unassignedBookingCount : 0),
   }));
 
   const roundDTOs: QuizRoundDTO[] = rounds.map((r) => ({
