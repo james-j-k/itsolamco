@@ -38,6 +38,10 @@ model Booking {
   status      String   @default("pending") // pending | confirmed | cancelled
   isRead      Boolean  @default(false)
   emailSent   Boolean  @default(false)
+  // The status ("confirmed" | "cancelled") a status-update email was last
+  // manually sent for, so the admin panel knows whether the *current*
+  // status still needs a notification — null means none sent yet.
+  statusEmailSentFor String?
   event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   eventId     String?
   createdAt   DateTime @default(now())

@@ -40,6 +40,7 @@ export default async function AdminPage() {
         status: b.status,
         isRead: b.isRead,
         emailSent: b.emailSent,
+        statusEmailSentFor: b.statusEmailSentFor,
         createdAt: b.createdAt.toISOString(),
         eventTitle: b.event?.title ?? null,
       }))}

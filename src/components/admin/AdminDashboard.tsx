@@ -52,6 +52,34 @@ function EmailStatusCell({
   );
 }
 
+function StatusEmailCell({
+  status,
+  sentFor,
+  sending,
+  onSend,
+}: {
+  status: string;
+  sentFor: string | null;
+  sending: boolean;
+  onSend: () => void;
+}) {
+  if (status !== "confirmed" && status !== "cancelled") {
+    return <span className="font-mono text-[10px] text-[#8C8477]/50">—</span>;
+  }
+  if (sentFor === status) {
+    return <span className="font-mono text-[10px] uppercase text-[#4B7B4E]">Sent ✓</span>;
+  }
+  return (
+    <button
+      onClick={onSend}
+      disabled={sending}
+      className="font-mono text-[10px] uppercase text-[#B8451D] hover:underline disabled:opacity-50 disabled:hover:no-underline"
+    >
+      {sending ? "Sending…" : `Send ${status} email`}
+    </button>
+  );
+}
+
 function DragHandle() {
   return (
     <span className="cursor-grab active:cursor-grabbing text-[#8C8477] select-none mr-2" title="Drag to reorder">
@@ -113,6 +141,7 @@ export default function AdminDashboard({
   const [draggedVenueId, setDraggedVenueId] = useState<string | null>(null);
   const [resendingBookingIds, setResendingBookingIds] = useState<Set<string>>(new Set());
   const [resendingInquiryIds, setResendingInquiryIds] = useState<Set<string>>(new Set());
+  const [sendingStatusEmailIds, setSendingStatusEmailIds] = useState<Set<string>>(new Set());
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
@@ -191,6 +220,24 @@ export default function AdminDashboard({
       pushError("Couldn't send that email — try again.");
     } finally {
       setResendingBookingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  async function sendStatusEmail(id: string) {
+    setSendingStatusEmailIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/send-status-email`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      const data: { statusEmailSentFor: string | null } = await res.json();
+      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, statusEmailSentFor: data.statusEmailSentFor } : b)));
+    } catch {
+      pushError("Couldn't send that status email — try again.");
+    } finally {
+      setSendingStatusEmailIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -450,6 +497,7 @@ export default function AdminDashboard({
                 <th className="p-3">Size</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Email</th>
+                <th className="p-3">Notify Status</th>
                 <th className="p-3">Submitted</th>
                 <th className="p-3"></th>
               </tr>
@@ -486,6 +534,14 @@ export default function AdminDashboard({
                       onResend={() => resendBookingEmail(b.id)}
                     />
                   </td>
+                  <td className="p-3">
+                    <StatusEmailCell
+                      status={b.status}
+                      sentFor={b.statusEmailSentFor}
+                      sending={sendingStatusEmailIds.has(b.id)}
+                      onSend={() => sendStatusEmail(b.id)}
+                    />
+                  </td>
                   <td className="p-3 whitespace-nowrap text-xs text-[#8C8477]">{fmtDate(b.createdAt)}</td>
                   <td className="p-3">
                     <button onClick={() => deleteBooking(b.id, b.teamName)} className="font-mono text-[10px] uppercase hover:text-[#B8451D]">
@@ -496,7 +552,7 @@ export default function AdminDashboard({
               ))}
               {bookings.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-[#8C8477] font-mono text-xs">
+                  <td colSpan={9} className="p-6 text-center text-[#8C8477] font-mono text-xs">
                     No bookings yet.
                   </td>
                 </tr>

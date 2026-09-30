@@ -19,6 +19,7 @@ export type AdminBooking = {
   status: string;
   isRead: boolean;
   emailSent: boolean;
+  statusEmailSentFor: string | null;
   createdAt: string;
   eventTitle: string | null;
 };

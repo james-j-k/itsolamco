@@ -39,15 +39,19 @@ type BookingWithEvent = {
   event: { title: string; date: Date } | null;
 };
 
+function eventLineFor(event: { title: string; date: Date } | null) {
+  return event
+    ? `${event.title} — ${new Date(event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`
+    : "the next available night";
+}
+
 // Returns whether the emails were actually sent (false when RESEND_API_KEY
 // isn't configured) so callers can distinguish "skipped" from "sent".
 export async function sendBookingEmails(booking: BookingWithEvent): Promise<boolean> {
   const client = getClient();
   if (!client) return false;
 
-  const eventLine = booking.event
-    ? `${booking.event.title} — ${new Date(booking.event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`
-    : "the next available night";
+  const eventLine = eventLineFor(booking.event);
 
   await Promise.all([
     client.emails.send({
@@ -74,6 +78,44 @@ export async function sendBookingEmails(booking: BookingWithEvent): Promise<bool
       `),
     }),
   ]);
+  return true;
+}
+
+// Manually triggered from the admin panel when the admin changes a booking's
+// status — never sent automatically. Customer-facing only; the admin already
+// knows, since they're the one who just changed it.
+export async function sendBookingStatusEmail(
+  booking: BookingWithEvent,
+  status: "confirmed" | "cancelled"
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+
+  const eventLine = eventLineFor(booking.event);
+
+  const content =
+    status === "confirmed"
+      ? {
+          subject: "You're confirmed — It's Olam Company",
+          html: `
+            <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
+            <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventLine}</strong>. See you there!</p>
+          `,
+        }
+      : {
+          subject: "Booking update — It's Olam Company",
+          html: `
+            <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
+            <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s slot for <strong>${eventLine}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
+          `,
+        };
+
+  await client.emails.send({
+    from: FROM,
+    to: booking.email,
+    subject: content.subject,
+    html: wrapEmail(content.html),
+  });
   return true;
 }
 
