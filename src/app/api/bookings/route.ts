@@ -26,6 +26,24 @@ export async function POST(request: NextRequest) {
 
   const { teamName, contactName, email, teamSize, eventId, phone, message } = parsed.data;
 
+  // Same email registering twice for the same night is almost always a
+  // mistake (or a change of mind) rather than a second real team — point
+  // them at Instagram to fix it instead of silently creating a duplicate
+  // for the admin to spot and clean up by hand. Cancelled bookings don't
+  // count, so someone can always re-register after cancelling.
+  const existing = await prisma.booking.findFirst({
+    where: { email, eventId: eventId || null, status: { not: "cancelled" } },
+  });
+  if (existing) {
+    return NextResponse.json(
+      {
+        error:
+          "You've already got a booking in for this night. DM us on Instagram if you need to change your team size or details.",
+      },
+      { status: 409 }
+    );
+  }
+
   const booking = await prisma.booking.create({
     data: {
       teamName,
