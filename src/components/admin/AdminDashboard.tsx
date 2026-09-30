@@ -52,6 +52,25 @@ function EmailStatusCell({
   );
 }
 
+function notifyUpdateStatus(
+  status: string,
+  teamSize: number,
+  statusEmailSentFor: string | null,
+  teamSizeEmailSentFor: number | null
+) {
+  const statusChanged = status !== "pending" && status !== statusEmailSentFor;
+  const sizeChanged = teamSize !== teamSizeEmailSentFor;
+  const label =
+    status === "cancelled" && statusChanged
+      ? "Send cancelled email"
+      : statusChanged && sizeChanged
+        ? "Send confirmed + size update"
+        : statusChanged
+          ? "Send confirmed email"
+          : "Send size update email";
+  return { statusChanged, sizeChanged, label };
+}
+
 function NotifyUpdateCell({
   status,
   teamSize,
@@ -67,8 +86,12 @@ function NotifyUpdateCell({
   sending: boolean;
   onSend: () => void;
 }) {
-  const statusChanged = status !== "pending" && status !== statusEmailSentFor;
-  const sizeChanged = teamSize !== teamSizeEmailSentFor;
+  const { statusChanged, sizeChanged, label } = notifyUpdateStatus(
+    status,
+    teamSize,
+    statusEmailSentFor,
+    teamSizeEmailSentFor
+  );
 
   if (!statusChanged && !sizeChanged) {
     return statusEmailSentFor !== null ? (
@@ -77,15 +100,6 @@ function NotifyUpdateCell({
       <span className="font-mono text-[10px] text-[#8C8477]/50">—</span>
     );
   }
-
-  const label =
-    status === "cancelled" && statusChanged
-      ? "Send cancelled email"
-      : statusChanged && sizeChanged
-        ? "Send confirmed + size update"
-        : statusChanged
-          ? "Send confirmed email"
-          : "Send size update email";
 
   return (
     <button
@@ -297,6 +311,19 @@ export default function AdminDashboard({
         return next;
       });
     }
+  }
+
+  function confirmSendUpdateEmail(b: AdminBooking) {
+    const { label } = notifyUpdateStatus(b.status, b.teamSize, b.statusEmailSentFor, b.teamSizeEmailSentFor);
+    askConfirm({
+      title: "Send this email?",
+      message: `${label} to ${b.contactName} (${b.email}) for "${b.teamName}"?`,
+      confirmLabel: "Send",
+      onConfirm: () => {
+        setConfirmState(null);
+        sendUpdateEmail(b.id);
+      },
+    });
   }
 
   async function sendUpdateEmail(id: string) {
@@ -656,7 +683,7 @@ export default function AdminDashboard({
                       statusEmailSentFor={b.statusEmailSentFor}
                       teamSizeEmailSentFor={b.teamSizeEmailSentFor}
                       sending={sendingUpdateEmailIds.has(b.id)}
-                      onSend={() => sendUpdateEmail(b.id)}
+                      onSend={() => confirmSendUpdateEmail(b)}
                     />
                   </td>
                   <td className="p-3 whitespace-nowrap text-xs text-[#8C8477]">{fmtDate(b.createdAt)}</td>
