@@ -5,4 +5,5 @@ export type EventDTO = {
   date: string; // ISO string
   venueName: string;
   venueArea: string;
+  teamsBooked: number;
 };

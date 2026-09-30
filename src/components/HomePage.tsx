@@ -573,6 +573,12 @@ export default function HomePage({ events, rounds, venues }: Props) {
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.m}</div><div className="font-mono text-[8px] opacity-60">MIN</div></div>
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.s}</div><div className="font-mono text-[8px] opacity-60">SEC</div></div>
                   </div>
+                  {nextEvent.teamsBooked > 0 && (
+                    <p className="font-mono text-[11px] text-[#B8451D] mt-4 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-[#B8451D] rounded-full" />
+                      {nextEvent.teamsBooked} {nextEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-[#8C8477]">New nights dropping soon — check back shortly.</p>
@@ -800,7 +806,7 @@ export default function HomePage({ events, rounds, venues }: Props) {
               <div>
                 <div className="font-mono text-[#F5F0E6]/60 mb-6">FOR THE FANS</div>
                 <h3 className="font-display text-5xl md:text-7xl mb-8 group-hover:translate-x-2 group-active:translate-x-2 transition-transform">BOOK A TEAM</h3>
-                <p className="text-[#F5F0E6]/80 text-xl mb-12 leading-relaxed">Got a gang of friends who think they know everything about Malayali memes? Let us know you&apos;re in — final RSVP happens at the venue or via our Instagram. Slots are limited to 15 teams per night.</p>
+                <p className="text-[#F5F0E6]/80 text-xl mb-12 leading-relaxed">Got a gang of friends who think they know everything about Malayali memes? Let us know you&apos;re in — final RSVP happens at the venue or via our Instagram.</p>
               </div>
               <button onClick={() => openBooking()} className="magnetic bg-[#F5F0E6] text-[#B8451D] py-8 px-12 font-display text-2xl hover:bg-[#1C1712] hover:text-[#F5F0E6] active:bg-[#1C1712] active:text-[#F5F0E6] transition-all flex items-center justify-between">
                 I&apos;M INTERESTED <Users size="1em" />

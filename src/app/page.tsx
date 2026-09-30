@@ -11,6 +11,9 @@ export default async function Page() {
       where: { date: { gte: new Date() } },
       orderBy: { date: "asc" },
       take: 6,
+      // Cancelled bookings shouldn't count toward the public "teams booked"
+      // social-proof number — the count should reflect real interest.
+      include: { _count: { select: { bookings: { where: { status: { not: "cancelled" } } } } } },
     }),
     prisma.quizRound.findMany({ orderBy: { order: "asc" } }),
     prisma.venue.findMany({ orderBy: { order: "asc" } }),
@@ -23,6 +26,7 @@ export default async function Page() {
     date: e.date.toISOString(),
     venueName: e.venueName,
     venueArea: e.venueArea,
+    teamsBooked: e._count.bookings,
   }));
 
   const roundDTOs: QuizRoundDTO[] = rounds.map((r) => ({
