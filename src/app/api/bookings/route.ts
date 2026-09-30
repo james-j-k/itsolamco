@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
       phone: phone || null,
       message: message || null,
       eventId: eventId || null,
+      // Starts equal to the just-registered size so the admin panel's
+      // "notify" button doesn't light up until the size is actually edited.
+      teamSizeEmailSentFor: teamSize,
     },
     include: { event: { select: { title: true, date: true } } },
   });

@@ -52,31 +52,101 @@ function EmailStatusCell({
   );
 }
 
-function StatusEmailCell({
+function NotifyUpdateCell({
   status,
-  sentFor,
+  teamSize,
+  statusEmailSentFor,
+  teamSizeEmailSentFor,
   sending,
   onSend,
 }: {
   status: string;
-  sentFor: string | null;
+  teamSize: number;
+  statusEmailSentFor: string | null;
+  teamSizeEmailSentFor: number | null;
   sending: boolean;
   onSend: () => void;
 }) {
-  if (status !== "confirmed" && status !== "cancelled") {
-    return <span className="font-mono text-[10px] text-[#8C8477]/50">—</span>;
+  const statusChanged = status !== "pending" && status !== statusEmailSentFor;
+  const sizeChanged = teamSize !== teamSizeEmailSentFor;
+
+  if (!statusChanged && !sizeChanged) {
+    return statusEmailSentFor !== null ? (
+      <span className="font-mono text-[10px] uppercase text-[#4B7B4E]">Sent ✓</span>
+    ) : (
+      <span className="font-mono text-[10px] text-[#8C8477]/50">—</span>
+    );
   }
-  if (sentFor === status) {
-    return <span className="font-mono text-[10px] uppercase text-[#4B7B4E]">Sent ✓</span>;
-  }
+
+  const label =
+    status === "cancelled" && statusChanged
+      ? "Send cancelled email"
+      : statusChanged && sizeChanged
+        ? "Send confirmed + size update"
+        : statusChanged
+          ? "Send confirmed email"
+          : "Send size update email";
+
   return (
     <button
       onClick={onSend}
       disabled={sending}
       className="font-mono text-[10px] uppercase text-[#B8451D] hover:underline disabled:opacity-50 disabled:hover:no-underline"
     >
-      {sending ? "Sending…" : `Send ${status} email`}
+      {sending ? "Sending…" : label}
     </button>
+  );
+}
+
+function TeamSizeCell({
+  size,
+  editing,
+  draft,
+  onStartEdit,
+  onDraftChange,
+  onSave,
+  onCancel,
+}: {
+  size: number;
+  editing: boolean;
+  draft: string;
+  onStartEdit: () => void;
+  onDraftChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span>{size}</span>
+        <button onClick={onStartEdit} aria-label="Edit team size" className="text-[#8C8477] hover:text-[#B8451D]">
+          ✎
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        type="number"
+        min={1}
+        max={15}
+        autoFocus
+        value={draft}
+        onChange={(e) => onDraftChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onSave();
+          if (e.key === "Escape") onCancel();
+        }}
+        className="w-14 border border-[#1C1712] bg-[#F5F0E6] px-1 py-0.5 font-mono text-xs"
+      />
+      <button onClick={onSave} aria-label="Save" className="font-mono text-[10px] hover:text-[#B8451D]">
+        ✓
+      </button>
+      <button onClick={onCancel} aria-label="Cancel" className="font-mono text-[10px] hover:text-[#B8451D]">
+        ✕
+      </button>
+    </div>
   );
 }
 
@@ -141,7 +211,9 @@ export default function AdminDashboard({
   const [draggedVenueId, setDraggedVenueId] = useState<string | null>(null);
   const [resendingBookingIds, setResendingBookingIds] = useState<Set<string>>(new Set());
   const [resendingInquiryIds, setResendingInquiryIds] = useState<Set<string>>(new Set());
-  const [sendingStatusEmailIds, setSendingStatusEmailIds] = useState<Set<string>>(new Set());
+  const [sendingUpdateEmailIds, setSendingUpdateEmailIds] = useState<Set<string>>(new Set());
+  const [editingSizeId, setEditingSizeId] = useState<string | null>(null);
+  const [sizeDraft, setSizeDraft] = useState("");
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
@@ -227,21 +299,54 @@ export default function AdminDashboard({
     }
   }
 
-  async function sendStatusEmail(id: string) {
-    setSendingStatusEmailIds((prev) => new Set(prev).add(id));
+  async function sendUpdateEmail(id: string) {
+    setSendingUpdateEmailIds((prev) => new Set(prev).add(id));
     try {
-      const res = await fetch(`/api/admin/bookings/${id}/send-status-email`, { method: "POST" });
+      const res = await fetch(`/api/admin/bookings/${id}/send-update-email`, { method: "POST" });
       if (!res.ok) throw new Error();
-      const data: { statusEmailSentFor: string | null } = await res.json();
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, statusEmailSentFor: data.statusEmailSentFor } : b)));
+      const data: { statusEmailSentFor: string | null; teamSizeEmailSentFor: number | null } = await res.json();
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === id
+            ? { ...b, statusEmailSentFor: data.statusEmailSentFor, teamSizeEmailSentFor: data.teamSizeEmailSentFor }
+            : b
+        )
+      );
     } catch {
-      pushError("Couldn't send that status email — try again.");
+      pushError("Couldn't send that update email — try again.");
     } finally {
-      setSendingStatusEmailIds((prev) => {
+      setSendingUpdateEmailIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
+    }
+  }
+
+  function startEditSize(id: string, currentSize: number) {
+    setEditingSizeId(id);
+    setSizeDraft(String(currentSize));
+  }
+
+  async function saveTeamSize(id: string) {
+    const n = Number(sizeDraft);
+    if (!Number.isInteger(n) || n < 1 || n > 15) {
+      pushError("Team size must be a whole number between 1 and 15.");
+      return;
+    }
+    const prev = bookings;
+    setBookings((cur) => cur.map((b) => (b.id === id ? { ...b, teamSize: n } : b)));
+    setEditingSizeId(null);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamSize: n }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setBookings(prev);
+      pushError("Couldn't update team size — try again.");
     }
   }
 
@@ -497,7 +602,7 @@ export default function AdminDashboard({
                 <th className="p-3">Size</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Email</th>
-                <th className="p-3">Notify Status</th>
+                <th className="p-3">Notify Update</th>
                 <th className="p-3">Submitted</th>
                 <th className="p-3"></th>
               </tr>
@@ -515,7 +620,17 @@ export default function AdminDashboard({
                     {b.phone && <div className="text-[#8C8477] text-xs">{b.phone}</div>}
                   </td>
                   <td className="p-3">{b.eventTitle ?? "—"}</td>
-                  <td className="p-3">{b.teamSize}</td>
+                  <td className="p-3">
+                    <TeamSizeCell
+                      size={b.teamSize}
+                      editing={editingSizeId === b.id}
+                      draft={sizeDraft}
+                      onStartEdit={() => startEditSize(b.id, b.teamSize)}
+                      onDraftChange={setSizeDraft}
+                      onSave={() => saveTeamSize(b.id)}
+                      onCancel={() => setEditingSizeId(null)}
+                    />
+                  </td>
                   <td className="p-3">
                     <select
                       value={b.status}
@@ -535,11 +650,13 @@ export default function AdminDashboard({
                     />
                   </td>
                   <td className="p-3">
-                    <StatusEmailCell
+                    <NotifyUpdateCell
                       status={b.status}
-                      sentFor={b.statusEmailSentFor}
-                      sending={sendingStatusEmailIds.has(b.id)}
-                      onSend={() => sendStatusEmail(b.id)}
+                      teamSize={b.teamSize}
+                      statusEmailSentFor={b.statusEmailSentFor}
+                      teamSizeEmailSentFor={b.teamSizeEmailSentFor}
+                      sending={sendingUpdateEmailIds.has(b.id)}
+                      onSend={() => sendUpdateEmail(b.id)}
                     />
                   </td>
                   <td className="p-3 whitespace-nowrap text-xs text-[#8C8477]">{fmtDate(b.createdAt)}</td>

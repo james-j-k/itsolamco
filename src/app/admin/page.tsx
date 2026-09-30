@@ -41,6 +41,7 @@ export default async function AdminPage() {
         isRead: b.isRead,
         emailSent: b.emailSent,
         statusEmailSentFor: b.statusEmailSentFor,
+        teamSizeEmailSentFor: b.teamSizeEmailSentFor,
         createdAt: b.createdAt.toISOString(),
         eventTitle: b.event?.title ?? null,
       }))}

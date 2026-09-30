@@ -20,6 +20,7 @@ export type AdminBooking = {
   isRead: boolean;
   emailSent: boolean;
   statusEmailSentFor: string | null;
+  teamSizeEmailSentFor: number | null;
   createdAt: string;
   eventTitle: string | null;
 };

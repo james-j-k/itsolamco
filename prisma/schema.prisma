@@ -38,10 +38,14 @@ model Booking {
   status      String   @default("pending") // pending | confirmed | cancelled
   isRead      Boolean  @default(false)
   emailSent   Boolean  @default(false)
-  // The status ("confirmed" | "cancelled") a status-update email was last
-  // manually sent for, so the admin panel knows whether the *current*
-  // status still needs a notification — null means none sent yet.
-  statusEmailSentFor String?
+  // Snapshot of (status, teamSize) as of the last manually-sent update
+  // email, so the admin panel knows whether the *current* values still
+  // need a notification. statusEmailSentFor is null until the first send
+  // (even a size-only update stamps it with the current status); a fresh
+  // booking's teamSizeEmailSentFor starts equal to its initial teamSize
+  // so the button doesn't activate until something actually changes.
+  statusEmailSentFor   String?
+  teamSizeEmailSentFor Int?
   event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   eventId     String?
   createdAt   DateTime @default(now())

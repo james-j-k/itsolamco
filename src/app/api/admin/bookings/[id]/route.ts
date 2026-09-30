@@ -4,23 +4,28 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ id: string }> };
 
-const statusSchema = z.object({
-  status: z.enum(["pending", "confirmed", "cancelled"]),
-});
+const updateSchema = z
+  .object({
+    status: z.enum(["pending", "confirmed", "cancelled"]).optional(),
+    teamSize: z.number().int().min(1).max(15).optional(),
+  })
+  .refine((data) => data.status !== undefined || data.teamSize !== undefined, {
+    message: "Provide status and/or teamSize",
+  });
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  const parsed = statusSchema.safeParse(body);
+  const parsed = updateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
   try {
     const booking = await prisma.booking.update({
       where: { id },
-      data: { status: parsed.data.status },
+      data: parsed.data,
     });
     return NextResponse.json({ booking });
   } catch {

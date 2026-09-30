@@ -36,6 +36,7 @@ type BookingWithEvent = {
   contactName: string;
   email: string;
   teamSize: number;
+  status: string;
   event: { title: string; date: Date } | null;
 };
 
@@ -82,40 +83,51 @@ export async function sendBookingEmails(booking: BookingWithEvent): Promise<bool
 }
 
 // Manually triggered from the admin panel when the admin changes a booking's
-// status — never sent automatically. Customer-facing only; the admin already
-// knows, since they're the one who just changed it.
-export async function sendBookingStatusEmail(
+// status and/or team size — never sent automatically. Customer-facing only;
+// the admin already knows, since they're the one who just changed it.
+// statusChanged/sizeChanged say which of the two actually differ from what
+// was last notified, so the single combined email only mentions what's new.
+export async function sendBookingUpdateEmail(
   booking: BookingWithEvent,
-  status: "confirmed" | "cancelled"
+  { statusChanged, sizeChanged }: { statusChanged: boolean; sizeChanged: boolean }
 ): Promise<boolean> {
   const client = getClient();
   if (!client) return false;
 
   const eventLine = eventLineFor(booking.event);
 
-  const content =
-    status === "confirmed"
-      ? {
-          subject: "You're confirmed — It's Olam Company",
-          html: `
-            <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
-            <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventLine}</strong>. See you there!</p>
-          `,
-        }
-      : {
-          subject: "Booking update — It's Olam Company",
-          html: `
-            <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
-            <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s slot for <strong>${eventLine}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
-          `,
-        };
+  let subject: string;
+  let bodyHtml: string;
 
-  await client.emails.send({
-    from: FROM,
-    to: booking.email,
-    subject: content.subject,
-    html: wrapEmail(content.html),
-  });
+  if (booking.status === "cancelled" && statusChanged) {
+    // Cancellation supersedes any size change — no point telling someone
+    // their headcount was updated for a booking that no longer exists.
+    subject = "Booking update — It's Olam Company";
+    bodyHtml = `
+      <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
+      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s slot for <strong>${eventLine}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
+    `;
+  } else if (statusChanged && booking.status === "confirmed") {
+    subject = "You're confirmed — It's Olam Company";
+    bodyHtml = sizeChanged
+      ? `
+        <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
+        <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong> is confirmed for <strong>${eventLine}</strong> with <strong>${booking.teamSize} players</strong>. See you there!</p>
+      `
+      : `
+        <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
+        <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventLine}</strong>. See you there!</p>
+      `;
+  } else {
+    // sizeChanged only (status is unchanged or still pending)
+    subject = "Booking update — It's Olam Company";
+    bodyHtml = `
+      <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
+      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s headcount for <strong>${eventLine}</strong> has been updated to <strong>${booking.teamSize} players</strong>.</p>
+    `;
+  }
+
+  await client.emails.send({ from: FROM, to: booking.email, subject, html: wrapEmail(bodyHtml) });
   return true;
 }
 
