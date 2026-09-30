@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { bookingSchema, isLikelyBot } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rateLimit";
@@ -39,7 +39,11 @@ export async function POST(request: NextRequest) {
     include: { event: { select: { title: true, date: true } } },
   });
 
-  sendBookingEmails(booking).catch((err) => console.error("Failed to send booking emails:", err));
+  // Fire-and-forget alone isn't enough here: on Vercel's serverless runtime,
+  // the function execution can be frozen the instant the response is sent,
+  // killing any still-pending promise before it finishes. after() keeps the
+  // invocation alive (via Vercel's waitUntil) until this completes.
+  after(() => sendBookingEmails(booking).catch((err) => console.error("Failed to send booking emails:", err)));
 
   return NextResponse.json({ id: booking.id }, { status: 201 });
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { venueInquirySchema, isLikelyBot } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rateLimit";
@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  sendVenueInquiryEmails(inquiry).catch((err) => console.error("Failed to send venue inquiry emails:", err));
+  // See bookings/route.ts for why this needs after() rather than plain
+  // fire-and-forget on Vercel's serverless runtime.
+  after(() => sendVenueInquiryEmails(inquiry).catch((err) => console.error("Failed to send venue inquiry emails:", err)));
 
   return NextResponse.json({ id: inquiry.id }, { status: 201 });
 }
