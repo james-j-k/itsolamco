@@ -37,6 +37,7 @@ model Booking {
   message     String?
   status      String   @default("pending") // pending | confirmed | cancelled
   isRead      Boolean  @default(false)
+  emailSent   Boolean  @default(false)
   event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   eventId     String?
   createdAt   DateTime @default(now())
@@ -51,6 +52,7 @@ model VenueInquiry {
   message     String?
   status      String   @default("new") // new | contacted | closed
   isRead      Boolean  @default(false)
+  emailSent   Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
 

@@ -39,9 +39,11 @@ type BookingWithEvent = {
   event: { title: string; date: Date } | null;
 };
 
-export async function sendBookingEmails(booking: BookingWithEvent) {
+// Returns whether the emails were actually sent (false when RESEND_API_KEY
+// isn't configured) so callers can distinguish "skipped" from "sent".
+export async function sendBookingEmails(booking: BookingWithEvent): Promise<boolean> {
   const client = getClient();
-  if (!client) return;
+  if (!client) return false;
 
   const eventLine = booking.event
     ? `${booking.event.title} — ${new Date(booking.event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`
@@ -72,6 +74,7 @@ export async function sendBookingEmails(booking: BookingWithEvent) {
       `),
     }),
   ]);
+  return true;
 }
 
 type VenueInquiryEmail = {
@@ -81,9 +84,9 @@ type VenueInquiryEmail = {
   message: string | null;
 };
 
-export async function sendVenueInquiryEmails(inquiry: VenueInquiryEmail) {
+export async function sendVenueInquiryEmails(inquiry: VenueInquiryEmail): Promise<boolean> {
   const client = getClient();
-  if (!client) return;
+  if (!client) return false;
 
   await Promise.all([
     client.emails.send({
@@ -110,4 +113,5 @@ export async function sendVenueInquiryEmails(inquiry: VenueInquiryEmail) {
       `),
     }),
   ]);
+  return true;
 }

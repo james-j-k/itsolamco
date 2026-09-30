@@ -18,6 +18,7 @@ export type AdminBooking = {
   message: string | null;
   status: string;
   isRead: boolean;
+  emailSent: boolean;
   createdAt: string;
   eventTitle: string | null;
 };
@@ -31,6 +32,7 @@ export type AdminInquiry = {
   message: string | null;
   status: string;
   isRead: boolean;
+  emailSent: boolean;
   createdAt: string;
 };
 

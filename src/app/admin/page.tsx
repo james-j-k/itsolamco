@@ -39,6 +39,7 @@ export default async function AdminPage() {
         message: b.message,
         status: b.status,
         isRead: b.isRead,
+        emailSent: b.emailSent,
         createdAt: b.createdAt.toISOString(),
         eventTitle: b.event?.title ?? null,
       }))}
@@ -51,6 +52,7 @@ export default async function AdminPage() {
         message: i.message,
         status: i.status,
         isRead: i.isRead,
+        emailSent: i.emailSent,
         createdAt: i.createdAt.toISOString(),
       }))}
       initialRounds={rounds.map((r) => ({

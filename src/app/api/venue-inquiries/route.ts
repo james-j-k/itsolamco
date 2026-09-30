@@ -37,7 +37,16 @@ export async function POST(request: NextRequest) {
 
   // See bookings/route.ts for why this needs after() rather than plain
   // fire-and-forget on Vercel's serverless runtime.
-  after(() => sendVenueInquiryEmails(inquiry).catch((err) => console.error("Failed to send venue inquiry emails:", err)));
+  after(async () => {
+    try {
+      const sent = await sendVenueInquiryEmails(inquiry);
+      if (sent) {
+        await prisma.venueInquiry.update({ where: { id: inquiry.id }, data: { emailSent: true } });
+      }
+    } catch (err) {
+      console.error("Failed to send venue inquiry emails:", err);
+    }
+  });
 
   return NextResponse.json({ id: inquiry.id }, { status: 201 });
 }

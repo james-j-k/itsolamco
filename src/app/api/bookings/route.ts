@@ -43,7 +43,16 @@ export async function POST(request: NextRequest) {
   // the function execution can be frozen the instant the response is sent,
   // killing any still-pending promise before it finishes. after() keeps the
   // invocation alive (via Vercel's waitUntil) until this completes.
-  after(() => sendBookingEmails(booking).catch((err) => console.error("Failed to send booking emails:", err)));
+  after(async () => {
+    try {
+      const sent = await sendBookingEmails(booking);
+      if (sent) {
+        await prisma.booking.update({ where: { id: booking.id }, data: { emailSent: true } });
+      }
+    } catch (err) {
+      console.error("Failed to send booking emails:", err);
+    }
+  });
 
   return NextResponse.json({ id: booking.id }, { status: 201 });
 }

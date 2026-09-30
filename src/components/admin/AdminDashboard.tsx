@@ -29,6 +29,29 @@ function NewBadge() {
   );
 }
 
+function EmailStatusCell({
+  sent,
+  sending,
+  onResend,
+}: {
+  sent: boolean;
+  sending: boolean;
+  onResend: () => void;
+}) {
+  if (sent) {
+    return <span className="font-mono text-[10px] uppercase text-[#4B7B4E]">Sent ✓</span>;
+  }
+  return (
+    <button
+      onClick={onResend}
+      disabled={sending}
+      className="font-mono text-[10px] uppercase text-[#B8451D] hover:underline disabled:opacity-50 disabled:hover:no-underline"
+    >
+      {sending ? "Sending…" : "Not sent — Resend"}
+    </button>
+  );
+}
+
 function DragHandle() {
   return (
     <span className="cursor-grab active:cursor-grabbing text-[#8C8477] select-none mr-2" title="Drag to reorder">
@@ -88,6 +111,8 @@ export default function AdminDashboard({
 
   const [draggedRoundId, setDraggedRoundId] = useState<string | null>(null);
   const [draggedVenueId, setDraggedVenueId] = useState<string | null>(null);
+  const [resendingBookingIds, setResendingBookingIds] = useState<Set<string>>(new Set());
+  const [resendingInquiryIds, setResendingInquiryIds] = useState<Set<string>>(new Set());
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
@@ -156,6 +181,23 @@ export default function AdminDashboard({
     }
   }
 
+  async function resendBookingEmail(id: string) {
+    setResendingBookingIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/resend-email`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, emailSent: true } : b)));
+    } catch {
+      pushError("Couldn't send that email — try again.");
+    } finally {
+      setResendingBookingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
   async function deleteBooking(id: string, teamName: string) {
     askConfirm({
       title: "Delete booking?",
@@ -186,6 +228,23 @@ export default function AdminDashboard({
     } catch {
       setInquiries(prev);
       pushError("Couldn't update that inquiry's status — try again.");
+    }
+  }
+
+  async function resendInquiryEmail(id: string) {
+    setResendingInquiryIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/venue-inquiries/${id}/resend-email`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      setInquiries((prev) => prev.map((i) => (i.id === id ? { ...i, emailSent: true } : i)));
+    } catch {
+      pushError("Couldn't send that email — try again.");
+    } finally {
+      setResendingInquiryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   }
 
@@ -390,6 +449,7 @@ export default function AdminDashboard({
                 <th className="p-3">Event</th>
                 <th className="p-3">Size</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Submitted</th>
                 <th className="p-3"></th>
               </tr>
@@ -419,6 +479,13 @@ export default function AdminDashboard({
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </td>
+                  <td className="p-3">
+                    <EmailStatusCell
+                      sent={b.emailSent}
+                      sending={resendingBookingIds.has(b.id)}
+                      onResend={() => resendBookingEmail(b.id)}
+                    />
+                  </td>
                   <td className="p-3 whitespace-nowrap text-xs text-[#8C8477]">{fmtDate(b.createdAt)}</td>
                   <td className="p-3">
                     <button onClick={() => deleteBooking(b.id, b.teamName)} className="font-mono text-[10px] uppercase hover:text-[#B8451D]">
@@ -429,7 +496,7 @@ export default function AdminDashboard({
               ))}
               {bookings.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-[#8C8477] font-mono text-xs">
+                  <td colSpan={8} className="p-6 text-center text-[#8C8477] font-mono text-xs">
                     No bookings yet.
                   </td>
                 </tr>
@@ -448,6 +515,7 @@ export default function AdminDashboard({
                 <th className="p-3">Contact</th>
                 <th className="p-3">Message</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Submitted</th>
                 <th className="p-3"></th>
               </tr>
@@ -476,6 +544,13 @@ export default function AdminDashboard({
                       <option value="closed">Closed</option>
                     </select>
                   </td>
+                  <td className="p-3">
+                    <EmailStatusCell
+                      sent={i.emailSent}
+                      sending={resendingInquiryIds.has(i.id)}
+                      onResend={() => resendInquiryEmail(i.id)}
+                    />
+                  </td>
                   <td className="p-3 whitespace-nowrap text-xs text-[#8C8477]">{fmtDate(i.createdAt)}</td>
                   <td className="p-3">
                     <button onClick={() => deleteInquiry(i.id, i.venueName)} className="font-mono text-[10px] uppercase hover:text-[#B8451D]">
@@ -486,7 +561,7 @@ export default function AdminDashboard({
               ))}
               {inquiries.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#8C8477] font-mono text-xs">
+                  <td colSpan={7} className="p-6 text-center text-[#8C8477] font-mono text-xs">
                     No inquiries yet.
                   </td>
                 </tr>
