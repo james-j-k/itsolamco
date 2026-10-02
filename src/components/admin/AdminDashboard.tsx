@@ -112,6 +112,56 @@ function NotifyUpdateCell({
   );
 }
 
+function EmailEditCell({
+  email,
+  editing,
+  draft,
+  onStartEdit,
+  onDraftChange,
+  onSave,
+  onCancel,
+}: {
+  email: string;
+  editing: boolean;
+  draft: string;
+  onStartEdit: () => void;
+  onDraftChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2 text-[#8C8477] text-xs">
+        <span>{email}</span>
+        <button onClick={onStartEdit} aria-label="Edit email" className="hover:text-[#B8451D]">
+          ✎
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        type="email"
+        autoFocus
+        value={draft}
+        onChange={(e) => onDraftChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onSave();
+          if (e.key === "Escape") onCancel();
+        }}
+        className="w-48 border border-[#1C1712] bg-[#F5F0E6] px-1 py-0.5 font-mono text-xs"
+      />
+      <button onClick={onSave} aria-label="Save" className="font-mono text-[10px] hover:text-[#B8451D]">
+        ✓
+      </button>
+      <button onClick={onCancel} aria-label="Cancel" className="font-mono text-[10px] hover:text-[#B8451D]">
+        ✕
+      </button>
+    </div>
+  );
+}
+
 function TeamSizeCell({
   size,
   editing,
@@ -228,6 +278,8 @@ export default function AdminDashboard({
   const [sendingUpdateEmailIds, setSendingUpdateEmailIds] = useState<Set<string>>(new Set());
   const [editingSizeId, setEditingSizeId] = useState<string | null>(null);
   const [sizeDraft, setSizeDraft] = useState("");
+  const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
@@ -353,6 +405,52 @@ export default function AdminDashboard({
   function startEditSize(id: string, currentSize: number) {
     setEditingSizeId(id);
     setSizeDraft(String(currentSize));
+  }
+
+  function startEditEmail(id: string, currentEmail: string) {
+    setEditingEmailId(id);
+    setEmailDraft(currentEmail);
+  }
+
+  async function saveEmail(id: string) {
+    const next = emailDraft.trim();
+    const current = bookings.find((b) => b.id === id);
+    if (!current) return;
+    if (next === current.email) {
+      setEditingEmailId(null);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) {
+      pushError("That doesn't look like a valid email address.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: next }),
+      });
+      if (!res.ok) throw new Error();
+      const { booking }: { booking: AdminBooking } = await res.json();
+      // The server wipes the "sent" tracking when the address changes, so take
+      // its values rather than guessing — that's what re-enables Resend.
+      setBookings((cur) =>
+        cur.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                email: booking.email,
+                emailSent: booking.emailSent,
+                statusEmailSentFor: booking.statusEmailSentFor,
+                teamSizeEmailSentFor: booking.teamSizeEmailSentFor,
+              }
+            : b
+        )
+      );
+      setEditingEmailId(null);
+    } catch {
+      pushError("Couldn't update that email — try again.");
+    }
   }
 
   async function saveTeamSize(id: string) {
@@ -643,7 +741,15 @@ export default function AdminDashboard({
                   </td>
                   <td className="p-3">
                     <div>{b.contactName}</div>
-                    <div className="text-[#8C8477] text-xs">{b.email}</div>
+                    <EmailEditCell
+                      email={b.email}
+                      editing={editingEmailId === b.id}
+                      draft={emailDraft}
+                      onStartEdit={() => startEditEmail(b.id, b.email)}
+                      onDraftChange={setEmailDraft}
+                      onSave={() => saveEmail(b.id)}
+                      onCancel={() => setEditingEmailId(null)}
+                    />
                     {b.phone && <div className="text-[#8C8477] text-xs">{b.phone}</div>}
                   </td>
                   <td className="p-3">{b.eventTitle ?? "—"}</td>

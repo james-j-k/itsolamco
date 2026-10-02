@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { EventDTO } from "@/types/event";
 import { useModalA11y } from "@/lib/useModalA11y";
+import { suggestEmail } from "@/lib/emailSuggest";
 
 type Props = {
   open: boolean;
@@ -15,6 +16,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
   const [teamName, setTeamName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [teamSize, setTeamSize] = useState(4);
   const [eventId, setEventId] = useState(preselectedEventId ?? "");
@@ -152,7 +154,11 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
                     type="email"
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailSuggestion(null);
+                    }}
+                    onBlur={() => setEmailSuggestion(suggestEmail(email))}
                     className="border-2 border-[#1C1712] bg-[#F5F0E6] px-4 py-3 focus:outline-none focus:border-[#B8451D]"
                   />
                 </label>
@@ -168,6 +174,19 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
                   />
                 </label>
               </div>
+
+              {emailSuggestion && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail(emailSuggestion);
+                    setEmailSuggestion(null);
+                  }}
+                  className="-mt-2 border border-[#B8451D] px-3 py-3 text-left font-mono text-xs text-[#B8451D] break-all transition-colors hover:bg-[#B8451D] hover:text-[#F5F0E6] active:bg-[#B8451D] active:text-[#F5F0E6]"
+                >
+                  DID YOU MEAN <span className="underline">{emailSuggestion}</span>? TAP TO FIX
+                </button>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-2">
