@@ -57,7 +57,7 @@ export function whatsappMessage(booking: MessageBooking, event: MessageEvent, rs
   const swiggy = safeHttpUrl(event.swiggyUrl);
   const note = event.reminderOfferNote?.trim();
   if (note || district || swiggy) {
-    const offer = ["*Lock your table*", note || "You can get 20% off your bill if you book your table through Swiggy or District:"];
+    const offer = ["*Lock your table (optional)*", note || "You can get 20% off your bill if you book your table through Swiggy or District:"];
     if (district) offer.push(`Book on District: ${district}`);
     if (swiggy) offer.push(`Book on Swiggy Dineout: ${swiggy}`);
     parts.push(offer.join("\n"));
