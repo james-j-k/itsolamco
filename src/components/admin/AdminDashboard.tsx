@@ -560,7 +560,7 @@ export default function AdminDashboard({
       const res = await fetch(`/api/admin/bookings/${b.id}/rsvp-link`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Couldn't get the link.");
-      const url = whatsappUrl(number, whatsappMessage(b.contactName, night, data.url));
+      const url = whatsappUrl(number, whatsappMessage(b, night, data.url));
       if (win) {
         win.opener = null;
         win.location.href = url;

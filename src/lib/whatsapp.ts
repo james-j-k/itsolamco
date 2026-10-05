@@ -1,4 +1,4 @@
-import { mapsLinkFor } from "./eventLinks";
+import { mapsLinkFor, safeHttpUrl } from "./eventLinks";
 
 const IST = "Asia/Kolkata";
 
@@ -26,19 +26,43 @@ export function whatsappNumber(raw: string | null | undefined): string | null {
   return null;
 }
 
-type MessageEvent = { title: string; date: string; venueName: string; venueArea: string; mapsUrl: string | null };
+type MessageEvent = {
+  title: string;
+  date: string;
+  venueName: string;
+  venueArea: string;
+  mapsUrl: string | null;
+  districtUrl: string | null;
+  swiggyUrl: string | null;
+  reminderOfferNote: string | null;
+};
+type MessageBooking = { contactName: string; teamName: string; teamSize: number };
 
-// The ready-typed WhatsApp message: the night, where, and the guest's private
-// RSVP link. Plain text on purpose so it reads naturally in a chat.
-export function whatsappMessage(contactName: string, event: MessageEvent, rsvpUrl: string): string {
+// The ready-typed WhatsApp message. Mirrors the reminder email: the night,
+// where, the guest's private RSVP link and the table-booking offer. Plain text
+// (plus WhatsApp's *bold*) so it reads naturally in a chat.
+export function whatsappMessage(booking: MessageBooking, event: MessageEvent, rsvpUrl: string): string {
   const when = new Date(event.date);
   const date = when.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: IST });
   const time = when.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: IST });
-  return [
-    `Hi ${contactName}, it's Olam Company. Quick reminder: ${event.title} is on ${date} at ${time}, ${event.venueName}, ${event.venueArea}.`,
-    `Location: ${mapsLinkFor(event)}`,
-    `Are you still coming? Confirm your headcount here: ${rsvpUrl}`,
-  ].join("\n\n");
+
+  const parts = [
+    `Hi ${booking.contactName}, it's James from It's Olam Company.`,
+    `Almost showtime! Your team *${booking.teamName}* (${booking.teamSize} players) is down for *${event.title}*.`,
+    [`When: ${date} at ${time}`, `Where: ${event.venueName}, ${event.venueArea}`, `Location: ${mapsLinkFor(event)}`].join("\n"),
+    [`Are you still coming? Tell us your final headcount here (takes ten seconds): ${rsvpUrl}`, "Can't make it? Use the same link and let us know."].join("\n"),
+  ];
+
+  const district = safeHttpUrl(event.districtUrl);
+  const swiggy = safeHttpUrl(event.swiggyUrl);
+  const note = event.reminderOfferNote?.trim();
+  if (note || district || swiggy) {
+    const offer = ["*Lock your table*", note || "Reserve your team's table ahead of the night:"];
+    if (district) offer.push(`Book on District: ${district}`);
+    if (swiggy) offer.push(`Book on Swiggy Dineout: ${swiggy}`);
+    parts.push(offer.join("\n"));
+  }
+  return parts.join("\n\n");
 }
 
 export function whatsappUrl(number: string, message: string): string {
