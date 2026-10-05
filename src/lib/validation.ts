@@ -34,13 +34,38 @@ export const venueInquirySchema = z.object({
   message: z.string().trim().max(1000).optional().or(z.literal("")),
 }).merge(antiSpamSchema);
 
+// Blank is fine (the field is optional); anything else must be a full http(s)
+// link, since these end up as clickable buttons in emails.
+const optionalWebLink = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((v) => v === "" || (/^https?:\/\//i.test(v) && URL.canParse(v)), "Must be a full link starting with http:// or https://")
+  .optional();
+
 export const eventSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(160),
   theme: z.string().trim().max(160).optional().or(z.literal("")),
   date: z.string().trim().min(1, "Date is required"),
   venueName: z.string().trim().min(1, "Venue name is required").max(160),
   venueArea: z.string().trim().min(1, "Venue area is required").max(160),
+  mapsUrl: optionalWebLink,
+  districtUrl: optionalWebLink,
+  swiggyUrl: optionalWebLink,
+  reminderOfferNote: z.string().trim().max(300).optional(),
 });
+
+// Public RSVP form. headcount only matters (and is required) when coming.
+export const rsvpSchema = z
+  .object({
+    response: z.enum(["coming", "declined"]),
+    headcount: z.coerce.number().int().min(1).max(15).optional(),
+    tableBooked: z.boolean().optional(),
+  })
+  .refine((d) => d.response !== "coming" || d.headcount !== undefined, {
+    message: "Tell us how many players are coming",
+    path: ["headcount"],
+  });
 
 export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),

@@ -17,7 +17,11 @@ export function useModalA11y(open: boolean, onClose: () => void) {
   // 1s countdown tick) would otherwise re-run that effect constantly,
   // yanking focus back to the modal's first field mid-keystroke.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // No dependency array on purpose: runs after every render so the ref always
+  // holds the latest onClose without making the focus-trap effect re-run.
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;

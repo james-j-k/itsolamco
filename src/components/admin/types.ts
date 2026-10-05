@@ -6,6 +6,10 @@ export type AdminEvent = {
   venueName: string;
   venueArea: string;
   bookingCount: number;
+  mapsUrl: string | null;
+  districtUrl: string | null;
+  swiggyUrl: string | null;
+  reminderOfferNote: string | null;
 };
 
 export type AdminBooking = {
@@ -23,6 +27,13 @@ export type AdminBooking = {
   teamSizeEmailSentFor: number | null;
   createdAt: string;
   eventTitle: string | null;
+  eventId: string | null;
+  rsvpStatus: string | null; // "coming" | "declined" | null (no reply)
+  rsvpHeadcount: number | null;
+  rsvpTableBooked: boolean | null;
+  reminderSentAt: string | null;
+  nudgeSentAt: string | null;
+  attended: boolean;
 };
 
 export type AdminInquiry = {

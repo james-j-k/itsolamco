@@ -9,7 +9,7 @@ const MAX_REQUESTS = 5;
 // Best-effort, single-process in-memory limiter. Fine for a single Node
 // server; if this ever runs across multiple serverless instances, swap
 // this Map for a shared store (e.g. Upstash Redis) — the call sites won't change.
-export function isRateLimited(request: NextRequest, routeKey: string): boolean {
+export function isRateLimited(request: NextRequest, routeKey: string, maxRequests = MAX_REQUESTS): boolean {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
@@ -24,5 +24,5 @@ export function isRateLimited(request: NextRequest, routeKey: string): boolean {
   }
 
   bucket.count += 1;
-  return bucket.count > MAX_REQUESTS;
+  return bucket.count > maxRequests;
 }

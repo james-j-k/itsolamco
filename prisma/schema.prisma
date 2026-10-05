@@ -22,6 +22,11 @@ model Event {
   date      DateTime
   venueName String
   venueArea String
+  // Used by the day-before reminder email; all optional.
+  mapsUrl           String? // Google Maps share link for the venue
+  districtUrl       String? // venue page / booking link on District
+  swiggyUrl         String? // venue page / booking link on Swiggy Dineout
+  reminderOfferNote String? // the line shown above the table-booking buttons
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   bookings  Booking[]
@@ -46,6 +51,17 @@ model Booking {
   // so the button doesn't activate until something actually changes.
   statusEmailSentFor   String?
   teamSizeEmailSentFor Int?
+  // Day-before reminder + RSVP. rsvpToken is created lazily when the
+  // reminder is first sent (it's the secret in the customer's RSVP link).
+  // rsvpStatus is "coming" | "declined"; null means no reply yet.
+  rsvpToken       String?   @unique
+  rsvpStatus      String?
+  rsvpHeadcount   Int?
+  rsvpTableBooked Boolean?
+  rsvpAt          DateTime?
+  reminderSentAt  DateTime?
+  nudgeSentAt     DateTime?
+  attended        Boolean   @default(false)
   event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   eventId     String?
   createdAt   DateTime @default(now())

@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     );
   }
 
-  const { theme, date, ...rest } = parsed.data;
+  const { theme, date, mapsUrl, districtUrl, swiggyUrl, reminderOfferNote, ...rest } = parsed.data;
   const parsedDate = new Date(date);
   if (Number.isNaN(parsedDate.getTime())) {
     return NextResponse.json({ error: "Invalid date" }, { status: 400 });
@@ -25,7 +25,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const event = await prisma.event.update({
       where: { id },
-      data: { ...rest, theme: theme || null, date: parsedDate },
+      data: {
+        ...rest,
+        theme: theme || null,
+        date: parsedDate,
+        ...(mapsUrl !== undefined && { mapsUrl: mapsUrl || null }),
+        ...(districtUrl !== undefined && { districtUrl: districtUrl || null }),
+        ...(swiggyUrl !== undefined && { swiggyUrl: swiggyUrl || null }),
+        ...(reminderOfferNote !== undefined && { reminderOfferNote: reminderOfferNote || null }),
+      },
     });
     return NextResponse.json({ event });
   } catch {

@@ -28,6 +28,10 @@ export default async function AdminPage() {
         venueName: e.venueName,
         venueArea: e.venueArea,
         bookingCount: e._count.bookings,
+        mapsUrl: e.mapsUrl,
+        districtUrl: e.districtUrl,
+        swiggyUrl: e.swiggyUrl,
+        reminderOfferNote: e.reminderOfferNote,
       }))}
       initialBookings={bookings.map((b) => ({
         id: b.id,
@@ -44,6 +48,13 @@ export default async function AdminPage() {
         teamSizeEmailSentFor: b.teamSizeEmailSentFor,
         createdAt: b.createdAt.toISOString(),
         eventTitle: b.event?.title ?? null,
+        eventId: b.eventId,
+        rsvpStatus: b.rsvpStatus,
+        rsvpHeadcount: b.rsvpHeadcount,
+        rsvpTableBooked: b.rsvpTableBooked,
+        reminderSentAt: b.reminderSentAt?.toISOString() ?? null,
+        nudgeSentAt: b.nudgeSentAt?.toISOString() ?? null,
+        attended: b.attended,
       }))}
       initialInquiries={inquiries.map((i) => ({
         id: i.id,

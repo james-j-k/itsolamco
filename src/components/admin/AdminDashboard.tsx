@@ -214,6 +214,142 @@ function TeamSizeCell({
   );
 }
 
+type ReminderMode = "reminder" | "nudge";
+
+type ReminderStats = {
+  confirmed: number;
+  reminded: number;
+  coming: number;
+  players: number;
+  tableBooked: number;
+  declined: number;
+  noReply: number;
+  pending: number;
+  attended: number;
+  toRemind: number;
+  toNudge: number;
+};
+
+function RsvpCell({ b }: { b: AdminBooking }) {
+  if (b.rsvpStatus === "declined") {
+    return <span className="font-mono text-[10px] uppercase text-[#B8451D]">Can&apos;t make it</span>;
+  }
+  if (b.rsvpStatus === "coming") {
+    return (
+      <div className="font-mono text-[10px] uppercase leading-relaxed">
+        <div className="text-[#4B7B4E]">Coming · {b.rsvpHeadcount ?? b.teamSize}</div>
+        <div className="text-[#8C8477]">{b.rsvpTableBooked ? "Table booked ✓" : "No table yet"}</div>
+      </div>
+    );
+  }
+  if (b.reminderSentAt) {
+    return (
+      <span className="font-mono text-[10px] uppercase text-[#8C8477]">
+        No reply{b.nudgeSentAt ? " (nudged)" : ""}
+      </span>
+    );
+  }
+  return <span className="font-mono text-[10px] text-[#8C8477]/50">—</span>;
+}
+
+function RemindersPanel({
+  events,
+  selectedId,
+  onSelect,
+  stats,
+  run,
+  result,
+  onSend,
+}: {
+  events: AdminEvent[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  stats: ReminderStats;
+  run: { mode: ReminderMode; done: number; total: number } | null;
+  result: { text: string; isError: boolean } | null;
+  onSend: (mode: ReminderMode) => void;
+}) {
+  const busy = run !== null;
+  const buttonClass =
+    "border-2 border-[#1C1712] px-3 py-2 font-mono text-[10px] uppercase tracking-wider hover:bg-[#1C1712] hover:text-[#F5F0E6] disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit transition-colors";
+
+  return (
+    <div className="border-2 border-[#1C1712] p-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div className="font-mono text-[11px] tracking-[0.2em] uppercase">Day-before reminders</div>
+        {events.length > 0 && (
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedId}
+              onChange={(e) => onSelect(e.target.value)}
+              disabled={busy}
+              aria-label="Night to remind"
+              className="border border-[#1C1712] bg-[#F5F0E6] px-2 py-1 font-mono text-[10px] uppercase max-w-[16rem]"
+            >
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} — {fmtDate(ev.date)}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => window.location.reload()}
+              disabled={busy}
+              title="Reload to pick up new RSVP replies"
+              className="font-mono text-[10px] uppercase hover:text-[#B8451D] disabled:opacity-40"
+            >
+              ↻ Reload replies
+            </button>
+          </div>
+        )}
+      </div>
+
+      {events.length === 0 ? (
+        <p className="font-mono text-xs text-[#8C8477]">No upcoming nights to remind.</p>
+      ) : (
+        <>
+          <div className="font-mono text-[11px] leading-relaxed text-[#1C1712] flex flex-wrap gap-x-5 gap-y-1 mb-3">
+            <span>Confirmed <strong>{stats.confirmed}</strong></span>
+            <span>Reminded <strong>{stats.reminded}</strong></span>
+            <span className="text-[#4B7B4E]">
+              Coming <strong>{stats.coming}</strong> {stats.coming === 1 ? "team" : "teams"} / <strong>{stats.players}</strong>{" "}
+              {stats.players === 1 ? "player" : "players"}
+            </span>
+            <span>Table booked <strong>{stats.tableBooked}</strong></span>
+            <span className="text-[#B8451D]">Can&apos;t make it <strong>{stats.declined}</strong></span>
+            <span className="text-[#8C8477]">No reply <strong>{stats.noReply}</strong></span>
+            <span>Showed up <strong>{stats.attended}</strong></span>
+          </div>
+          {stats.pending > 0 && (
+            <p className="font-mono text-[10px] text-[#B8451D] mb-3">
+              {stats.pending} pending {stats.pending === 1 ? "booking isn't" : "bookings aren't"} confirmed yet, so{" "}
+              {stats.pending === 1 ? "it won't" : "they won't"} get a reminder.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <button onClick={() => onSend("reminder")} disabled={busy || stats.toRemind === 0} className={buttonClass}>
+              {stats.toRemind === 0 && stats.confirmed > 0 ? "Reminders sent ✓" : `Send reminders (${stats.toRemind})`}
+            </button>
+            <button onClick={() => onSend("nudge")} disabled={busy || stats.toNudge === 0} className={buttonClass}>
+              Nudge non-responders ({stats.toNudge})
+            </button>
+            {run && (
+              <span className="font-mono text-[10px] uppercase text-[#8C8477]">
+                Sending… {run.done} / {run.total}
+              </span>
+            )}
+          </div>
+          {result && (
+            <p className={`font-mono text-[11px] mt-3 leading-relaxed ${result.isError ? "text-[#B8451D]" : "text-[#4B7B4E]"}`}>
+              {result.text}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function DragHandle() {
   return (
     <span className="cursor-grab active:cursor-grabbing text-[#8C8477] select-none mr-2" title="Drag to reorder">
@@ -280,6 +416,13 @@ export default function AdminDashboard({
   const [sizeDraft, setSizeDraft] = useState("");
   const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
+
+  // Day-before reminders. `now` is fixed at page load so the list of upcoming
+  // nights doesn't shift under the admin mid-session.
+  const [now] = useState(() => Date.now());
+  const [reminderEventId, setReminderEventId] = useState("");
+  const [reminderRun, setReminderRun] = useState<{ mode: ReminderMode; done: number; total: number } | null>(null);
+  const [reminderResult, setReminderResult] = useState<{ text: string; isError: boolean } | null>(null);
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
@@ -407,6 +550,101 @@ export default function AdminDashboard({
     setSizeDraft(String(currentSize));
   }
 
+  async function toggleAttended(id: string, attended: boolean) {
+    const prev = bookings;
+    setBookings((cur) => cur.map((b) => (b.id === id ? { ...b, attended } : b)));
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attended }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setBookings(prev);
+      pushError("Couldn't update attendance — try again.");
+    }
+  }
+
+  function confirmSendReminders(mode: ReminderMode) {
+    if (!selectedReminderEvent) return;
+    const count = mode === "reminder" ? reminderStats.toRemind : reminderStats.toNudge;
+    if (count === 0) return;
+    const teams = `${count} ${count === 1 ? "team" : "teams"}`;
+    const daysAway = Math.ceil((new Date(selectedReminderEvent.date).getTime() - now) / 86400000);
+    const early =
+      mode === "reminder" && daysAway > 2
+        ? ` Heads up: this night is ${daysAway} days away, and reminders are meant for the day before.`
+        : "";
+    const eventId = selectedReminderEvent.id;
+    askConfirm({
+      title: mode === "reminder" ? "Send reminders?" : "Send nudges?",
+      message:
+        mode === "reminder"
+          ? `Email the reminder to ${teams} confirmed for "${selectedReminderEvent.title}" (${fmtDate(selectedReminderEvent.date)})?${early}`
+          : `Email an "are you still coming?" nudge to ${teams} ${count === 1 ? "that hasn't" : "that haven't"} replied for "${selectedReminderEvent.title}"?`,
+      confirmLabel: "Send",
+      onConfirm: () => {
+        setConfirmState(null);
+        runReminders(mode, eventId, count);
+      },
+    });
+  }
+
+  // The server sends a few emails per call (to stay well inside time limits
+  // and Resend's rate limit) and hands back a cursor; keep going until done.
+  async function runReminders(mode: ReminderMode, eventId: string, total: number) {
+    setReminderRun({ mode, done: 0, total });
+    setReminderResult(null);
+
+    let cursor: string | null = null;
+    let sentCount = 0;
+    let stopped: string | null = null;
+    let fatal: string | null = null;
+    const failures: { teamName: string; reason: string }[] = [];
+
+    try {
+      do {
+        const res: Response = await fetch(`/api/admin/events/${eventId}/reminders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode, cursor }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          fatal = data.error ?? "Couldn't send.";
+          break;
+        }
+        const ids: string[] = data.sentIds ?? [];
+        sentCount += ids.length;
+        failures.push(...(data.failed ?? []));
+        stopped = data.stopped ?? null;
+        cursor = data.nextCursor ?? null;
+
+        const stamp = new Date().toISOString();
+        setBookings((prev) =>
+          prev.map((b) =>
+            ids.includes(b.id) ? (mode === "reminder" ? { ...b, reminderSentAt: stamp } : { ...b, nudgeSentAt: stamp }) : b
+          )
+        );
+        setReminderRun({ mode, done: sentCount + failures.length, total });
+      } while (cursor && !stopped);
+    } catch {
+      fatal = "Network problem while sending. Reload and check the numbers before trying again.";
+    }
+
+    setReminderRun(null);
+    const noun = mode === "reminder" ? "reminder" : "nudge";
+    let text = `Sent ${sentCount} ${noun}${sentCount === 1 ? "" : "s"}.`;
+    if (failures.length > 0) {
+      const names = failures.map((f) => `${f.teamName} (${f.reason})`).join("; ");
+      text += ` ${failures.length} failed: ${names}. Click the button again to retry those.`;
+    }
+    if (stopped) text += ` Sending stopped early: ${stopped}`;
+    if (fatal) text = `Stopped: ${fatal} ${sentCount} sent before it stopped.`;
+    setReminderResult({ text, isError: failures.length > 0 || Boolean(stopped) || Boolean(fatal) });
+  }
+
   function startEditEmail(id: string, currentEmail: string) {
     setEditingEmailId(id);
     setEmailDraft(currentEmail);
@@ -443,6 +681,11 @@ export default function AdminDashboard({
                 emailSent: booking.emailSent,
                 statusEmailSentFor: booking.statusEmailSentFor,
                 teamSizeEmailSentFor: booking.teamSizeEmailSentFor,
+                rsvpStatus: booking.rsvpStatus,
+                rsvpHeadcount: booking.rsvpHeadcount,
+                rsvpTableBooked: booking.rsvpTableBooked,
+                reminderSentAt: booking.reminderSentAt,
+                nudgeSentAt: booking.nudgeSentAt,
               }
             : b
         )
@@ -623,6 +866,28 @@ export default function AdminDashboard({
   const bookingUnreadCount = [...bookingSessionNew].filter((id) => bookings.some((b) => b.id === id)).length;
   const inquiryUnreadCount = [...inquirySessionNew].filter((id) => inquiries.some((i) => i.id === id)).length;
 
+  const upcomingEvents = events.filter((e) => new Date(e.date).getTime() >= now);
+  const selectedReminderEvent =
+    upcomingEvents.find((e) => e.id === reminderEventId) ?? upcomingEvents[0] ?? null;
+  const forReminderEvent = selectedReminderEvent
+    ? bookings.filter((b) => b.eventId === selectedReminderEvent.id)
+    : [];
+  const confirmedForEvent = forReminderEvent.filter((b) => b.status === "confirmed");
+  const comingForEvent = confirmedForEvent.filter((b) => b.rsvpStatus === "coming");
+  const reminderStats: ReminderStats = {
+    confirmed: confirmedForEvent.length,
+    reminded: confirmedForEvent.filter((b) => b.reminderSentAt).length,
+    coming: comingForEvent.length,
+    players: comingForEvent.reduce((sum, b) => sum + (b.rsvpHeadcount ?? b.teamSize), 0),
+    tableBooked: comingForEvent.filter((b) => b.rsvpTableBooked === true).length,
+    declined: confirmedForEvent.filter((b) => b.rsvpStatus === "declined").length,
+    noReply: confirmedForEvent.filter((b) => !b.rsvpStatus).length,
+    pending: forReminderEvent.filter((b) => b.status === "pending").length,
+    attended: forReminderEvent.filter((b) => b.attended).length,
+    toRemind: confirmedForEvent.filter((b) => !b.reminderSentAt).length,
+    toNudge: confirmedForEvent.filter((b) => b.reminderSentAt && !b.rsvpStatus && !b.nudgeSentAt).length,
+  };
+
   const tabs: { key: Tab; label: string; count: number; unread?: number }[] = [
     { key: "events", label: "Events", count: events.length },
     { key: "bookings", label: "Bookings", count: bookings.length, unread: bookingUnreadCount },
@@ -717,6 +982,20 @@ export default function AdminDashboard({
       )}
 
       {tab === "bookings" && (
+        <>
+        <RemindersPanel
+          events={upcomingEvents}
+          selectedId={selectedReminderEvent?.id ?? ""}
+          onSelect={(id) => {
+            setReminderEventId(id);
+            // A result message belongs to the night it was about.
+            setReminderResult(null);
+          }}
+          stats={reminderStats}
+          run={reminderRun}
+          result={reminderResult}
+          onSend={confirmSendReminders}
+        />
         <div className="border-2 border-[#1C1712] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -728,6 +1007,8 @@ export default function AdminDashboard({
                 <th className="p-3">Status</th>
                 <th className="p-3">Email</th>
                 <th className="p-3">Notify Update</th>
+                <th className="p-3">RSVP</th>
+                <th className="p-3">Showed up</th>
                 <th className="p-3">Submitted</th>
                 <th className="p-3"></th>
               </tr>
@@ -792,6 +1073,18 @@ export default function AdminDashboard({
                       onSend={() => confirmSendUpdateEmail(b)}
                     />
                   </td>
+                  <td className="p-3">
+                    <RsvpCell b={b} />
+                  </td>
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={b.attended}
+                      onChange={(e) => toggleAttended(b.id, e.target.checked)}
+                      aria-label={`Mark ${b.teamName} as showed up`}
+                      className="h-4 w-4 accent-[#B8451D]"
+                    />
+                  </td>
                   <td className="p-3 whitespace-nowrap text-xs text-[#8C8477]">{fmtDate(b.createdAt)}</td>
                   <td className="p-3">
                     <button onClick={() => deleteBooking(b.id, b.teamName)} className="font-mono text-[10px] uppercase hover:text-[#B8451D]">
@@ -802,7 +1095,7 @@ export default function AdminDashboard({
               ))}
               {bookings.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-6 text-center text-[#8C8477] font-mono text-xs">
+                  <td colSpan={11} className="p-6 text-center text-[#8C8477] font-mono text-xs">
                     No bookings yet.
                   </td>
                 </tr>
@@ -810,6 +1103,7 @@ export default function AdminDashboard({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {tab === "inquiries" && (

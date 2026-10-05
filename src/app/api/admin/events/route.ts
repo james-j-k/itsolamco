@@ -21,14 +21,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { theme, date, ...rest } = parsed.data;
+  const { theme, date, mapsUrl, districtUrl, swiggyUrl, reminderOfferNote, ...rest } = parsed.data;
   const parsedDate = new Date(date);
   if (Number.isNaN(parsedDate.getTime())) {
     return NextResponse.json({ error: "Invalid date" }, { status: 400 });
   }
 
   const event = await prisma.event.create({
-    data: { ...rest, theme: theme || null, date: parsedDate },
+    data: {
+      ...rest,
+      theme: theme || null,
+      date: parsedDate,
+      mapsUrl: mapsUrl || null,
+      districtUrl: districtUrl || null,
+      swiggyUrl: swiggyUrl || null,
+      reminderOfferNote: reminderOfferNote || null,
+    },
   });
 
   return NextResponse.json({ event }, { status: 201 });
