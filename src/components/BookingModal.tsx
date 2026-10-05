@@ -188,6 +188,10 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
                 </button>
               )}
 
+              <p className="-mt-2 font-mono text-[10px] leading-relaxed text-[#8C8477]">
+                PHONE IS OPTIONAL. IF YOU ADD ONE, WE MAY WHATSAPP YOU ABOUT THE NIGHT.
+              </p>
+
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="font-mono text-[10px]">TEAM SIZE</span>

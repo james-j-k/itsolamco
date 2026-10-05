@@ -7,6 +7,7 @@ import RoundFormModal from "./RoundFormModal";
 import VenueFormModal from "./VenueFormModal";
 import ConfirmDialog from "./ConfirmDialog";
 import Toast, { type ToastItem } from "./Toast";
+import { whatsappMessage, whatsappNumber, whatsappUrl } from "@/lib/whatsapp";
 
 type Tab = "events" | "bookings" | "inquiries" | "rounds" | "venues";
 
@@ -541,6 +542,34 @@ export default function AdminDashboard({
         next.delete(id);
         return next;
       });
+    }
+  }
+
+  // Opens WhatsApp with the guest's chat and a ready-typed message (including
+  // their private RSVP link); the admin reads it and taps Send themselves.
+  // Nothing is sent from here and the team isn't marked as reminded.
+  async function openWhatsApp(b: AdminBooking) {
+    const number = whatsappNumber(b.phone);
+    const night = events.find((e) => e.id === b.eventId);
+    if (!number || !night) return;
+
+    // Open the tab inside the click itself (so pop-up blockers allow it), then
+    // point it at WhatsApp once the guest's link has been fetched.
+    const win = window.open("about:blank", "_blank");
+    try {
+      const res = await fetch(`/api/admin/bookings/${b.id}/rsvp-link`, { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't get the link.");
+      const url = whatsappUrl(number, whatsappMessage(b.contactName, night, data.url));
+      if (win) {
+        win.opener = null;
+        win.location.href = url;
+      } else {
+        flashRowNotice(b.id, "Your browser blocked the new tab. Allow pop-ups for this site and try again.", true);
+      }
+    } catch (err) {
+      win?.close();
+      flashRowNotice(b.id, err instanceof Error ? err.message : "Couldn't open WhatsApp.", true);
     }
   }
 
@@ -1247,6 +1276,15 @@ export default function AdminDashboard({
                         <button onClick={() => copyRsvpLink(b.id)} className="text-[#8C8477] hover:text-[#B8451D]">
                           Copy link
                         </button>
+                        {whatsappNumber(b.phone) && (
+                          <button
+                            onClick={() => openWhatsApp(b)}
+                            title="Open WhatsApp with a ready-typed reminder"
+                            className="text-[#8C8477] hover:text-[#B8451D]"
+                          >
+                            WhatsApp
+                          </button>
+                        )}
                       </div>
                     )}
                     {rowNotice?.id === b.id && (
