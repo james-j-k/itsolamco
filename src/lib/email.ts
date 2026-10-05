@@ -14,6 +14,18 @@ function getClient() {
   return new Resend(apiKey);
 }
 
+// Everything customers type ends up inside HTML emails (including the ones
+// sent to the site owner), so it has to be escaped or someone could slip
+// links and markup into them. Subject lines are plain text, so they're not.
+function esc(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function wrapEmail(bodyHtml: string) {
   return `
     <div style="background:#F5F0E6;padding:32px;font-family:Georgia,serif;color:#1C1712;">
@@ -61,12 +73,12 @@ function eventTimeText(date: Date) {
 }
 
 function eventTitleFor(event: EmailEvent | null) {
-  return event ? event.title : "the next available night";
+  return event ? esc(event.title) : "the next available night";
 }
 
 // One-line form for sentences that don't get the full details block.
 function eventLineFor(event: EmailEvent | null) {
-  return event ? `${event.title} on ${eventDateText(event.date)}` : "the next available night";
+  return event ? `${esc(event.title)} on ${eventDateText(event.date)}` : "the next available night";
 }
 
 // When and where, set apart so it's the first thing a customer looks for.
@@ -76,7 +88,7 @@ function eventDetailsBlock(event: EmailEvent | null) {
   return `
     <div style="margin:20px 0;padding:16px;border:1px solid rgba(28,23,18,.25);">
       <div style="font-size:17px;font-weight:bold;">${eventDateText(event.date)} · ${eventTimeText(event.date)}</div>
-      <div style="font-size:14px;color:#8C8477;margin-top:4px;">${event.venueName}, ${event.venueArea}</div>
+      <div style="font-size:14px;color:#8C8477;margin-top:4px;">${esc(event.venueName)}, ${esc(event.venueArea)}</div>
     </div>
   `;
 }
@@ -95,8 +107,8 @@ export async function sendBookingEmails(booking: BookingWithEvent): Promise<bool
       to: booking.email,
       subject: "Slot requested — It's Olam Company",
       html: wrapEmail(`
-        <h1 style="font-size:24px;margin:0 0 16px;">See you there, ${booking.contactName}.</h1>
-        <p style="line-height:1.6;">We've got your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) down for <strong>${eventTitleFor(booking.event)}</strong>.</p>
+        <h1 style="font-size:24px;margin:0 0 16px;">See you there, ${esc(booking.contactName)}.</h1>
+        <p style="line-height:1.6;">We've got your team <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players) down for <strong>${eventTitleFor(booking.event)}</strong>.</p>
         ${eventDetailsBlock(booking.event)}
         <p style="line-height:1.6;">We'll confirm your slot shortly.</p>
       `),
@@ -108,8 +120,8 @@ export async function sendBookingEmails(booking: BookingWithEvent): Promise<bool
       html: wrapEmail(`
         <h1 style="font-size:20px;margin:0 0 16px;">New team registered</h1>
         <p style="line-height:1.6;">
-          <strong>${booking.teamName}</strong> (${booking.teamSize} players)<br/>
-          Contact: ${booking.contactName} — ${booking.email}<br/>
+          <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players)<br/>
+          Contact: ${esc(booking.contactName)} — ${esc(booking.email)}<br/>
           Event: ${eventLine}
         </p>
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin" style="color:#B8451D;">Review in admin →</a></p>
@@ -142,17 +154,17 @@ export async function sendBookingUpdateEmail(
     // their headcount was updated for a booking that no longer exists.
     subject = "Booking update — It's Olam Company";
     bodyHtml = `
-      <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
-      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s slot for <strong>${eventLineFor(booking.event)}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
+      <h1 style="font-size:24px;margin:0 0 16px;">Hey ${esc(booking.contactName)},</h1>
+      <p style="line-height:1.6;">Your team <strong>${esc(booking.teamName)}</strong>'s slot for <strong>${eventLineFor(booking.event)}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
     `;
   } else if (statusChanged && booking.status === "confirmed") {
     subject = "You're confirmed — It's Olam Company";
     bodyHtml = `
-      <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
+      <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${esc(booking.contactName)}.</h1>
       <p style="line-height:1.6;">${
         sizeChanged
-          ? `Your team <strong>${booking.teamName}</strong> is confirmed for <strong>${eventTitle}</strong> with <strong>${booking.teamSize} players</strong>.`
-          : `Your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventTitle}</strong>.`
+          ? `Your team <strong>${esc(booking.teamName)}</strong> is confirmed for <strong>${eventTitle}</strong> with <strong>${booking.teamSize} players</strong>.`
+          : `Your team <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventTitle}</strong>.`
       }</p>
       ${detailsBlock}
       <p style="line-height:1.6;">See you there!</p>
@@ -161,8 +173,8 @@ export async function sendBookingUpdateEmail(
     // sizeChanged only (status is unchanged or still pending)
     subject = "Booking update — It's Olam Company";
     bodyHtml = `
-      <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
-      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s headcount for <strong>${eventTitle}</strong> has been updated to <strong>${booking.teamSize} players</strong>.</p>
+      <h1 style="font-size:24px;margin:0 0 16px;">Hey ${esc(booking.contactName)},</h1>
+      <p style="line-height:1.6;">Your team <strong>${esc(booking.teamName)}</strong>'s headcount for <strong>${eventTitle}</strong> has been updated to <strong>${booking.teamSize} players</strong>.</p>
       ${detailsBlock}
     `;
   }
@@ -188,8 +200,8 @@ export async function sendVenueInquiryEmails(inquiry: VenueInquiryEmail): Promis
       to: inquiry.email,
       subject: "We got your message — It's Olam Company",
       html: wrapEmail(`
-        <h1 style="font-size:24px;margin:0 0 16px;">Thanks, ${inquiry.contactName}.</h1>
-        <p style="line-height:1.6;">We've received your message about hosting a night at <strong>${inquiry.venueName}</strong>. We usually reply within a couple of days.</p>
+        <h1 style="font-size:24px;margin:0 0 16px;">Thanks, ${esc(inquiry.contactName)}.</h1>
+        <p style="line-height:1.6;">We've received your message about hosting a night at <strong>${esc(inquiry.venueName)}</strong>. We usually reply within a couple of days.</p>
       `),
     }),
     client.emails.send({
@@ -199,9 +211,9 @@ export async function sendVenueInquiryEmails(inquiry: VenueInquiryEmail): Promis
       html: wrapEmail(`
         <h1 style="font-size:20px;margin:0 0 16px;">New venue inquiry</h1>
         <p style="line-height:1.6;">
-          <strong>${inquiry.venueName}</strong><br/>
-          Contact: ${inquiry.contactName} — ${inquiry.email}<br/>
-          ${inquiry.message ? `Message: ${inquiry.message}` : ""}
+          <strong>${esc(inquiry.venueName)}</strong><br/>
+          Contact: ${esc(inquiry.contactName)} — ${esc(inquiry.email)}<br/>
+          ${inquiry.message ? `Message: ${esc(inquiry.message)}` : ""}
         </p>
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin" style="color:#B8451D;">Review in admin →</a></p>
       `),
