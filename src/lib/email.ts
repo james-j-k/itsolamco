@@ -37,13 +37,48 @@ type BookingWithEvent = {
   email: string;
   teamSize: number;
   status: string;
-  event: { title: string; date: Date } | null;
+  event: EmailEvent | null;
 };
 
-function eventLineFor(event: { title: string; date: Date } | null) {
-  return event
-    ? `${event.title} — ${new Date(event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`
-    : "the next available night";
+type EmailEvent = { title: string; date: Date; venueName: string; venueArea: string };
+
+// Events are in Kochi but the server runs in UTC, so format in IST explicitly —
+// otherwise a 7:30 PM start would read as 2:00 PM and late-night events could
+// land on the wrong date.
+const EVENT_TZ = "Asia/Kolkata";
+
+function eventDateText(date: Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: EVENT_TZ,
+  });
+}
+
+function eventTimeText(date: Date) {
+  return new Date(date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: EVENT_TZ });
+}
+
+function eventTitleFor(event: EmailEvent | null) {
+  return event ? event.title : "the next available night";
+}
+
+// One-line form for sentences that don't get the full details block.
+function eventLineFor(event: EmailEvent | null) {
+  return event ? `${event.title} on ${eventDateText(event.date)}` : "the next available night";
+}
+
+// When and where, set apart so it's the first thing a customer looks for.
+// Empty when there's no event to describe (nothing scheduled yet).
+function eventDetailsBlock(event: EmailEvent | null) {
+  if (!event) return "";
+  return `
+    <div style="margin:20px 0;padding:16px;border:1px solid rgba(28,23,18,.25);">
+      <div style="font-size:17px;font-weight:bold;">${eventDateText(event.date)} · ${eventTimeText(event.date)}</div>
+      <div style="font-size:14px;color:#8C8477;margin-top:4px;">${event.venueName}, ${event.venueArea}</div>
+    </div>
+  `;
 }
 
 // Returns whether the emails were actually sent (false when RESEND_API_KEY
@@ -61,7 +96,9 @@ export async function sendBookingEmails(booking: BookingWithEvent): Promise<bool
       subject: "Slot requested — It's Olam Company",
       html: wrapEmail(`
         <h1 style="font-size:24px;margin:0 0 16px;">See you there, ${booking.contactName}.</h1>
-        <p style="line-height:1.6;">We've got your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) down for <strong>${eventLine}</strong>. We'll confirm your slot shortly.</p>
+        <p style="line-height:1.6;">We've got your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) down for <strong>${eventTitleFor(booking.event)}</strong>.</p>
+        ${eventDetailsBlock(booking.event)}
+        <p style="line-height:1.6;">We'll confirm your slot shortly.</p>
       `),
     }),
     client.emails.send({
@@ -94,7 +131,8 @@ export async function sendBookingUpdateEmail(
   const client = getClient();
   if (!client) return false;
 
-  const eventLine = eventLineFor(booking.event);
+  const eventTitle = eventTitleFor(booking.event);
+  const detailsBlock = eventDetailsBlock(booking.event);
 
   let subject: string;
   let bodyHtml: string;
@@ -105,25 +143,27 @@ export async function sendBookingUpdateEmail(
     subject = "Booking update — It's Olam Company";
     bodyHtml = `
       <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
-      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s slot for <strong>${eventLine}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
+      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s slot for <strong>${eventLineFor(booking.event)}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
     `;
   } else if (statusChanged && booking.status === "confirmed") {
     subject = "You're confirmed — It's Olam Company";
-    bodyHtml = sizeChanged
-      ? `
-        <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
-        <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong> is confirmed for <strong>${eventLine}</strong> with <strong>${booking.teamSize} players</strong>. See you there!</p>
-      `
-      : `
-        <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
-        <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventLine}</strong>. See you there!</p>
-      `;
+    bodyHtml = `
+      <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${booking.contactName}.</h1>
+      <p style="line-height:1.6;">${
+        sizeChanged
+          ? `Your team <strong>${booking.teamName}</strong> is confirmed for <strong>${eventTitle}</strong> with <strong>${booking.teamSize} players</strong>.`
+          : `Your team <strong>${booking.teamName}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventTitle}</strong>.`
+      }</p>
+      ${detailsBlock}
+      <p style="line-height:1.6;">See you there!</p>
+    `;
   } else {
     // sizeChanged only (status is unchanged or still pending)
     subject = "Booking update — It's Olam Company";
     bodyHtml = `
       <h1 style="font-size:24px;margin:0 0 16px;">Hey ${booking.contactName},</h1>
-      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s headcount for <strong>${eventLine}</strong> has been updated to <strong>${booking.teamSize} players</strong>.</p>
+      <p style="line-height:1.6;">Your team <strong>${booking.teamName}</strong>'s headcount for <strong>${eventTitle}</strong> has been updated to <strong>${booking.teamSize} players</strong>.</p>
+      ${detailsBlock}
     `;
   }
 

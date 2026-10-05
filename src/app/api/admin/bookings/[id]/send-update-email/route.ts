@@ -13,7 +13,7 @@ export async function POST(_request: NextRequest, { params }: Params) {
 
   const booking = await prisma.booking.findUnique({
     where: { id },
-    include: { event: { select: { title: true, date: true } } },
+    include: { event: { select: { title: true, date: true, venueName: true, venueArea: true } } },
   });
   if (!booking) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });

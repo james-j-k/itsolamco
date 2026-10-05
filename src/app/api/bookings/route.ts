@@ -26,13 +26,27 @@ export async function POST(request: NextRequest) {
 
   const { teamName, contactName, email, teamSize, eventId, phone, message } = parsed.data;
 
+  // "Any upcoming night" means the soonest one, so pin it to that real event
+  // now. That way the dashboard and emails name an actual date/venue, and the
+  // duplicate check below sees "any night" and "Oct 7" as the same booking.
+  // Stays null only when no upcoming event exists yet.
+  let resolvedEventId = eventId || null;
+  if (!resolvedEventId) {
+    const nextEvent = await prisma.event.findFirst({
+      where: { date: { gte: new Date() } },
+      orderBy: { date: "asc" },
+      select: { id: true },
+    });
+    resolvedEventId = nextEvent?.id ?? null;
+  }
+
   // Same email registering twice for the same night is almost always a
   // mistake (or a change of mind) rather than a second real team — point
   // them at Instagram to fix it instead of silently creating a duplicate
   // for the admin to spot and clean up by hand. Cancelled bookings don't
   // count, so someone can always re-register after cancelling.
   const existing = await prisma.booking.findFirst({
-    where: { email, eventId: eventId || null, status: { not: "cancelled" } },
+    where: { email, eventId: resolvedEventId, status: { not: "cancelled" } },
   });
   if (existing) {
     return NextResponse.json(
@@ -52,12 +66,12 @@ export async function POST(request: NextRequest) {
       teamSize,
       phone: phone || null,
       message: message || null,
-      eventId: eventId || null,
+      eventId: resolvedEventId,
       // Starts equal to the just-registered size so the admin panel's
       // "notify" button doesn't light up until the size is actually edited.
       teamSizeEmailSentFor: teamSize,
     },
-    include: { event: { select: { title: true, date: true } } },
+    include: { event: { select: { title: true, date: true, venueName: true, venueArea: true } } },
   });
 
   // Fire-and-forget alone isn't enough here: on Vercel's serverless runtime,
