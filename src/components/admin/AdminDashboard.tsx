@@ -501,6 +501,66 @@ export default function AdminDashboard({
     }
   }, []);
 
+  // Per-team actions in the RSVP column: send/resend that one team's reminder,
+  // or copy their private RSVP link to paste into a chat.
+  const [sendingReminderIds, setSendingReminderIds] = useState<Set<string>>(new Set());
+  const [rowNotice, setRowNotice] = useState<{ id: string; text: string; isError: boolean } | null>(null);
+
+  function flashRowNotice(id: string, text: string, isError: boolean) {
+    setRowNotice({ id, text, isError });
+    setTimeout(() => setRowNotice((cur) => (cur?.id === id && cur.text === text ? null : cur)), isError ? 8000 : 4000);
+  }
+
+  function confirmSendOneReminder(b: AdminBooking) {
+    askConfirm({
+      title: b.reminderSentAt ? "Resend reminder?" : "Send reminder?",
+      message: `Email the reminder to ${b.contactName} (${b.email}) for "${b.teamName}"?${
+        b.reminderSentAt ? " They've already been sent one; this sends it again with the same link." : ""
+      }`,
+      confirmLabel: "Send",
+      onConfirm: () => {
+        setConfirmState(null);
+        sendOneReminder(b.id);
+      },
+    });
+  }
+
+  async function sendOneReminder(id: string) {
+    setSendingReminderIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/send-reminder`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't send the reminder.");
+      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, reminderSentAt: data.reminderSentAt } : b)));
+      flashRowNotice(id, "Reminder sent ✓", false);
+    } catch (err) {
+      flashRowNotice(id, err instanceof Error ? err.message : "Couldn't send the reminder.", true);
+    } finally {
+      setSendingReminderIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  async function copyRsvpLink(id: string) {
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/rsvp-link`, { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't get the link.");
+      try {
+        await navigator.clipboard.writeText(data.url);
+        flashRowNotice(id, "Link copied ✓", false);
+      } catch {
+        // Clipboard blocked (permissions / insecure page): let them copy by hand.
+        window.prompt("Copy this link:", data.url);
+      }
+    } catch (err) {
+      flashRowNotice(id, err instanceof Error ? err.message : "Couldn't get the link.", true);
+    }
+  }
+
   useEffect(() => {
     if (tab !== "bookings") return;
     const check = () => {
@@ -959,6 +1019,7 @@ export default function AdminDashboard({
   const inquiryUnreadCount = [...inquirySessionNew].filter((id) => inquiries.some((i) => i.id === id)).length;
 
   const upcomingEvents = events.filter((e) => new Date(e.date).getTime() >= now);
+  const upcomingEventIds = new Set(upcomingEvents.map((e) => e.id));
   const selectedReminderEvent =
     upcomingEvents.find((e) => e.id === reminderEventId) ?? upcomingEvents[0] ?? null;
   const forReminderEvent = selectedReminderEvent
@@ -1174,6 +1235,29 @@ export default function AdminDashboard({
                   </td>
                   <td className="p-3">
                     <RsvpCell b={b} isNew={newReplyIds.has(b.id)} />
+                    {b.status === "confirmed" && b.eventId && upcomingEventIds.has(b.eventId) && (
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase">
+                        <button
+                          onClick={() => confirmSendOneReminder(b)}
+                          disabled={sendingReminderIds.has(b.id)}
+                          className="text-[#B8451D] hover:underline disabled:opacity-50 disabled:hover:no-underline"
+                        >
+                          {sendingReminderIds.has(b.id) ? "Sending…" : b.reminderSentAt ? "Resend reminder" : "Send reminder"}
+                        </button>
+                        <button onClick={() => copyRsvpLink(b.id)} className="text-[#8C8477] hover:text-[#B8451D]">
+                          Copy link
+                        </button>
+                      </div>
+                    )}
+                    {rowNotice?.id === b.id && (
+                      <div
+                        className={`mt-1 font-mono text-[10px] leading-snug normal-case ${
+                          rowNotice.isError ? "text-[#B8451D]" : "text-[#4B7B4E]"
+                        }`}
+                      >
+                        {rowNotice.text}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3">
                     <input
