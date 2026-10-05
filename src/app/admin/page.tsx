@@ -56,6 +56,7 @@ export default async function AdminPage() {
         reminderSentAt: b.reminderSentAt?.toISOString() ?? null,
         nudgeSentAt: b.nudgeSentAt?.toISOString() ?? null,
         attended: b.attended,
+        source: b.source,
       }))}
       initialInquiries={inquiries.map((i) => ({
         id: i.id,

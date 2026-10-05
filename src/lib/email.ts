@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { isTicketing, ticketCount } from "./bookingSource";
 import { mapsLinkFor, safeHttpUrl } from "./eventLinks";
 
 const FROM = process.env.EMAIL_FROM ?? "It's Olam Company <notify@itsolamco.in>";
@@ -68,6 +69,7 @@ type BookingWithEvent = {
   email: string;
   teamSize: number;
   status: string;
+  source?: string | null;
   event: EmailEvent | null;
 };
 
@@ -167,6 +169,7 @@ export async function sendBookingUpdateEmail(
 
   const eventTitle = eventTitleFor(booking.event);
   const detailsBlock = eventDetailsBlock(booking.event);
+  const ticketing = isTicketing(booking);
 
   let subject: string;
   let bodyHtml: string;
@@ -177,16 +180,24 @@ export async function sendBookingUpdateEmail(
     subject = "Booking update — It's Olam Company";
     bodyHtml = `
       <h1 style="font-size:24px;margin:0 0 16px;">Hey ${esc(booking.contactName)},</h1>
-      <p style="line-height:1.6;">Your team <strong>${esc(booking.teamName)}</strong>'s slot for <strong>${eventLineFor(booking.event)}</strong> has been cancelled. Reach out if you have any questions or want to grab a spot at a future night.</p>
+      <p style="line-height:1.6;">${
+        ticketing
+          ? `Your registration for <strong>${eventLineFor(booking.event)}</strong> has been cancelled.`
+          : `Your team <strong>${esc(booking.teamName)}</strong>'s slot for <strong>${eventLineFor(booking.event)}</strong> has been cancelled.`
+      } Reach out if you have any questions or want to grab a spot at a future night.</p>
     `;
   } else if (statusChanged && booking.status === "confirmed") {
     subject = "You're confirmed — It's Olam Company";
     bodyHtml = `
       <h1 style="font-size:24px;margin:0 0 16px;">Locked in, ${esc(booking.contactName)}.</h1>
       <p style="line-height:1.6;">${
-        sizeChanged
-          ? `Your team <strong>${esc(booking.teamName)}</strong> is confirmed for <strong>${eventTitle}</strong> with <strong>${booking.teamSize} players</strong>.`
-          : `Your team <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventTitle}</strong>.`
+        ticketing
+          ? sizeChanged
+            ? `You're confirmed for <strong>${eventTitle}</strong> with <strong>${ticketCount(booking.teamSize)}</strong>.`
+            : `You're confirmed for <strong>${eventTitle}</strong> (${ticketCount(booking.teamSize)}).`
+          : sizeChanged
+            ? `Your team <strong>${esc(booking.teamName)}</strong> is confirmed for <strong>${eventTitle}</strong> with <strong>${booking.teamSize} players</strong>.`
+            : `Your team <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players) is confirmed for <strong>${eventTitle}</strong>.`
       }</p>
       ${detailsBlock}
       <p style="line-height:1.6;">See you there!</p>
@@ -196,7 +207,11 @@ export async function sendBookingUpdateEmail(
     subject = "Booking update — It's Olam Company";
     bodyHtml = `
       <h1 style="font-size:24px;margin:0 0 16px;">Hey ${esc(booking.contactName)},</h1>
-      <p style="line-height:1.6;">Your team <strong>${esc(booking.teamName)}</strong>'s headcount for <strong>${eventTitle}</strong> has been updated to <strong>${booking.teamSize} players</strong>.</p>
+      <p style="line-height:1.6;">${
+        ticketing
+          ? `Your ticket count for <strong>${eventTitle}</strong> has been updated to <strong>${ticketCount(booking.teamSize)}</strong>.`
+          : `Your team <strong>${esc(booking.teamName)}</strong>'s headcount for <strong>${eventTitle}</strong> has been updated to <strong>${booking.teamSize} players</strong>.`
+      }</p>
       ${detailsBlock}
     `;
   }
@@ -259,7 +274,7 @@ type ReminderEvent = EmailEvent & {
   reminderOfferNote: string | null;
 };
 
-type ReminderBooking = { teamName: string; contactName: string; email: string; teamSize: number };
+type ReminderBooking = { teamName: string; contactName: string; email: string; teamSize: number; source?: string | null };
 
 const BUTTON_STYLE =
   "display:inline-block;background:#B8451D;color:#F5F0E6;padding:14px 22px;font-family:monospace;font-size:13px;letter-spacing:1px;text-decoration:none;text-transform:uppercase;";
@@ -308,7 +323,11 @@ export async function sendReminderEmail(
     subject: `Reminder: ${event.title} — ${shortDateText(event.date)}`,
     html: wrapEmail(`
       <h1 style="font-size:24px;margin:0 0 16px;">Almost showtime, ${esc(booking.contactName)}.</h1>
-      <p style="line-height:1.6;">Your team <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players) is down for <strong>${esc(event.title)}</strong>.</p>
+      <p style="line-height:1.6;">${
+        isTicketing(booking)
+          ? `You're registered for <strong>${esc(event.title)}</strong> (${ticketCount(booking.teamSize)}).`
+          : `Your team <strong>${esc(booking.teamName)}</strong> (${booking.teamSize} players) is down for <strong>${esc(event.title)}</strong>.`
+      }</p>
       ${eventDetailsBlock(event, mapsLinkFor(event))}
       <p style="line-height:1.6;"><strong>Are you still coming?</strong> Tap below and tell us your final headcount. It takes ten seconds and helps us plan the night.</p>
       <p style="margin:20px 0;"><a href="${esc(rsvpUrl)}" style="${BUTTON_STYLE}">Yes, we're coming →</a></p>
@@ -333,7 +352,7 @@ export async function sendNudgeEmail(
     subject: `Are you still coming? — ${event.title}`,
     html: wrapEmail(`
       <h1 style="font-size:24px;margin:0 0 16px;">Quick check, ${esc(booking.contactName)}.</h1>
-      <p style="line-height:1.6;">We haven't heard back about <strong>${esc(event.title)}</strong> on ${eventDateText(event.date)} at ${eventTimeText(event.date)}. Is <strong>${esc(booking.teamName)}</strong> still coming?</p>
+      <p style="line-height:1.6;">We haven't heard back about <strong>${esc(event.title)}</strong> on ${eventDateText(event.date)} at ${eventTimeText(event.date)}. ${isTicketing(booking) ? "Are you still coming?" : `Is <strong>${esc(booking.teamName)}</strong> still coming?`}</p>
       <p style="margin:20px 0;"><a href="${esc(rsvpUrl)}" style="${BUTTON_STYLE}">Confirm or let us know →</a></p>
     `),
   });

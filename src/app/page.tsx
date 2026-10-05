@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { TICKETING_SOURCE } from "@/lib/bookingSource";
 import HomePage from "@/components/HomePage";
 import type { EventDTO } from "@/types/event";
 import type { QuizRoundDTO, VenueDTO } from "@/types/content";
@@ -13,14 +14,16 @@ export default async function Page() {
       take: 6,
       // Cancelled bookings shouldn't count toward the public "teams booked"
       // social-proof number — the count should reflect real interest.
-      include: { _count: { select: { bookings: { where: { status: { not: "cancelled" } } } } } },
+      include: { _count: { select: { bookings: { where: { status: { not: "cancelled" }, source: { not: TICKETING_SOURCE } } } } } },
     }),
     prisma.quizRound.findMany({ orderBy: { order: "asc" } }),
     prisma.venue.findMany({ orderBy: { order: "asc" } }),
+    // Ticketing-app attendees are individuals, not teams we signed up, so they
+    // are left out of both counts here (they still count in the admin totals).
     // Bookings made for "Any upcoming night" (no specific event picked)
     // aren't tied to an event's id, so they'd otherwise be invisible to
     // the count above — they belong to whichever night comes first.
-    prisma.booking.count({ where: { eventId: null, status: { not: "cancelled" } } }),
+    prisma.booking.count({ where: { eventId: null, status: { not: "cancelled" }, source: { not: TICKETING_SOURCE } } }),
   ]);
 
   const eventDTOs: EventDTO[] = events.map((e, i) => ({

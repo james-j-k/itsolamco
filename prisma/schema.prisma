@@ -62,6 +62,11 @@ model Booking {
   reminderSentAt  DateTime?
   nudgeSentAt     DateTime?
   attended        Boolean   @default(false)
+  // Where the booking came from: "website" (our own signup form) or
+  // "ticketing" (imported from the venue's ticketing app). Ticketing
+  // attendees are individuals, not teams, and stay out of the public
+  // "teams booked" number.
+  source          String    @default("website")
   event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   eventId     String?
   createdAt   DateTime @default(now())

@@ -1,4 +1,5 @@
 import { mapsLinkFor, safeHttpUrl } from "./eventLinks";
+import { isTicketing, ticketCount } from "./bookingSource";
 
 const IST = "Asia/Kolkata";
 
@@ -36,7 +37,7 @@ type MessageEvent = {
   swiggyUrl: string | null;
   reminderOfferNote: string | null;
 };
-type MessageBooking = { contactName: string; teamName: string; teamSize: number };
+type MessageBooking = { contactName: string; teamName: string; teamSize: number; source?: string | null };
 
 // The ready-typed WhatsApp message. Mirrors the reminder email: the night,
 // where, the guest's private RSVP link and the table-booking offer. Plain text
@@ -48,7 +49,9 @@ export function whatsappMessage(booking: MessageBooking, event: MessageEvent, rs
 
   const parts = [
     `Hi ${booking.contactName}, it's James from It's Olam Company.`,
-    `Almost showtime! Your team *${booking.teamName}* (${booking.teamSize} players) is down for *${event.title}*.`,
+    isTicketing(booking)
+      ? `Almost showtime! You're registered for *${event.title}* (${ticketCount(booking.teamSize)}).`
+      : `Almost showtime! Your team *${booking.teamName}* (${booking.teamSize} players) is down for *${event.title}*.`,
     [`When: ${date} at ${time}`, `Where: ${event.venueName}, ${event.venueArea}`, `Location: ${mapsLinkFor(event)}`].join("\n"),
     [`Are you still coming? Tell us your final headcount here (takes ten seconds): ${rsvpUrl}`, "Can't make it? Use the same link and let us know."].join("\n"),
   ];

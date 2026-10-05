@@ -8,6 +8,7 @@ import VenueFormModal from "./VenueFormModal";
 import ConfirmDialog from "./ConfirmDialog";
 import Toast, { type ToastItem } from "./Toast";
 import { whatsappMessage, whatsappNumber, whatsappUrl } from "@/lib/whatsapp";
+import { TICKETING_SOURCE } from "@/lib/bookingSource";
 
 type Tab = "events" | "bookings" | "inquiries" | "rounds" | "venues";
 
@@ -26,6 +27,17 @@ function NewBadge() {
   return (
     <span className="inline-block bg-[#B8451D] text-[#F5F0E6] font-mono text-[9px] tracking-[0.15em] uppercase px-1.5 py-0.5 ml-2 align-middle">
       New
+    </span>
+  );
+}
+
+function TicketingBadge() {
+  return (
+    <span
+      title="Registered through the venue's ticketing app, not our website"
+      className="inline-block border border-[#1C1712] text-[#1C1712] font-mono text-[9px] tracking-[0.15em] uppercase px-1.5 py-0.5 ml-2 align-middle whitespace-nowrap"
+    >
+      Ticketing app
     </span>
   );
 }
@@ -229,7 +241,18 @@ type ReminderStats = {
   attended: number;
   toRemind: number;
   toNudge: number;
+  expectedWebsite: number;
+  expectedTicketing: number;
 };
+
+// People we expect from these confirmed bookings: their own headcount once they
+// replied "coming", otherwise the booked size; anyone who said they can't make
+// it is left out.
+function expectedPeople(list: AdminBooking[]): number {
+  return list
+    .filter((b) => b.rsvpStatus !== "declined")
+    .reduce((sum, b) => sum + (b.rsvpStatus === "coming" ? (b.rsvpHeadcount ?? b.teamSize) : b.teamSize), 0);
+}
 
 function RsvpCell({ b, isNew }: { b: AdminBooking; isNew: boolean }) {
   if (b.rsvpStatus === "declined") {
@@ -331,6 +354,14 @@ function RemindersPanel({
         <p className="font-mono text-xs text-[#8C8477]">No upcoming nights to remind.</p>
       ) : (
         <>
+          <div className="font-mono text-[11px] leading-relaxed text-[#1C1712] mb-2">
+            Expected on the night <strong>{stats.expectedWebsite + stats.expectedTicketing}</strong>{" "}
+            {stats.expectedWebsite + stats.expectedTicketing === 1 ? "person" : "people"}
+            <span className="text-[#8C8477]">
+              {" "}
+              · <strong>{stats.expectedWebsite}</strong> from the website · <strong>{stats.expectedTicketing}</strong> from the ticketing app
+            </span>
+          </div>
           <div className="font-mono text-[11px] leading-relaxed text-[#1C1712] flex flex-wrap gap-x-5 gap-y-1 mb-3">
             <span>Confirmed <strong>{stats.confirmed}</strong></span>
             <span>Reminded <strong>{stats.reminded}</strong></span>
@@ -1068,6 +1099,8 @@ export default function AdminDashboard({
     attended: forReminderEvent.filter((b) => b.attended).length,
     toRemind: confirmedForEvent.filter((b) => !b.reminderSentAt).length,
     toNudge: confirmedForEvent.filter((b) => b.reminderSentAt && !b.rsvpStatus && !b.nudgeSentAt).length,
+    expectedWebsite: expectedPeople(confirmedForEvent.filter((b) => b.source !== TICKETING_SOURCE)),
+    expectedTicketing: expectedPeople(confirmedForEvent.filter((b) => b.source === TICKETING_SOURCE)),
   };
 
   const tabs: { key: Tab; label: string; count: number; unread?: number }[] = [
@@ -1207,6 +1240,7 @@ export default function AdminDashboard({
                 >
                   <td className="p-3 font-semibold">
                     {b.teamName}
+                    {b.source === TICKETING_SOURCE && <TicketingBadge />}
                     {bookingSessionNew.has(b.id) && <NewBadge />}
                   </td>
                   <td className="p-3">
@@ -1246,11 +1280,17 @@ export default function AdminDashboard({
                     </select>
                   </td>
                   <td className="p-3">
-                    <EmailStatusCell
-                      sent={b.emailSent}
-                      sending={resendingBookingIds.has(b.id)}
-                      onResend={() => resendBookingEmail(b.id)}
-                    />
+                    {b.source === TICKETING_SOURCE ? (
+                      <span className="font-mono text-[10px] text-[#8C8477]/50" title="No signup email: registered via the ticketing app">
+                        —
+                      </span>
+                    ) : (
+                      <EmailStatusCell
+                        sent={b.emailSent}
+                        sending={resendingBookingIds.has(b.id)}
+                        onResend={() => resendBookingEmail(b.id)}
+                      />
+                    )}
                   </td>
                   <td className="p-3">
                     <NotifyUpdateCell

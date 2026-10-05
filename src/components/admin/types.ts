@@ -35,6 +35,7 @@ export type AdminBooking = {
   reminderSentAt: string | null;
   nudgeSentAt: string | null;
   attended: boolean;
+  source: string; // "website" | "ticketing"
 };
 
 export type AdminInquiry = {
