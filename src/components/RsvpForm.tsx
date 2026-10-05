@@ -38,8 +38,8 @@ export default function RsvpForm({
 
   const headcountNumber = Number(headcount);
   const headcountValid = Number.isInteger(headcountNumber) && headcountNumber >= 1 && headcountNumber <= 15;
-  const canSubmit =
-    !sending && response !== null && (response === "declined" || (headcountValid && tableBooked !== null));
+  // The table question is optional, so only the headcount gates "coming".
+  const canSubmit = !sending && response !== null && (response === "declined" || headcountValid);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +52,7 @@ export default function RsvpForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           response === "coming"
-            ? { response, headcount: headcountNumber, tableBooked: tableBooked === true }
+            ? { response, headcount: headcountNumber, ...(tableBooked !== null && { tableBooked }) }
             : { response }
         ),
       });
@@ -79,7 +79,7 @@ export default function RsvpForm({
             <p className="text-lg mb-5">
               Thanks! We&apos;ve got you down for <strong>{headcountNumber} {headcountNumber === 1 ? "player" : "players"}</strong>.
             </p>
-            {tableBooked === false && hasTableInfo && (
+            {tableBooked !== true && hasTableInfo && (
               <div className="border-2 border-[#B8451D] p-4 mb-5">
                 <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.2em] uppercase mb-2">LOCK YOUR TABLE</div>
                 <p className="leading-relaxed mb-3">{offerNote || "Reserve your team's table ahead of the night:"}</p>
@@ -140,12 +140,15 @@ export default function RsvpForm({
           </label>
 
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px]">HAVE YOU BOOKED YOUR TABLE?</span>
+            <span className="font-mono text-[10px] leading-relaxed">
+              HAVE YOU BOOKED A TABLE ON SWIGGY / DISTRICT FOR 20% OFF? (OPTIONAL)
+            </span>
+            {/* Tapping the selected option again clears it, since the question is optional. */}
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setTableBooked(true)} className={`${choiceBase} text-base ${tableBooked === true ? choiceOn : choiceOff}`}>
+              <button type="button" onClick={() => setTableBooked(tableBooked === true ? null : true)} className={`${choiceBase} text-base ${tableBooked === true ? choiceOn : choiceOff}`}>
                 Yes, booked
               </button>
-              <button type="button" onClick={() => setTableBooked(false)} className={`${choiceBase} text-base ${tableBooked === false ? choiceOn : choiceOff}`}>
+              <button type="button" onClick={() => setTableBooked(tableBooked === false ? null : false)} className={`${choiceBase} text-base ${tableBooked === false ? choiceOn : choiceOff}`}>
                 Not yet
               </button>
             </div>

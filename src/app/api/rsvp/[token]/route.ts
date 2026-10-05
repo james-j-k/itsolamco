@@ -51,7 +51,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     data: {
       rsvpStatus: response,
       rsvpHeadcount: coming ? headcount : null,
-      rsvpTableBooked: coming ? (tableBooked ?? false) : null,
+      // null = they skipped the optional question (not the same as "no").
+      rsvpTableBooked: coming ? (tableBooked ?? null) : null,
       rsvpAt: new Date(),
     },
   });

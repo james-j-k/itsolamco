@@ -238,7 +238,9 @@ function RsvpCell({ b }: { b: AdminBooking }) {
     return (
       <div className="font-mono text-[10px] uppercase leading-relaxed">
         <div className="text-[#4B7B4E]">Coming · {b.rsvpHeadcount ?? b.teamSize}</div>
-        <div className="text-[#8C8477]">{b.rsvpTableBooked ? "Table booked ✓" : "No table yet"}</div>
+        <div className="text-[#8C8477]">
+          {b.rsvpTableBooked === true ? "Table booked ✓" : b.rsvpTableBooked === false ? "No table yet" : "Table: not said"}
+        </div>
       </div>
     );
   }
