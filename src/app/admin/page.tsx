@@ -52,6 +52,7 @@ export default async function AdminPage() {
         rsvpStatus: b.rsvpStatus,
         rsvpHeadcount: b.rsvpHeadcount,
         rsvpTableBooked: b.rsvpTableBooked,
+        rsvpAt: b.rsvpAt?.toISOString() ?? null,
         reminderSentAt: b.reminderSentAt?.toISOString() ?? null,
         nudgeSentAt: b.nudgeSentAt?.toISOString() ?? null,
         attended: b.attended,

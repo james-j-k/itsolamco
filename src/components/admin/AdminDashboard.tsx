@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AdminEvent, AdminBooking, AdminInquiry, AdminRound, AdminVenue } from "./types";
 import EventFormModal from "./EventFormModal";
 import RoundFormModal from "./RoundFormModal";
@@ -230,14 +230,22 @@ type ReminderStats = {
   toNudge: number;
 };
 
-function RsvpCell({ b }: { b: AdminBooking }) {
+function RsvpCell({ b, isNew }: { b: AdminBooking; isNew: boolean }) {
   if (b.rsvpStatus === "declined") {
-    return <span className="font-mono text-[10px] uppercase text-[#B8451D]">Can&apos;t make it</span>;
+    return (
+      <span className="font-mono text-[10px] uppercase text-[#B8451D]">
+        Can&apos;t make it
+        {isNew && <NewBadge />}
+      </span>
+    );
   }
   if (b.rsvpStatus === "coming") {
     return (
       <div className="font-mono text-[10px] uppercase leading-relaxed">
-        <div className="text-[#4B7B4E]">Coming · {b.rsvpHeadcount ?? b.teamSize}</div>
+        <div className="text-[#4B7B4E]">
+          Coming · {b.rsvpHeadcount ?? b.teamSize}
+          {isNew && <NewBadge />}
+        </div>
         <div className="text-[#8C8477]">
           {b.rsvpTableBooked === true ? "Table booked ✓" : b.rsvpTableBooked === false ? "No table yet" : "Table: not said"}
         </div>
@@ -262,6 +270,10 @@ function RemindersPanel({
   run,
   result,
   onSend,
+  lastUpdated,
+  onRefresh,
+  newReplies,
+  onClearNew,
 }: {
   events: AdminEvent[];
   selectedId: string;
@@ -270,6 +282,10 @@ function RemindersPanel({
   run: { mode: ReminderMode; done: number; total: number } | null;
   result: { text: string; isError: boolean } | null;
   onSend: (mode: ReminderMode) => void;
+  lastUpdated: string | null;
+  onRefresh: () => void;
+  newReplies: number;
+  onClearNew: () => void;
 }) {
   const busy = run !== null;
   const buttonClass =
@@ -295,16 +311,20 @@ function RemindersPanel({
               ))}
             </select>
             <button
-              onClick={() => window.location.reload()}
-              disabled={busy}
-              title="Reload to pick up new RSVP replies"
-              className="font-mono text-[10px] uppercase hover:text-[#B8451D] disabled:opacity-40"
+              onClick={onRefresh}
+              title="Check for new RSVP replies now"
+              className="font-mono text-[10px] uppercase hover:text-[#B8451D]"
             >
-              ↻ Reload replies
+              ↻ Refresh
             </button>
           </div>
         )}
       </div>
+      {events.length > 0 && (
+        <p className="font-mono text-[10px] text-[#8C8477] -mt-2 mb-3">
+          Replies update automatically about every 30 seconds{lastUpdated ? ` · last checked ${lastUpdated}` : ""}.
+        </p>
+      )}
 
       {events.length === 0 ? (
         <p className="font-mono text-xs text-[#8C8477]">No upcoming nights to remind.</p>
@@ -322,6 +342,16 @@ function RemindersPanel({
             <span className="text-[#8C8477]">No reply <strong>{stats.noReply}</strong></span>
             <span>Showed up <strong>{stats.attended}</strong></span>
           </div>
+          {newReplies > 0 && (
+            <p className="font-mono text-[11px] text-[#B8451D] mb-3 flex flex-wrap items-center gap-3">
+              <span>
+                ● {newReplies} new {newReplies === 1 ? "reply" : "replies"} since you opened this page
+              </span>
+              <button onClick={onClearNew} className="underline underline-offset-2 hover:no-underline">
+                Clear highlights
+              </button>
+            </p>
+          )}
           {stats.pending > 0 && (
             <p className="font-mono text-[10px] text-[#B8451D] mb-3">
               {stats.pending} pending {stats.pending === 1 ? "booking isn't" : "bookings aren't"} confirmed yet, so{" "}
@@ -426,6 +456,64 @@ export default function AdminDashboard({
   const [reminderRun, setReminderRun] = useState<{ mode: ReminderMode; done: number; total: number } | null>(null);
   const [reminderResult, setReminderResult] = useState<{ text: string; isError: boolean } | null>(null);
 
+  // Live RSVP replies: poll a tiny read-only endpoint and merge in only the
+  // reply fields (never anything the admin may be mid-edit on). A reply whose
+  // timestamp differs from what this page already has is "new" and gets
+  // highlighted for the rest of the visit.
+  const [newReplyIds, setNewReplyIds] = useState<Set<string>>(new Set());
+  const [lastChecked, setLastChecked] = useState<string | null>(null);
+  const bookingsRef = useRef(bookings);
+  useEffect(() => {
+    bookingsRef.current = bookings;
+  }, [bookings]);
+
+  const refreshReplies = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/bookings/rsvp-replies", { cache: "no-store" });
+      if (!res.ok) return;
+      const data: {
+        replies: {
+          id: string;
+          rsvpStatus: string | null;
+          rsvpHeadcount: number | null;
+          rsvpTableBooked: boolean | null;
+          rsvpAt: string | null;
+        }[];
+      } = await res.json();
+
+      const known = new Map(bookingsRef.current.map((b) => [b.id, b.rsvpAt]));
+      const changed = data.replies.filter((r) => known.has(r.id) && known.get(r.id) !== r.rsvpAt);
+      if (changed.length > 0) {
+        const byId = new Map(changed.map((r) => [r.id, r]));
+        setBookings((prev) =>
+          prev.map((b) => {
+            const r = byId.get(b.id);
+            return r
+              ? { ...b, rsvpStatus: r.rsvpStatus, rsvpHeadcount: r.rsvpHeadcount, rsvpTableBooked: r.rsvpTableBooked, rsvpAt: r.rsvpAt }
+              : b;
+          })
+        );
+        setNewReplyIds((prev) => new Set([...prev, ...changed.map((r) => r.id)]));
+      }
+      setLastChecked(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }));
+    } catch {
+      // A dropped connection just means this check is skipped; the next one retries.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab !== "bookings") return;
+    const check = () => {
+      if (document.visibilityState === "visible") refreshReplies();
+    };
+    const timer = setInterval(check, 30_000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [tab, refreshReplies]);
+
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
 
@@ -450,6 +538,7 @@ export default function AdminDashboard({
 
   function switchTab(next: Tab) {
     setTab(next);
+    if (next === "bookings") refreshReplies();
     if (next === "bookings" && !markedBookingsRead.current) {
       markedBookingsRead.current = true;
       fetch("/api/admin/bookings/mark-read", { method: "POST" }).catch(() => {});
@@ -686,6 +775,7 @@ export default function AdminDashboard({
                 rsvpStatus: booking.rsvpStatus,
                 rsvpHeadcount: booking.rsvpHeadcount,
                 rsvpTableBooked: booking.rsvpTableBooked,
+                rsvpAt: booking.rsvpAt,
                 reminderSentAt: booking.reminderSentAt,
                 nudgeSentAt: booking.nudgeSentAt,
               }
@@ -997,6 +1087,10 @@ export default function AdminDashboard({
           run={reminderRun}
           result={reminderResult}
           onSend={confirmSendReminders}
+          lastUpdated={lastChecked}
+          onRefresh={refreshReplies}
+          newReplies={newReplyIds.size}
+          onClearNew={() => setNewReplyIds(new Set())}
         />
         <div className="border-2 border-[#1C1712] overflow-x-auto">
           <table className="w-full text-sm">
@@ -1017,7 +1111,10 @@ export default function AdminDashboard({
             </thead>
             <tbody>
               {bookings.map((b) => (
-                <tr key={b.id} className="border-b border-[#1C1712]/15 align-top">
+                <tr
+                  key={b.id}
+                  className={`border-b border-[#1C1712]/15 align-top ${newReplyIds.has(b.id) ? "bg-[#B8451D]/10" : ""}`}
+                >
                   <td className="p-3 font-semibold">
                     {b.teamName}
                     {bookingSessionNew.has(b.id) && <NewBadge />}
@@ -1076,7 +1173,7 @@ export default function AdminDashboard({
                     />
                   </td>
                   <td className="p-3">
-                    <RsvpCell b={b} />
+                    <RsvpCell b={b} isNew={newReplyIds.has(b.id)} />
                   </td>
                   <td className="p-3">
                     <input

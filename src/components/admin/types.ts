@@ -31,6 +31,7 @@ export type AdminBooking = {
   rsvpStatus: string | null; // "coming" | "declined" | null (no reply)
   rsvpHeadcount: number | null;
   rsvpTableBooked: boolean | null;
+  rsvpAt: string | null; // when they last replied; used to spot new replies
   reminderSentAt: string | null;
   nudgeSentAt: string | null;
   attended: boolean;
