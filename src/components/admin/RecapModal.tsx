@@ -279,6 +279,24 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
     }
   }
 
+  async function saveCaption(m: RecapMedia, value: string) {
+    const caption = value.trim();
+    if (caption === (m.caption ?? "")) return;
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/media/${m.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caption: caption || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't save the caption.");
+      onMedia((media) => media.map((x) => (x.id === m.id ? { ...x, caption: caption || null } : x)));
+    } catch (err) {
+      fail(err instanceof Error ? err.message : "Couldn't save the caption.");
+    }
+  }
+
   const fieldClass = "border-2 border-[#1C1712] bg-[#F5F0E6] px-3 py-2 focus:outline-none focus:border-[#B8451D]";
   const smallButton =
     "border-2 border-[#1C1712] px-3 py-2 font-mono text-[10px] uppercase tracking-wider hover:bg-[#1C1712] hover:text-[#F5F0E6] disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit transition-colors";
@@ -410,6 +428,14 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
                   {/* eslint-disable-next-line @next/next/no-img-element -- small admin thumbnail of an uploaded file */}
                   <img src={m.url} alt="" className="h-full w-full object-cover" />
                 </div>
+                <input
+                  defaultValue={m.caption ?? ""}
+                  maxLength={200}
+                  placeholder="Caption (optional)"
+                  aria-label="Caption"
+                  onBlur={(e) => saveCaption(m, e.target.value)}
+                  className="w-full border-t border-[#1C1712]/25 bg-[#F5F0E6] px-1.5 py-1 font-mono text-[10px] focus:outline-none focus:bg-white"
+                />
                 <div className="flex flex-col gap-1 border-t border-[#1C1712]/25 p-1.5 font-mono text-[9px] uppercase">
                   {m.role === "winners" ? (
                     <span className="text-[#B8451D]">Winners photo</span>
@@ -459,6 +485,14 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
                     <video src={m.url} muted preload="metadata" className="h-full w-full object-cover" />
                   )}
                 </div>
+                <input
+                  defaultValue={m.caption ?? ""}
+                  maxLength={200}
+                  placeholder="Caption (optional)"
+                  aria-label="Caption"
+                  onBlur={(e) => saveCaption(m, e.target.value)}
+                  className="w-full border-t border-[#1C1712]/25 bg-[#F5F0E6] px-1.5 py-1 font-mono text-[10px] focus:outline-none focus:bg-white"
+                />
                 <div className="flex items-center justify-between border-t border-[#1C1712]/25 p-1.5 font-mono text-[9px] uppercase">
                   <span className="text-[#8C8477]">Clip</span>
                   <button onClick={() => removeMedia(m)} disabled={mediaBusyId === m.id} className="text-[#8C8477] hover:text-[#B8451D] disabled:opacity-40">

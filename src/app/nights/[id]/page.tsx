@@ -35,7 +35,8 @@ export default async function NightRecapPage({ params }: Props) {
   const recap = await getPublishedRecap(id);
   if (!recap) notFound();
 
-  const gallery = recap.photos; // cover first, then the rest
+  // The featured photo is already the big picture at the top, so the grid is the other photos.
+  const gallery = recap.cover ? recap.photos.slice(1) : recap.photos;
 
   return (
     <RecapShell>
@@ -81,7 +82,7 @@ export default async function NightRecapPage({ params }: Props) {
       {recap.videos.length > 0 && (
         <section className="mb-14">
           <h2 className="font-display text-3xl md:text-4xl mb-6">THE CLIPS</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
             {recap.videos.map((clip) => (
               <RecapClip key={clip.id} clip={clip} />
             ))}

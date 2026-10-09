@@ -12,6 +12,8 @@ import { useModalA11y } from "@/lib/useModalA11y";
 export function RecapClip({ clip }: { clip: RecapMedia }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  // Upright (phone) until the clip says otherwise, so the box is the right shape before it loads.
+  const [aspect, setAspect] = useState(9 / 16);
   // Stays false until the effect has checked the visitor's motion preference,
   // so nobody who asked for less motion ever sees a video start by itself.
   const [reduceMotion, setReduceMotion] = useState(true);
@@ -36,9 +38,16 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
   }, [reduceMotion]);
 
   return (
-    <figure className="relative border-2 border-[#1C1712] bg-[#1C1712]">
+    // Phone clips are usually upright; a wide clip gets two columns so it isn't tiny.
+    <figure className={`border-2 border-[#1C1712] bg-[#1C1712] ${aspect > 1 ? "sm:col-span-2" : ""}`}>
+      <div className="relative">
       <video
         ref={ref}
+        onLoadedMetadata={(e) => {
+          const { videoWidth, videoHeight } = e.currentTarget;
+          if (videoWidth > 0 && videoHeight > 0) setAspect(videoWidth / videoHeight);
+        }}
+        style={{ aspectRatio: aspect }}
         src={clip.url}
         poster={clip.posterUrl ?? undefined}
         muted={muted}
@@ -46,7 +55,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
         playsInline
         preload={clip.posterUrl ? "none" : "metadata"}
         controls={reduceMotion}
-        className="w-full max-h-[75vh] object-contain bg-black"
+        className="block w-full object-contain bg-black"
         aria-label={clip.caption ?? "Clip from the night"}
       />
       {!reduceMotion && (
@@ -59,6 +68,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
       )}
+      </div>
       {clip.caption && (
         <figcaption className="border-t-2 border-[#1C1712] bg-[#F5F0E6] px-4 py-2 font-mono text-[11px] text-[#1C1712]">
           {clip.caption}
