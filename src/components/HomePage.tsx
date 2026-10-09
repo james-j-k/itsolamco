@@ -625,8 +625,10 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
         {/* Statement Wipe */}
         <section id="statement-wipe" className="bg-[#1C1712] relative h-[115vh] md:h-[150vh]">
           <div className="absolute inset-0 grid-bg opacity-5 pointer-events-none" />
-          <div className="sticky top-1/2 -translate-y-1/2 px-8 py-12">
-            <div className="relative font-display text-center text-[6.5vw] leading-[0.95] max-w-6xl mx-auto">
+          {/* A full-screen sticky frame that centres the text: it stays inside this section, so it can never
+              overlap (or block clicks on) the section above, the way a half-height pull-up used to. */}
+          <div className="sticky top-0 flex h-screen items-center px-8">
+            <div className="relative mx-auto w-full max-w-6xl text-center font-display text-[6.5vw] leading-[0.95]">
               <div className="wipe-text">MALAYALAM TRIVIA. REAL STAKES. REAL BRAGGING RIGHTS.</div>
               <div id="wipe-fill" className="wipe-text-fill">MALAYALAM TRIVIA. REAL STAKES. REAL BRAGGING RIGHTS.</div>
             </div>
