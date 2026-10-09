@@ -70,7 +70,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
       )}
       </div>
       {clip.caption && (
-        <figcaption className="border-t-2 border-[#1C1712] bg-[#F5F0E6] px-4 py-2 font-mono text-[11px] text-[#1C1712]">
+        <figcaption className="border-t-2 border-[#1C1712] bg-[#F5F0E6] px-4 py-2 font-mono text-xs text-[#1C1712]">
           {clip.caption}
         </figcaption>
       )}
@@ -193,7 +193,7 @@ export function PhotoGrid({ photos, alt }: { photos: RecapMedia[]; alt: string }
                 >
                   ›
                 </button>
-                <div className="absolute bottom-4 left-0 right-0 text-center font-mono text-[11px] text-[#F5F0E6]/80">
+                <div className="absolute bottom-4 left-0 right-0 text-center font-mono text-xs text-[#F5F0E6]/80">
                   {openIndex! + 1} / {photos.length}
                 </div>
               </>

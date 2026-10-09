@@ -16,14 +16,14 @@ export default async function NightsPage() {
 
   return (
     <RecapShell>
-      <Link href="/" className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
+      <Link href="/" className="inline-flex min-h-11 items-center font-mono text-xs tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
         ← Back home
       </Link>
       <h1 className="font-display text-5xl md:text-7xl mt-6 mb-3">PAST NIGHTS</h1>
-      <p className="text-[#8C8477] mb-12 max-w-xl">The winners, the noise and the proof. Come be in the next one.</p>
+      <p className="text-[#6A6357] mb-12 max-w-xl">The winners, the noise and the proof. Come be in the next one.</p>
 
       {recaps.length === 0 ? (
-        <div className="border-2 border-[#1C1712] p-12 text-center font-mono text-[#8C8477]">
+        <div className="border-2 border-[#1C1712] p-12 text-center font-mono text-[#6A6357]">
           THE FIRST RECAP IS COMING SOON.
         </div>
       ) : (
@@ -47,7 +47,7 @@ export default async function NightsPage() {
                 )}
               </div>
               <div className="p-6">
-                <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-[#B8451D]">{r.dateText}</div>
+                <div className="font-mono text-xs tracking-[0.2em] uppercase text-[#B8451D]">{r.dateText}</div>
                 <h2 className="font-display text-3xl mt-2">{r.title}</h2>
                 <div className="mt-2 font-mono text-xs opacity-70">{r.venue.toUpperCase()}</div>
                 {r.winnerTeam && (
@@ -56,7 +56,7 @@ export default async function NightsPage() {
                   </div>
                 )}
                 {r.stats && <div className="mt-1 font-mono text-xs opacity-70">{r.stats}</div>}
-                <div className="mt-4 font-mono text-[11px] tracking-[0.2em] uppercase">See the night →</div>
+                <div className="mt-4 font-mono text-xs tracking-[0.2em] uppercase">See the night →</div>
               </div>
             </Link>
           ))}

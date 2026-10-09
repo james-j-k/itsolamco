@@ -470,6 +470,12 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] selection:bg-[#B8451D] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-[#1C1712] focus:px-4 focus:py-3 focus:font-mono focus:text-[#F5F0E6]"
+      >
+        Skip to content
+      </a>
       {/* Navigation */}
       <nav
         id="main-nav"
@@ -486,8 +492,8 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
           </div>
         </div>
         <div className="flex items-center gap-6">
-          <div className="font-mono hidden sm:block text-[9px] opacity-60">KOCHI, KL / 10.00° N, 76.26° E</div>
-          <a href="#partner" className="hidden sm:inline-block btn-rust magnetic px-6 py-2 font-mono text-[10px] tracking-[0.3em]">
+          <div className="font-mono hidden sm:block text-xs opacity-70">KOCHI, KL / 10.00° N, 76.26° E</div>
+          <a href="#partner" className="hidden sm:inline-block btn-rust magnetic px-6 py-2 font-mono text-xs tracking-[0.3em]">
             BOOK SLOTS
           </a>
           <button
@@ -538,12 +544,12 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
         </div>
       )}
 
-      <main>
+      <main id="main-content">
         {/* Hero */}
-        <section className="pt-12 pb-12 md:pt-20 md:pb-20 px-6 md:px-8 grid-bg min-h-screen flex flex-col justify-between overflow-hidden">
+        <section className="pt-10 pb-10 md:pt-20 md:pb-20 px-6 md:px-8 grid-bg md:min-h-screen flex flex-col md:justify-between overflow-hidden">
           <div className="relative">
-            <div className="font-mono mb-6 text-[#B8451D] animate-pulse">{"// CURRENTLY SPINNING TRIVIA NIGHTS IN KOCHI"}</div>
-            <h1 className="font-display text-[14vw] leading-[0.85] mb-8 relative">
+            <div className="font-mono mb-6 text-[#B8451D]">{"// CURRENTLY SPINNING TRIVIA NIGHTS IN KOCHI"}</div>
+            <h1 className="font-display text-[14vw] leading-[0.85] mb-4 md:mb-8 relative">
               <div className="overflow-hidden">
                 <span className="reveal-char inline-block" style={{ transitionDelay: "0.1s" }}>MALAYALAM</span>
               </div>
@@ -556,14 +562,14 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             </h1>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-end gap-12 mt-12">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-8 md:gap-12 mt-6 md:mt-12">
             <div
               ref={heroDescRef}
-              className="max-w-xl text-2xl leading-relaxed opacity-0 translate-y-8 transition-all duration-1000 delay-500"
+              className="order-2 md:order-none max-w-xl text-lg md:text-2xl leading-relaxed opacity-0 translate-y-8 transition-all duration-1000 delay-500"
             >
               Not an enterprise agency. Not a corporate mixer. Just the gang that shows up with a mic, a scoreboard, and unreasonably specific questions about 1998 Mohanlal films.
             </div>
-            <div className="border-2 border-[#1C1712] p-8 w-full md:w-96 bg-[#F5F0E6] flex flex-col gap-6 transform hover:-rotate-1 transition-transform cursor-default z-10">
+            <div className="order-1 md:order-none border-2 border-[#1C1712] p-6 md:p-8 w-full md:w-96 bg-[#F5F0E6] flex flex-col gap-5 md:gap-6 transform hover:-rotate-1 transition-transform cursor-default z-10">
               <div className="flex justify-between items-center">
                 <div className="font-mono">NEXT EVENT</div>
                 <div className="w-2 h-2 bg-[#B8451D] rounded-full animate-ping" />
@@ -571,28 +577,31 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               {nextEvent ? (
                 <div>
                   <h3 className="font-display text-4xl mb-2">{nextEvent.theme ?? nextEvent.title}</h3>
-                  <p className="font-mono text-[#8C8477] mb-6">
+                  <p className="font-mono text-[#6A6357] mb-6">
                     {formatShortDate(new Date(nextEvent.date))} / {nextEvent.venueName.toUpperCase()}, KOCHI / {formatTime(new Date(nextEvent.date))}
                   </p>
                   <div className="grid grid-cols-4 gap-2 border-t-2 border-[#1C1712] pt-4" aria-label="Countdown to next event">
-                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.d}</div><div className="font-mono text-[8px] opacity-60">DAYS</div></div>
-                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.h}</div><div className="font-mono text-[8px] opacity-60">HRS</div></div>
-                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.m}</div><div className="font-mono text-[8px] opacity-60">MIN</div></div>
-                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.s}</div><div className="font-mono text-[8px] opacity-60">SEC</div></div>
+                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.d}</div><div className="font-mono text-xs opacity-70">DAYS</div></div>
+                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.h}</div><div className="font-mono text-xs opacity-70">HRS</div></div>
+                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.m}</div><div className="font-mono text-xs opacity-70">MIN</div></div>
+                    <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.s}</div><div className="font-mono text-xs opacity-70">SEC</div></div>
                   </div>
                   {nextEvent.teamsBooked > 0 && (
-                    <p className="font-mono text-[11px] text-[#B8451D] mt-4 flex items-center gap-2">
+                    <p className="font-mono text-xs text-[#B8451D] mt-4 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-[#B8451D] rounded-full" />
                       {nextEvent.teamsBooked} {nextEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-[#8C8477]">New nights dropping soon — check back shortly.</p>
+                <p className="text-[#6A6357]">New nights dropping soon — check back shortly.</p>
               )}
               <button onClick={() => openBooking(nextEvent?.id)} className="btn-rust magnetic w-full py-4 font-display text-xl text-center">
                 RSVP YOUR TEAM
               </button>
+              <a href="#partner" className="-mb-2 flex min-h-11 items-center justify-center font-mono text-xs underline underline-offset-4 hover:text-[#B8451D]">
+                Own a bar? Host a night →
+              </a>
             </div>
           </div>
           <div className="ambient-hairline absolute bottom-0 left-0 w-full h-[3px]" />
@@ -616,7 +625,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
         <section id="how-it-works" className="section-border px-6 md:px-8 py-16 md:py-32 bg-[#EEE7D8] relative">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
             <div className="lg:col-span-4 lg:sticky lg:top-40 h-fit z-20">
-              <div className="font-mono mb-6 text-[#8C8477]">ROUND-BY-ROUND</div>
+              <div className="font-mono mb-6 text-[#6A6357]">ROUND-BY-ROUND</div>
               <h2 className="font-display text-5xl sm:text-6xl md:text-7xl mb-8 md:mb-12">HOW WE<br />ROLL.</h2>
               <div className="hidden lg:block border-2 border-[#1C1712] p-8 bg-[#F5F0E6] shadow-[8px_8px_0px_0px_rgba(28,23,18,1)]">
                 <div className="flex justify-between items-center mb-8">
@@ -639,7 +648,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               {rounds.length > 0 && (
                 <div className="lg:hidden sticky top-20 z-20 mb-8 border-2 border-[#1C1712] bg-[#F5F0E6] px-5 py-3 shadow-[6px_6px_0px_0px_rgba(28,23,18,1)]">
                   <div className="flex justify-between items-center mb-2">
-                    <div className="font-mono text-[10px] text-[#8C8477]">CURRENT ROUND</div>
+                    <div className="font-mono text-xs text-[#6A6357]">CURRENT ROUND</div>
                     <div data-round-indicator className="font-mono text-lg text-[#B8451D]">
                       {`01/${String(rounds.length).padStart(2, "0")}`}
                     </div>
@@ -654,7 +663,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                 </div>
               )}
               {rounds.length === 0 && (
-                <p className="text-xl text-[#8C8477] py-16">Round format coming soon.</p>
+                <p className="text-xl text-[#6A6357] py-16">Round format coming soon.</p>
               )}
               {rounds.map((r, i) => {
                 const { Icon: RoundIcon, rot } = ROUND_ICONS[i % ROUND_ICONS.length];
@@ -670,7 +679,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                       <span className="font-mono text-[#B8451D] text-lg mt-2">{String(i + 1).padStart(2, "0")}</span>
                       <div className="max-w-xl transition-transform duration-500 group-hover:translate-x-4 group-active:translate-x-4">
                         <h4 className="font-display text-6xl mb-6 group-hover:text-[#B8451D] group-active:text-[#B8451D] transition-colors">{r.title.toUpperCase()}</h4>
-                        <p className="text-xl text-[#8C8477] leading-relaxed">{r.description}</p>
+                        <p className="text-xl text-[#6A6357] leading-relaxed">{r.description}</p>
                       </div>
                     </div>
                     <RoundIcon
@@ -688,24 +697,38 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
         <section className="section-border py-20 md:py-40 flex flex-col justify-center items-center grid-bg relative overflow-hidden">
           <div className="absolute w-64 h-64 bg-[#B8451D] opacity-[0.03] rounded-full -top-32 -left-32 blur-3xl" />
           <div className="max-w-4xl w-full px-8 relative z-10">
-            <div className="font-mono text-center mb-16 tracking-[0.4em] opacity-60">ARE YOU ACTUALLY A FAN? // TRY ONE</div>
+            <div className="font-mono text-center mb-16 tracking-[0.4em] opacity-70">ARE YOU ACTUALLY A FAN? // TRY ONE</div>
             <div
-              className={`trivia-card h-[30rem] sm:h-[26rem] md:h-96 w-full cursor-pointer transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98] ${flipped ? "flipped" : ""}`}
+              className={`trivia-card h-[30rem] sm:h-[26rem] md:h-96 w-full cursor-pointer transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#B8451D] ${flipped ? "flipped" : ""}`}
               onClick={() => setFlipped((f) => !f)}
+              role="button"
+              tabIndex={0}
+              aria-pressed={flipped}
+              aria-label={
+                flipped
+                  ? "Answer: Madampalli. Press to see the question again."
+                  : "Quiz question: in the 1993 cult classic Manichitrathazhu, what was the original name of Nakulan's grandfather's house? Press to reveal the answer."
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFlipped((f) => !f);
+                }
+              }}
             >
               <div className="trivia-card-inner relative w-full h-full border-2 border-[#1C1712] bg-[#F5F0E6] shadow-[12px_12px_0px_0px_rgba(28,23,18,1)]">
                 <div className="trivia-card-front absolute inset-0 p-6 sm:p-10 md:p-16 flex flex-col justify-center items-center text-center">
                   <div className="font-display text-2xl sm:text-3xl md:text-5xl mb-8 leading-tight">
                     In the 1993 cult classic &apos;Manichitrathazhu&apos;, what was the original name of Nakulan&apos;s grandfather&apos;s house?
                   </div>
-                  <div className="flex items-center gap-4 text-[#B8451D] font-mono text-[10px] sm:text-xs">
+                  <div className="flex items-center gap-4 text-[#B8451D] font-mono text-xs sm:text-xs">
                     <span className="animate-bounce">↓</span> {canHover ? "CLICK TO REVEAL" : "TAP TO REVEAL"} <span className="animate-bounce">↓</span>
                   </div>
                 </div>
                 <div className="trivia-card-back absolute inset-0 p-6 sm:p-10 md:p-16 flex flex-col justify-center items-center text-center bg-[#B8451D] text-[#F5F0E6]">
                   <div className="font-display text-4xl sm:text-6xl md:text-8xl mb-6 tracking-tighter">MADAMPALLI</div>
                   <div className="w-32 h-1 bg-[#F5F0E6] mb-6" />
-                  <p className="mt-6 font-malayalam text-2xl sm:text-3xl md:text-4xl opacity-90">മാടമ്പള്ളി</p>
+                  <p lang="ml" className="mt-6 font-malayalam text-2xl sm:text-3xl md:text-4xl opacity-90">മാടമ്പള്ളി</p>
                 </div>
               </div>
             </div>
@@ -718,7 +741,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             <h2 className="font-display text-[15vw] sm:text-6xl md:text-[10vw] flex items-center gap-3 sm:gap-4">
               CALENDAR <CalendarDays size="1em" className="text-[#B8451D] text-[8vw] sm:text-4xl md:text-6xl" />
             </h2>
-            <div className="font-mono w-72 text-right text-[#8C8477] border-r-4 border-[#B8451D] pr-4">
+            <div className="font-mono w-72 text-right text-[#6A6357] border-r-4 border-[#B8451D] pr-4">
               TIMES VARY BY NIGHT — EXACT START TIME LISTED ON EACH CARD.
             </div>
           </div>
@@ -736,8 +759,17 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                     data-reveal
                     style={{ "--d": i * 90 } as React.CSSProperties}
                     onClick={() => openBooking(ev.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Register your team for ${ev.title}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openBooking(ev.id);
+                      }
+                    }}
                     onTouchStart={() => {}}
-                    className={`${borderClass} border-[#1C1712] p-10 hover:bg-[#B8451D] hover:text-[#F5F0E6] active:bg-[#B8451D] active:text-[#F5F0E6] transition-all duration-300 cursor-pointer group`}
+                    className={`${borderClass} border-[#1C1712] p-10 hover:bg-[#B8451D] hover:text-[#F5F0E6] active:bg-[#B8451D] active:text-[#F5F0E6] transition-all duration-300 cursor-pointer focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-[#1C1712] group`}
                   >
                     <div className="flex justify-between items-center mb-10">
                       <div className="font-mono">{formatDayDate(d)} / {formatTime(d)}</div>
@@ -755,7 +787,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               })}
             </div>
           ) : (
-            <div className="border-2 border-[#1C1712] p-16 text-center font-mono text-[#8C8477]">
+            <div className="border-2 border-[#1C1712] p-16 text-center font-mono text-[#6A6357]">
               NO NIGHTS ON THE CALENDAR YET — CHECK BACK SOON.
             </div>
           )}
@@ -768,7 +800,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               <h2 className="font-display text-[15vw] sm:text-6xl md:text-[8vw] flex items-center gap-3 sm:gap-4">
                 LAST NIGHT <Trophy size="1em" className="text-[#B8451D] text-[8vw] sm:text-4xl md:text-6xl" />
               </h2>
-              <div className="font-mono w-72 text-right text-[#8C8477] border-r-4 border-[#B8451D] pr-4">
+              <div className="font-mono w-72 text-right text-[#6A6357] border-r-4 border-[#B8451D] pr-4">
                 THE WINNERS, THE NOISE, THE PROOF.
               </div>
             </div>
@@ -791,19 +823,19 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               </div>
               <div className="flex flex-col justify-between gap-10 p-8 md:p-12">
                 <div>
-                  <div className="font-mono text-[11px] tracking-[0.25em] text-[#B8451D] mb-3">{recap.dateText.toUpperCase()}</div>
+                  <div className="font-mono text-xs tracking-[0.25em] text-[#B8451D] mb-3">{recap.dateText.toUpperCase()}</div>
                   <h3 className="font-display text-4xl md:text-5xl mb-3">{recap.title}</h3>
-                  <div className="font-mono text-xs md:text-sm text-[#8C8477] mb-6 flex items-center gap-2">
+                  <div className="font-mono text-xs md:text-sm text-[#6A6357] mb-6 flex items-center gap-2">
                     <MapPin size="1.1em" className="text-[#B8451D] shrink-0" />
                     <span>{recap.venue.toUpperCase()}</span>
                   </div>
                   {recap.winnerTeam && (
                     <div className="mb-4">
-                      <div className="font-mono text-[11px] tracking-[0.3em] text-[#8C8477]">WINNERS</div>
+                      <div className="font-mono text-xs tracking-[0.3em] text-[#6A6357]">WINNERS</div>
                       <div className="font-display text-5xl md:text-6xl text-[#B8451D]">{recap.winnerTeam}</div>
                     </div>
                   )}
-                  {recap.stats && <div className="font-mono text-sm text-[#8C8477]">{recap.stats}</div>}
+                  {recap.stats && <div className="font-mono text-sm text-[#6A6357]">{recap.stats}</div>}
                 </div>
                 <div className="flex items-center justify-between font-mono text-sm tracking-[0.2em]">
                   <span>
@@ -817,7 +849,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                 </div>
               </div>
             </Link>
-            <div className="mt-6 font-mono text-[11px] tracking-[0.2em]">
+            <div className="mt-6 font-mono text-xs tracking-[0.2em]">
               <Link href="/nights" className="inline-flex min-h-11 items-center text-[#1C1712] hover:text-[#B8451D] transition-colors">
                 ALL PAST NIGHTS →
               </Link>
@@ -830,9 +862,9 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
           <div className="absolute inset-0 grid-bg opacity-30" />
           <canvas id="venue-map-canvas" />
           <div className="container mx-auto px-8 relative z-10">
-            <div className="font-display text-[22vw] text-[#1C1712] opacity-[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none">KOCHI</div>
+            <div className="font-display text-[22vw] text-[#1C1712] opacity-[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none" aria-hidden="true">KOCHI</div>
             <div className="max-w-5xl mx-auto">
-              <div className="font-mono text-[#B8451D] mb-4">OUR BATTLEGROUNDS</div>
+              <div className="font-mono text-[#A63D17] mb-4">OUR BATTLEGROUNDS</div>
               <h2 className="font-display text-5xl sm:text-6xl md:text-8xl mb-8 md:mb-12 leading-none">WHERE THE<br />MAGIC HAPPENS.</h2>
               <p className="text-2xl mb-16 max-w-2xl text-[#1C1712]/80 leading-relaxed">Across Kochi&apos;s best restobars, we turn quiet weeknights into Mollywood battlegrounds. Trace the route as you scroll — find us at the front lines.</p>
               <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
@@ -869,7 +901,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               <div>
                 <div className="font-mono text-[#B8451D] mb-6">FOR THE BARS</div>
                 <h3 className="font-display text-5xl md:text-7xl mb-8 group-hover:text-[#B8451D] group-active:text-[#B8451D] transition-colors">HOST A NIGHT</h3>
-                <p className="text-[#8C8477] text-xl mb-12 leading-relaxed">Are you a pub owner looking to pack your house on a Tuesday? We bring the crowd, the kit, and the vibe. You just serve the drinks.</p>
+                <p className="text-[#6A6357] text-xl mb-12 leading-relaxed">Are you a pub owner looking to pack your house on a Tuesday? We bring the crowd, the kit, and the vibe. You just serve the drinks.</p>
               </div>
               <button onClick={() => setVenueOpen(true)} className="magnetic border-2 border-[#1C1712] py-8 px-12 font-display text-2xl hover:bg-[#1C1712] hover:text-[#F5F0E6] active:bg-[#1C1712] active:text-[#F5F0E6] transition-all flex items-center justify-between">
                 CONTACT AS A VENUE <MessageCircle size="1em" />
@@ -917,7 +949,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                 >
                   <XLogoIcon />
                 </a>
-                <a href="mailto:itsolamco@gmail.com" className="w-12 h-12 border border-[#8C8477]/40 flex items-center justify-center hover:bg-[#B8451D] hover:border-[#B8451D] active:bg-[#B8451D] active:border-[#B8451D] transition-all">
+                <a href="mailto:itsolamco@gmail.com" aria-label="Email us" className="w-12 h-12 border border-[#8C8477]/40 flex items-center justify-center hover:bg-[#B8451D] hover:border-[#B8451D] active:bg-[#B8451D] active:border-[#B8451D] transition-all">
                   <Mail size="1em" />
                 </a>
               </div>
@@ -925,7 +957,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-32 font-mono">
               <div data-reveal style={{ "--d": 0 } as React.CSSProperties}>
-                <div className="text-[#B8451D] mb-8 tracking-widest">LINKS</div>
+                <div className="text-[#E0623A] mb-8 tracking-widest">LINKS</div>
                 <div className="flex flex-col gap-5 text-sm">
                   <a href="#statement-wipe" className="hover:text-[#B8451D] transition-colors">MANIFESTO</a>
                   <a href="#events" className="hover:text-[#B8451D] transition-colors">EVENTS</a>
@@ -934,7 +966,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                 </div>
               </div>
               <div data-reveal style={{ "--d": 100 } as React.CSSProperties}>
-                <div className="text-[#B8451D] mb-8 tracking-widest">LEGAL</div>
+                <div className="text-[#E0623A] mb-8 tracking-widest">LEGAL</div>
                 <div className="flex flex-col gap-5 text-sm">
                   <Link href="/privacy" className="hover:text-[#B8451D] transition-colors">PRIVACY</Link>
                   <Link href="/terms" className="hover:text-[#B8451D] transition-colors">TERMS</Link>
@@ -943,7 +975,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-center pt-16 border-t border-[#8C8477]/20 font-mono text-[10px] text-[#8C8477] tracking-[0.2em]">
+          <div className="flex flex-col md:flex-row justify-between items-center pt-16 border-t border-[#8C8477]/20 font-mono text-xs text-[#8C8477] tracking-[0.2em]">
             <div>© {new Date().getFullYear()} IT&apos;S OLAM COMPANY / CRAFTED IN KOCHI</div>
             <div className="mt-4 md:mt-0 flex items-center gap-2">
               <div className="w-1 h-1 bg-[#B8451D] rounded-full" />
@@ -951,29 +983,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             </div>
           </div>
         </footer>
-        <div className="lg:hidden h-[calc(4rem+env(safe-area-inset-bottom))]" aria-hidden="true" />
       </main>
-
-      {/* Mobile-only persistent CTA bar — venue owners deciding whether to reach out shouldn't have to scroll back up or dig through a menu to do it.
-          pb includes the safe-area inset so the buttons clear the home-indicator gesture zone on notched iPhones. */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#F5F0E6] border-t-2 border-[#1C1712] flex pb-[env(safe-area-inset-bottom)]">
-        <button
-          type="button"
-          onClick={() => setVenueOpen(true)}
-          onTouchStart={() => {}}
-          className="flex-1 py-4 font-mono text-[10px] tracking-[0.2em] uppercase border-r-2 border-[#1C1712] active:bg-[#1C1712] active:text-[#F5F0E6] transition-colors"
-        >
-          Contact as Venue
-        </button>
-        <button
-          type="button"
-          onClick={() => openBooking()}
-          onTouchStart={() => {}}
-          className="flex-1 py-4 font-mono text-[10px] tracking-[0.2em] uppercase bg-[#B8451D] text-[#F5F0E6] active:bg-[#8F3517] transition-colors"
-        >
-          Book a Team
-        </button>
-      </div>
 
       <BookingModal
         key={bookingKey}

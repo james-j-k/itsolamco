@@ -16,7 +16,7 @@ export default function ProofStrip({ recap, onBook }: { recap: RecapDTO; onBook:
   return (
     <section id="proof" className="section-border bg-[#F5F0E6] px-6 md:px-8 py-14 md:py-24">
       <div className="mb-8 md:mb-12">
-        <div className="mb-3 font-mono text-[11px] tracking-[0.2em] text-[#B8451D] md:text-sm">{"// NOT JUST TALK"}</div>
+        <div className="mb-3 font-mono text-xs tracking-[0.2em] text-[#B8451D] md:text-sm">{"// NOT JUST TALK"}</div>
         <h2 className="font-display text-[13vw] leading-[0.9] sm:text-6xl md:text-7xl">
           LAST NIGHT, <span className="text-[#B8451D]">LIVE.</span>
         </h2>
@@ -27,7 +27,7 @@ export default function ProofStrip({ recap, onBook }: { recap: RecapDTO; onBook:
               WINNERS <span className="text-[#B8451D]">{recap.winnerTeam.toUpperCase()}</span>
             </span>
           )}
-          <span className="flex items-center gap-1.5 text-[#8C8477]">
+          <span className="flex items-center gap-1.5 text-[#6A6357]">
             <MapPin size="1.1em" className="shrink-0 text-[#B8451D]" />
             {recap.venue.toUpperCase()}
           </span>
@@ -45,7 +45,7 @@ export default function ProofStrip({ recap, onBook }: { recap: RecapDTO; onBook:
         ))}
       </div>
       {clips.length > 1 && (
-        <p className="mt-1 font-mono text-[10px] tracking-[0.2em] text-[#8C8477] md:hidden">SWIPE FOR MORE →</p>
+        <p className="mt-1 font-mono text-xs tracking-[0.2em] text-[#6A6357] md:hidden">SWIPE FOR MORE →</p>
       )}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center md:mt-12">

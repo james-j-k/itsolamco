@@ -75,13 +75,13 @@ export default function RsvpForm({
       <div>
         {response === "coming" ? (
           <>
-            <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.28em] uppercase mb-2">LOCKED IN ✓</div>
+            <div className="font-mono text-[#B8451D] text-xs tracking-[0.28em] uppercase mb-2">LOCKED IN ✓</div>
             <p className="text-lg mb-5">
               Thanks! We&apos;ve got you down for <strong>{headcountNumber} {headcountNumber === 1 ? "player" : "players"}</strong>.
             </p>
             {tableBooked !== true && hasTableInfo && (
               <div className="border-2 border-[#B8451D] p-4 mb-5">
-                <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.2em] uppercase mb-2">LOCK YOUR TABLE</div>
+                <div className="font-mono text-[#B8451D] text-xs tracking-[0.2em] uppercase mb-2">LOCK YOUR TABLE</div>
                 <p className="leading-relaxed mb-3">{offerNote || "Reserve your team's table ahead of the night:"}</p>
                 <div className="flex flex-col gap-2">
                   {districtUrl && (
@@ -100,14 +100,14 @@ export default function RsvpForm({
           </>
         ) : (
           <>
-            <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.28em] uppercase mb-2">NOTED</div>
+            <div className="font-mono text-[#B8451D] text-xs tracking-[0.28em] uppercase mb-2">NOTED</div>
             <p className="text-lg mb-5">Sorry to miss you. Hope to see you at the next one.</p>
           </>
         )}
         <button
           type="button"
           onClick={() => setSubmitted(false)}
-          className="font-mono text-xs uppercase tracking-wider underline underline-offset-4 text-[#8C8477] hover:text-[#B8451D]"
+          className="font-mono text-xs uppercase tracking-wider underline underline-offset-4 text-[#6A6357] hover:text-[#B8451D]"
         >
           Change my answer
         </button>
@@ -127,7 +127,7 @@ export default function RsvpForm({
       {response === "coming" && (
         <div className="flex flex-col gap-5 mt-3">
           <label className="flex flex-col gap-2">
-            <span className="font-mono text-[10px]">HOW MANY PLAYERS ARE COMING?</span>
+            <span className="font-mono text-xs">HOW MANY PLAYERS ARE COMING?</span>
             <input
               type="number"
               inputMode="numeric"
@@ -140,7 +140,7 @@ export default function RsvpForm({
           </label>
 
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] leading-relaxed">
+            <span className="font-mono text-xs leading-relaxed">
               HAVE YOU BOOKED A TABLE ON SWIGGY / DISTRICT FOR 20% OFF? (OPTIONAL)
             </span>
             {/* Tapping the selected option again clears it, since the question is optional. */}

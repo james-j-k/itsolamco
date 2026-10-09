@@ -31,9 +31,9 @@ function Notice({ label, title, body }: { label: string; title: string; body: st
   return (
     <Shell>
       <div className="border-2 border-[#1C1712] p-8 text-center">
-        <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.28em] uppercase mb-4">{label}</div>
+        <div className="font-mono text-[#B8451D] text-xs tracking-[0.28em] uppercase mb-4">{label}</div>
         <h1 className="font-display text-4xl mb-4">{title}</h1>
-        <p className="text-[#8C8477] leading-relaxed">{body}</p>
+        <p className="text-[#6A6357] leading-relaxed">{body}</p>
       </div>
     </Shell>
   );
@@ -68,7 +68,7 @@ export default async function RsvpPage({ params }: { params: Promise<{ token: st
   return (
     <Shell>
       <div className="border-2 border-[#1C1712] p-6 sm:p-8">
-        <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.28em] uppercase mb-3">FOR {booking.teamName.toUpperCase()}</div>
+        <div className="font-mono text-[#B8451D] text-xs tracking-[0.28em] uppercase mb-3">FOR {booking.teamName.toUpperCase()}</div>
         <h1 className="font-display text-4xl mb-5">ARE YOU COMING?</h1>
 
         {event ? (
@@ -79,7 +79,7 @@ export default async function RsvpPage({ params }: { params: Promise<{ token: st
               {" · "}
               {event.date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ })}
             </div>
-            <div className="text-[#8C8477] text-sm mt-1">
+            <div className="text-[#6A6357] text-sm mt-1">
               {event.venueName}, {event.venueArea}
             </div>
             <a
@@ -92,7 +92,7 @@ export default async function RsvpPage({ params }: { params: Promise<{ token: st
             </a>
           </div>
         ) : (
-          <p className="text-[#8C8477] mb-6">We&apos;ll confirm the exact night and venue with you shortly.</p>
+          <p className="text-[#6A6357] mb-6">We&apos;ll confirm the exact night and venue with you shortly.</p>
         )}
 
         <RsvpForm

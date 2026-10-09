@@ -75,7 +75,7 @@ export default function VenueInquiryModal({ open, onClose }: Props) {
           <div className="py-12 text-center">
             <div className="font-mono text-[#B8451D] mb-4">MESSAGE SENT</div>
             <h3 className="font-display text-4xl mb-6">WE&apos;LL BE IN TOUCH.</h3>
-            <p className="text-[#8C8477]">
+            <p className="text-[#6A6357]">
               We usually reply within a couple of days.
             </p>
             <button
@@ -104,7 +104,7 @@ export default function VenueInquiryModal({ open, onClose }: Props) {
 
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
-                <span className="font-mono text-[10px]">VENUE NAME</span>
+                <span className="font-mono text-xs">VENUE NAME</span>
                 <input
                   required
                   autoComplete="organization"
@@ -115,7 +115,7 @@ export default function VenueInquiryModal({ open, onClose }: Props) {
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="font-mono text-[10px]">YOUR NAME</span>
+                <span className="font-mono text-xs">YOUR NAME</span>
                 <input
                   required
                   autoComplete="name"
@@ -127,7 +127,7 @@ export default function VenueInquiryModal({ open, onClose }: Props) {
 
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px]">EMAIL</span>
+                  <span className="font-mono text-xs">EMAIL</span>
                   <input
                     required
                     type="email"
@@ -138,7 +138,7 @@ export default function VenueInquiryModal({ open, onClose }: Props) {
                   />
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px]">PHONE</span>
+                  <span className="font-mono text-xs">PHONE</span>
                   <input
                     type="tel"
                     inputMode="tel"
@@ -151,7 +151,7 @@ export default function VenueInquiryModal({ open, onClose }: Props) {
               </div>
 
               <label className="flex flex-col gap-2">
-                <span className="font-mono text-[10px]">TELL US ABOUT YOUR PLACE</span>
+                <span className="font-mono text-xs">TELL US ABOUT YOUR PLACE</span>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}

@@ -41,11 +41,11 @@ export default async function NightRecapPage({ params }: Props) {
 
   return (
     <RecapShell>
-      <Link href="/nights" className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
+      <Link href="/nights" className="inline-flex min-h-11 items-center font-mono text-xs tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
         ← All past nights
       </Link>
 
-      <div className="mt-6 font-mono text-[11px] tracking-[0.2em] uppercase text-[#B8451D]">{recap.dateText}</div>
+      <div className="mt-6 font-mono text-xs tracking-[0.2em] uppercase text-[#B8451D]">{recap.dateText}</div>
       <h1 className="font-display text-5xl md:text-7xl mt-2 mb-3">{recap.title}</h1>
       <p className="mb-8 flex items-center gap-2 font-mono text-sm md:text-base">
         <MapPin size="1.1em" className="text-[#B8451D] shrink-0" />
@@ -69,11 +69,11 @@ export default async function NightRecapPage({ params }: Props) {
             <div className="flex flex-col gap-2 border-t-2 border-[#1C1712] bg-[#EEE7D8] p-6 sm:flex-row sm:items-end sm:justify-between">
               {recap.winnerTeam && (
                 <div>
-                  <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-[#8C8477]">Winners</div>
+                  <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6A6357]">Winners</div>
                   <div className="font-display text-4xl md:text-5xl text-[#B8451D]">{recap.winnerTeam}</div>
                 </div>
               )}
-              {recap.stats && <div className="font-mono text-xs text-[#8C8477]">{recap.stats}</div>}
+              {recap.stats && <div className="font-mono text-xs text-[#6A6357]">{recap.stats}</div>}
             </div>
           )}
         </div>
@@ -102,7 +102,7 @@ export default async function NightRecapPage({ params }: Props) {
       )}
 
       <section className="border-2 border-[#1C1712] bg-[#B8451D] p-8 text-center text-[#F5F0E6] md:p-12">
-        <div className="font-mono text-[11px] tracking-[0.3em] uppercase mb-3">Want in next time?</div>
+        <div className="font-mono text-xs tracking-[0.3em] uppercase mb-3">Want in next time?</div>
         <h2 className="font-display text-4xl md:text-5xl mb-6">BRING YOUR TEAM.</h2>
         <Link
           href="/#events"

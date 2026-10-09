@@ -37,7 +37,7 @@ body {
 
 .font-mono {
   font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.28em;
 }
@@ -264,4 +264,6 @@ body {
   [data-reveal] { transition: none; opacity: 1; transform: none; }
   .round-row { transition: none; opacity: 1; }
   .magnetic { transition: none !important; transform: none !important; }
+  /* Tailwind's looping pulse / ping / bounce decorations stop for visitors who ask for less motion */
+  .animate-pulse, .animate-ping, .animate-bounce { animation: none !important; }
 }

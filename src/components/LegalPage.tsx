@@ -19,11 +19,11 @@ export default function LegalPage({
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 md:px-8 py-16 md:py-24">
-        <Link href="/" className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
+        <Link href="/" className="font-mono text-xs tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
           ← Back home
         </Link>
         <h1 className="font-display text-5xl md:text-6xl mt-6 mb-4">{title}</h1>
-        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#8C8477] mb-16">
+        <p className="font-mono text-xs tracking-[0.2em] uppercase text-[#6A6357] mb-16">
           Last updated: {lastUpdated}
         </p>
 
@@ -31,7 +31,7 @@ export default function LegalPage({
           {children}
         </div>
 
-        <div className="mt-20 pt-8 border-t border-[#1C1712]/20 font-mono text-xs text-[#8C8477]">
+        <div className="mt-20 pt-8 border-t border-[#1C1712]/20 font-mono text-xs text-[#6A6357]">
           Questions about this page? Write to{" "}
           <a href="mailto:itsolamco@gmail.com" className="text-[#B8451D] hover:underline">
             itsolamco@gmail.com

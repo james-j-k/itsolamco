@@ -93,7 +93,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
           <div className="py-12 text-center">
             <div className="font-mono text-[#B8451D] mb-4">SLOT REQUESTED</div>
             <h3 className="font-display text-4xl mb-6">GOT IT.</h3>
-            <p className="text-[#8C8477]">
+            <p className="text-[#6A6357]">
               We&apos;ve noted your interest. Final headcount and table confirmation happens at the venue or via our{" "}
               <a href="https://www.instagram.com/itsolamco/" target="_blank" rel="noopener noreferrer" className="text-[#B8451D] hover:underline">Instagram</a> closer to the night — we&apos;ll be in touch.
             </p>
@@ -108,7 +108,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
           <form onSubmit={handleSubmit}>
             <div className="font-mono text-[#B8451D] mb-2">FOR THE FANS</div>
             <h3 className="font-display text-4xl mb-4">REGISTER TEAM</h3>
-            <p className="text-[#8C8477] text-sm mb-6 leading-relaxed">
+            <p className="text-[#6A6357] text-sm mb-6 leading-relaxed">
               This just lets us know you&apos;re in — final RSVP and table booking happens at the host venue or via our Instagram.
             </p>
 
@@ -126,7 +126,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
 
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
-                <span className="font-mono text-[10px]">TEAM NAME</span>
+                <span className="font-mono text-xs">TEAM NAME</span>
                 <input
                   required
                   value={teamName}
@@ -136,7 +136,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="font-mono text-[10px]">YOUR NAME</span>
+                <span className="font-mono text-xs">YOUR NAME</span>
                 <input
                   required
                   autoComplete="name"
@@ -148,7 +148,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
 
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px]">EMAIL</span>
+                  <span className="font-mono text-xs">EMAIL</span>
                   <input
                     required
                     type="email"
@@ -163,7 +163,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
                   />
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px]">PHONE</span>
+                  <span className="font-mono text-xs">PHONE</span>
                   <input
                     type="tel"
                     inputMode="tel"
@@ -188,13 +188,13 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
                 </button>
               )}
 
-              <p className="-mt-2 font-mono text-[10px] leading-relaxed text-[#8C8477]">
+              <p className="-mt-2 font-mono text-xs leading-relaxed text-[#6A6357]">
                 PHONE IS OPTIONAL. IF YOU ADD ONE, WE MAY WHATSAPP YOU ABOUT THE NIGHT.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px]">TEAM SIZE</span>
+                  <span className="font-mono text-xs">TEAM SIZE</span>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -206,7 +206,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
                   />
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px]">EVENT NIGHT</span>
+                  <span className="font-mono text-xs">EVENT NIGHT</span>
                   <select
                     value={eventId}
                     onChange={(e) => setEventId(e.target.value)}
@@ -223,7 +223,7 @@ export default function BookingModal({ open, onClose, events, preselectedEventId
               </div>
 
               <label className="flex flex-col gap-2">
-                <span className="font-mono text-[10px]">ANYTHING ELSE?</span>
+                <span className="font-mono text-xs">ANYTHING ELSE?</span>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}

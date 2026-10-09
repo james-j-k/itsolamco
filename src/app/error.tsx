@@ -9,9 +9,9 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
       <Link href="/" className="mb-10">
         <Image src="/logo.png" alt="It's Olam Company" width={2000} height={1042} className="h-12 w-auto" />
       </Link>
-      <div className="font-mono text-[#B8451D] text-[11px] tracking-[0.28em] uppercase mb-4">SOMETHING BROKE</div>
+      <div className="font-mono text-[#B8451D] text-xs tracking-[0.28em] uppercase mb-4">SOMETHING BROKE</div>
       <h1 className="font-display text-5xl md:text-6xl mb-4">TECHNICAL FOUL.</h1>
-      <p className="text-[#8C8477] max-w-md mb-10 leading-relaxed">
+      <p className="text-[#6A6357] max-w-md mb-10 leading-relaxed">
         Something went wrong loading this page. Try again, or head back home.
       </p>
       <div className="flex gap-4">
