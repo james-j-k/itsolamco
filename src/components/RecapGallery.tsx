@@ -39,7 +39,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
 
   return (
     // Phone clips are usually upright; a wide clip gets two columns so it isn't tiny.
-    <figure className={`border-2 border-[#1C1712] bg-[#EEE7D8] ${aspect > 1 ? "sm:col-span-2" : ""}`}>
+    <figure className={`border-2 border-[#1C1712] bg-[#F5F0E6] ${aspect > 1 ? "sm:col-span-2" : ""}`}>
       <div className="relative">
       <video
         ref={ref}
