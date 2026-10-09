@@ -546,10 +546,13 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
 
       <main id="main-content">
         {/* Hero */}
-        <section className="pt-10 pb-10 md:pt-20 md:pb-20 px-6 md:px-8 grid-bg md:min-h-screen flex flex-col md:justify-between overflow-hidden">
+        <section className="pt-6 pb-5 md:pt-20 md:pb-20 px-6 md:px-8 grid-bg md:min-h-screen flex flex-col md:justify-between overflow-hidden">
           <div className="relative">
-            <div className="font-mono mb-6 text-[#B8451D]">{"// CURRENTLY SPINNING TRIVIA NIGHTS IN KOCHI"}</div>
-            <h1 className="font-display text-[14vw] leading-[0.85] mb-4 md:mb-8 relative">
+            <div className="font-mono mb-3 md:mb-6 text-[#B8451D]">
+              <span className="md:hidden">{"// SPINNING TRIVIA NIGHTS IN KOCHI"}</span>
+              <span className="hidden md:inline">{"// CURRENTLY SPINNING TRIVIA NIGHTS IN KOCHI"}</span>
+            </div>
+            <h1 className="font-display text-[13vw] md:text-[14vw] leading-[0.85] mb-3 md:mb-8 relative">
               <div className="overflow-hidden">
                 <span className="reveal-char inline-block" style={{ transitionDelay: "0.1s" }}>MALAYALAM</span>
               </div>
@@ -562,32 +565,32 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             </h1>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-end gap-8 md:gap-12 mt-6 md:mt-12">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-8 md:gap-12 mt-4 md:mt-12">
             <div
               ref={heroDescRef}
-              className="order-2 md:order-none max-w-xl text-lg md:text-2xl leading-relaxed opacity-0 translate-y-8 transition-all duration-1000 delay-500"
+              className="hidden md:block max-w-xl text-2xl leading-relaxed opacity-0 translate-y-8 transition-all duration-1000 delay-500"
             >
               Not an enterprise agency. Not a corporate mixer. Just the gang that shows up with a mic, a scoreboard, and unreasonably specific questions about 1998 Mohanlal films.
             </div>
-            <div className="order-1 md:order-none border-2 border-[#1C1712] p-6 md:p-8 w-full md:w-96 bg-[#F5F0E6] flex flex-col gap-5 md:gap-6 transform hover:-rotate-1 transition-transform cursor-default z-10">
+            <div className="border-2 border-[#1C1712] p-4 md:p-8 w-full md:w-96 bg-[#F5F0E6] flex flex-col gap-3 md:gap-6 transform hover:-rotate-1 transition-transform cursor-default z-10">
               <div className="flex justify-between items-center">
                 <div className="font-mono">NEXT EVENT</div>
                 <div className="w-2 h-2 bg-[#B8451D] rounded-full animate-ping" />
               </div>
               {nextEvent ? (
                 <div>
-                  <h3 className="font-display text-4xl mb-2">{nextEvent.theme ?? nextEvent.title}</h3>
-                  <p className="font-mono text-[#6A6357] mb-6">
+                  <h3 className="font-display text-3xl md:text-4xl mb-1 md:mb-2">{nextEvent.theme ?? nextEvent.title}</h3>
+                  <p className="font-mono text-[#6A6357] mb-3 md:mb-6">
                     {formatShortDate(new Date(nextEvent.date))} / {nextEvent.venueName.toUpperCase()}, KOCHI / {formatTime(new Date(nextEvent.date))}
                   </p>
-                  <div className="grid grid-cols-4 gap-2 border-t-2 border-[#1C1712] pt-4" aria-label="Countdown to next event">
+                  <div className="grid grid-cols-4 gap-2 border-t-2 border-[#1C1712] pt-3 md:pt-4" aria-label="Countdown to next event">
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.d}</div><div className="font-mono text-xs opacity-70">DAYS</div></div>
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.h}</div><div className="font-mono text-xs opacity-70">HRS</div></div>
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.m}</div><div className="font-mono text-xs opacity-70">MIN</div></div>
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.s}</div><div className="font-mono text-xs opacity-70">SEC</div></div>
                   </div>
                   {nextEvent.teamsBooked > 0 && (
-                    <p className="font-mono text-xs text-[#B8451D] mt-4 flex items-center gap-2">
+                    <p className="font-mono text-xs text-[#B8451D] mt-3 md:mt-4 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-[#B8451D] rounded-full" />
                       {nextEvent.teamsBooked} {nextEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
                     </p>
@@ -596,10 +599,10 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               ) : (
                 <p className="text-[#6A6357]">New nights dropping soon — check back shortly.</p>
               )}
-              <button onClick={() => openBooking(nextEvent?.id)} className="btn-rust magnetic w-full py-4 font-display text-xl text-center">
+              <button onClick={() => openBooking(nextEvent?.id)} className="btn-rust magnetic w-full py-3 md:py-4 font-display text-xl text-center">
                 RSVP YOUR TEAM
               </button>
-              <a href="#partner" className="-mb-2 flex min-h-11 items-center justify-center font-mono text-xs underline underline-offset-4 hover:text-[#B8451D]">
+              <a href="#partner" className="-mb-2 hidden min-h-11 items-center justify-center font-mono text-xs underline underline-offset-4 hover:text-[#B8451D] md:flex">
                 Own a bar? Host a night →
               </a>
             </div>
@@ -609,6 +612,16 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
 
         {/* Proof: clips from the last night, straight under the hero */}
         {recap && <ProofStrip recap={recap} onBook={() => openBooking(nextEvent?.id)} />}
+
+        {/* Phones: the intro line and the venue route sit under the clips, so the clips can peek in on the first screen */}
+        <section className="section-border md:hidden px-6 py-10 bg-[#F5F0E6]">
+          <p className="text-lg leading-relaxed">
+            Not an enterprise agency. Not a corporate mixer. Just the gang that shows up with a mic, a scoreboard, and unreasonably specific questions about 1998 Mohanlal films.
+          </p>
+          <a href="#partner" className="mt-4 flex min-h-11 items-center font-mono text-xs underline underline-offset-4 hover:text-[#B8451D]">
+            Own a bar? Host a night →
+          </a>
+        </section>
 
         {/* Statement Wipe */}
         <section id="statement-wipe" className="bg-[#1C1712] relative h-[115vh] md:h-[150vh]">
