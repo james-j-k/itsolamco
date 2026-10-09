@@ -93,6 +93,9 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
   const [notice, setNotice] = useState<{ text: string; isError: boolean } | null>(null);
   const [busyText, setBusyText] = useState<string | null>(null);
   const [mediaBusyId, setMediaBusyId] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  // The order as it was before a drag started, to put back if saving the new order fails.
+  const orderBeforeDrag = useRef<RecapMedia[] | null>(null);
   const winnersInput = useRef<HTMLInputElement>(null);
   const photosInput = useRef<HTMLInputElement>(null);
   const clipsInput = useRef<HTMLInputElement>(null);
@@ -297,6 +300,94 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
     }
   }
 
+  // ---- reordering photos / clips (drag the handle, or use the arrows on a phone) ----
+  function withKindOrder(media: RecapMedia[], kind: RecapMedia["kind"], orderedIds: string[]) {
+    const byId = new Map(media.map((m) => [m.id, m]));
+    const ordered = orderedIds.map((mid) => byId.get(mid)).filter((m): m is RecapMedia => !!m);
+    return [...media.filter((m) => m.kind !== kind), ...ordered];
+  }
+
+  function moveBefore(kind: RecapMedia["kind"], draggedId: string, targetId: string) {
+    onMedia((media) => {
+      const ids = media.filter((m) => m.kind === kind).map((m) => m.id);
+      const from = ids.indexOf(draggedId);
+      const to = ids.indexOf(targetId);
+      if (from === -1 || to === -1 || from === to) return media;
+      ids.splice(to, 0, ids.splice(from, 1)[0]);
+      return withKindOrder(media, kind, ids);
+    });
+  }
+
+  async function saveOrder(kind: RecapMedia["kind"], ids: string[], previous: RecapMedia[] | null) {
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/events/${event.id}/media/reorder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't save the new order.");
+    } catch (err) {
+      if (previous) onMedia(() => previous);
+      fail(err instanceof Error ? err.message : "Couldn't save the new order.");
+    }
+  }
+
+  function endDrag(kind: RecapMedia["kind"]) {
+    const previous = orderBeforeDrag.current;
+    orderBeforeDrag.current = null;
+    setDragId(null);
+    if (!previous) return;
+    const ids = event.media.filter((m) => m.kind === kind).map((m) => m.id);
+    const before = previous.filter((m) => m.kind === kind).map((m) => m.id);
+    if (ids.join() === before.join()) return; // dropped where it started
+    saveOrder(kind, ids, previous);
+  }
+
+  function nudge(m: RecapMedia, delta: -1 | 1) {
+    const ids = event.media.filter((x) => x.kind === m.kind).map((x) => x.id);
+    const from = ids.indexOf(m.id);
+    const to = from + delta;
+    if (from === -1 || to < 0 || to >= ids.length) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    const previous = event.media;
+    onMedia((media) => withKindOrder(media, m.kind, ids));
+    saveOrder(m.kind, ids, previous);
+  }
+
+  function orderControls(m: RecapMedia, index: number, count: number) {
+    const label = m.kind === "video" ? "clip" : "photo";
+    const btn = "flex h-8 w-8 items-center justify-center border border-[#1C1712]/40 hover:border-[#B8451D] hover:text-[#B8451D] disabled:opacity-30 disabled:hover:border-[#1C1712]/40 disabled:hover:text-inherit";
+    return (
+      <div className="flex items-center gap-1 border-t border-[#1C1712]/25 p-1.5">
+        <span
+          draggable
+          onDragStart={(e) => {
+            const card = (e.currentTarget as HTMLElement).closest("[data-media-card]");
+            if (card) e.dataTransfer.setDragImage(card, 24, 24);
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", m.id);
+            orderBeforeDrag.current = event.media;
+            setDragId(m.id);
+          }}
+          onDragEnd={() => endDrag(m.kind)}
+          title={`Drag to reorder this ${label}`}
+          aria-hidden="true"
+          className="flex h-8 flex-1 cursor-grab select-none items-center justify-center border border-dashed border-[#1C1712]/40 font-mono text-[10px] text-[#6A6357] active:cursor-grabbing"
+        >
+          ⠿ DRAG
+        </span>
+        <button type="button" onClick={() => nudge(m, -1)} disabled={index === 0} aria-label={`Move this ${label} earlier`} className={btn}>
+          ←
+        </button>
+        <button type="button" onClick={() => nudge(m, 1)} disabled={index === count - 1} aria-label={`Move this ${label} later`} className={btn}>
+          →
+        </button>
+      </div>
+    );
+  }
+
   const fieldClass = "border-2 border-[#1C1712] bg-[#F5F0E6] px-3 py-2 focus:outline-none focus:border-[#B8451D]";
   const smallButton =
     "border-2 border-[#1C1712] px-3 py-2 font-mono text-[10px] uppercase tracking-wider hover:bg-[#1C1712] hover:text-[#F5F0E6] disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit transition-colors";
@@ -422,8 +513,17 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
         </div>
         {photos.length > 0 && (
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {photos.map((m) => (
-              <div key={m.id} className={`border-2 ${m.role === "winners" ? "border-[#B8451D]" : "border-[#1C1712]"}`}>
+            {photos.map((m, index) => (
+              <div
+                key={m.id}
+                data-media-card
+                onDragOver={(e) => {
+                  if (!dragId || dragId === m.id) return;
+                  e.preventDefault();
+                  moveBefore("image", dragId, m.id);
+                }}
+                className={`border-2 ${m.role === "winners" ? "border-[#B8451D]" : "border-[#1C1712]"} ${dragId === m.id ? "opacity-40" : ""}`}
+              >
                 <div className="aspect-square">
                   {/* eslint-disable-next-line @next/next/no-img-element -- small admin thumbnail of an uploaded file */}
                   <img src={m.url} alt="" className="h-full w-full object-cover" />
@@ -436,6 +536,7 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
                   onBlur={(e) => saveCaption(m, e.target.value)}
                   className="w-full border-t border-[#1C1712]/25 bg-[#F5F0E6] px-1.5 py-1 font-mono text-[10px] focus:outline-none focus:bg-white"
                 />
+                {photos.length > 1 && orderControls(m, index, photos.length)}
                 <div className="flex flex-col gap-1 border-t border-[#1C1712]/25 p-1.5 font-mono text-[9px] uppercase">
                   {m.role === "winners" ? (
                     <span className="text-[#B8451D]">Winners photo</span>
@@ -471,12 +572,21 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
           </button>
         </div>
         <p className="mb-3 font-mono text-[10px] leading-relaxed text-[#8C8477]">
-          MP4 or WebM, up to {mb(MAX_VIDEO_BYTES)} each. Short clips (10–30 seconds) load fastest on phones.
+          MP4 or WebM, up to {mb(MAX_VIDEO_BYTES)} each. Short clips (10–30 seconds) load fastest on phones. Drag a clip by its handle, or use the arrows, to change the order on the site.
         </p>
         {clips.length > 0 && (
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {clips.map((m) => (
-              <div key={m.id} className="border-2 border-[#1C1712]">
+            {clips.map((m, index) => (
+              <div
+                key={m.id}
+                data-media-card
+                onDragOver={(e) => {
+                  if (!dragId || dragId === m.id) return;
+                  e.preventDefault();
+                  moveBefore("video", dragId, m.id);
+                }}
+                className={`border-2 border-[#1C1712] ${dragId === m.id ? "opacity-40" : ""}`}
+              >
                 <div className="aspect-video bg-black">
                   {m.posterUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- small admin thumbnail of an uploaded file
@@ -493,6 +603,7 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
                   onBlur={(e) => saveCaption(m, e.target.value)}
                   className="w-full border-t border-[#1C1712]/25 bg-[#F5F0E6] px-1.5 py-1 font-mono text-[10px] focus:outline-none focus:bg-white"
                 />
+                {clips.length > 1 && orderControls(m, index, clips.length)}
                 <div className="flex items-center justify-between border-t border-[#1C1712]/25 p-1.5 font-mono text-[9px] uppercase">
                   <span className="text-[#8C8477]">Clip</span>
                   <button onClick={() => removeMedia(m)} disabled={mediaBusyId === m.id} className="py-1.5 pl-3 text-[#8C8477] hover:text-[#B8451D] disabled:opacity-40">

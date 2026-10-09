@@ -67,7 +67,7 @@ function toRecap(event: {
 }
 
 const publishedWhere = () => ({ recapPublished: true, date: { lt: new Date() } });
-const mediaSelect = { select: { id: true, kind: true, role: true, url: true, posterUrl: true, caption: true }, orderBy: { createdAt: "asc" as const } };
+const mediaSelect = { select: { id: true, kind: true, role: true, url: true, posterUrl: true, caption: true }, orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }] };
 
 // Newest published recaps first.
 export async function getPublishedRecaps(limit?: number): Promise<RecapDTO[]> {

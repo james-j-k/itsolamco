@@ -45,9 +45,11 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (d.role === "winners") {
       await tx.eventMedia.updateMany({ where: { eventId: id, role: "winners" }, data: { role: "gallery" } });
     }
+    const last = await tx.eventMedia.aggregate({ where: { eventId: id, kind: d.kind }, _max: { sortOrder: true } });
     return tx.eventMedia.create({
       data: {
         eventId: id,
+        sortOrder: (last._max.sortOrder ?? 0) + 1,
         kind: d.kind,
         role: d.role,
         url: d.url,

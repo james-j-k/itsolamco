@@ -52,6 +52,9 @@ model EventMedia {
   posterUrl      String? // still frame shown before a video plays
   posterPathname String?
   caption        String?
+  // Position among the night's photos (or clips), set by drag-to-reorder in the
+  // admin. Rows that were never reordered are all 0 and fall back to upload time.
+  sortOrder      Int      @default(0)
   createdAt      DateTime @default(now())
 
   @@index([eventId])

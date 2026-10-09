@@ -9,7 +9,7 @@ export default async function AdminPage() {
       orderBy: { date: "asc" },
       include: {
         _count: { select: { bookings: true } },
-        media: { orderBy: { createdAt: "asc" } },
+        media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       },
     }),
     prisma.booking.findMany({
