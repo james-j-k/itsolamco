@@ -25,6 +25,7 @@ import BookingModal from "@/components/BookingModal";
 import VenueInquiryModal from "@/components/VenueInquiryModal";
 import { useModalA11y } from "@/lib/useModalA11y";
 import type { RecapDTO } from "@/lib/recaps";
+import ProofStrip from "@/components/ProofStrip";
 
 const INSTAGRAM_URL = "https://www.instagram.com/itsolamco/";
 const X_URL = "https://x.com/itsOlamco";
@@ -596,6 +597,9 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
           </div>
           <div className="ambient-hairline absolute bottom-0 left-0 w-full h-[3px]" />
         </section>
+
+        {/* Proof: clips from the last night, straight under the hero */}
+        {recap && <ProofStrip recap={recap} onBook={() => openBooking(nextEvent?.id)} />}
 
         {/* Statement Wipe */}
         <section id="statement-wipe" className="bg-[#1C1712] relative h-[115vh] md:h-[150vh]">
