@@ -315,7 +315,7 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
         <button
           onClick={onClose}
           disabled={uploading}
-          className="absolute right-4 top-4 font-mono text-xs hover:text-[#B8451D] disabled:opacity-40"
+          className="absolute right-1 top-1 p-3 font-mono text-xs hover:text-[#B8451D] disabled:opacity-40"
           aria-label="Close"
         >
           CLOSE ✕
@@ -440,11 +440,11 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
                   {m.role === "winners" ? (
                     <span className="text-[#B8451D]">Winners photo</span>
                   ) : (
-                    <button onClick={() => makeWinnersPhoto(m)} disabled={mediaBusyId === m.id} className="text-left hover:text-[#B8451D] disabled:opacity-40">
+                    <button onClick={() => makeWinnersPhoto(m)} disabled={mediaBusyId === m.id} className="py-1.5 text-left hover:text-[#B8451D] disabled:opacity-40">
                       Make winners photo
                     </button>
                   )}
-                  <button onClick={() => removeMedia(m)} disabled={mediaBusyId === m.id} className="text-left text-[#8C8477] hover:text-[#B8451D] disabled:opacity-40">
+                  <button onClick={() => removeMedia(m)} disabled={mediaBusyId === m.id} className="py-1.5 text-left text-[#8C8477] hover:text-[#B8451D] disabled:opacity-40">
                     Delete
                   </button>
                 </div>
@@ -495,7 +495,7 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
                 />
                 <div className="flex items-center justify-between border-t border-[#1C1712]/25 p-1.5 font-mono text-[9px] uppercase">
                   <span className="text-[#8C8477]">Clip</span>
-                  <button onClick={() => removeMedia(m)} disabled={mediaBusyId === m.id} className="text-[#8C8477] hover:text-[#B8451D] disabled:opacity-40">
+                  <button onClick={() => removeMedia(m)} disabled={mediaBusyId === m.id} className="py-1.5 pl-3 text-[#8C8477] hover:text-[#B8451D] disabled:opacity-40">
                     Delete
                   </button>
                 </div>

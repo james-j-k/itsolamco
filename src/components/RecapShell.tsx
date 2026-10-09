@@ -9,7 +9,7 @@ export default function RecapShell({ children }: { children: React.ReactNode }) 
         <Link href="/">
           <Image src="/logo.png" alt="It's Olam Company" width={2000} height={1042} className="h-12 w-auto" />
         </Link>
-        <Link href="/nights" className="font-mono text-[10px] tracking-[0.2em] uppercase hover:text-[#B8451D]">
+        <Link href="/nights" className="flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] uppercase hover:text-[#B8451D]">
           Past nights
         </Link>
       </nav>

@@ -41,7 +41,7 @@ export default async function NightRecapPage({ params }: Props) {
 
   return (
     <RecapShell>
-      <Link href="/nights" className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
+      <Link href="/nights" className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
         ← All past nights
       </Link>
 

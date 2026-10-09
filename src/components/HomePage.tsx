@@ -818,7 +818,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               </div>
             </Link>
             <div className="mt-6 font-mono text-[11px] tracking-[0.2em]">
-              <Link href="/nights" className="text-[#1C1712] hover:text-[#B8451D] transition-colors">
+              <Link href="/nights" className="inline-flex min-h-11 items-center text-[#1C1712] hover:text-[#B8451D] transition-colors">
                 ALL PAST NIGHTS →
               </Link>
             </div>

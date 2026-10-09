@@ -16,7 +16,7 @@ export default async function NightsPage() {
 
   return (
     <RecapShell>
-      <Link href="/" className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
+      <Link href="/" className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] uppercase text-[#B8451D] hover:underline">
         ← Back home
       </Link>
       <h1 className="font-display text-5xl md:text-7xl mt-6 mb-3">PAST NIGHTS</h1>
