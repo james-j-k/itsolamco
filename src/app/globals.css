@@ -42,6 +42,12 @@ body {
   letter-spacing: 0.28em;
 }
 
+/* A clear, brand-coloured ring for keyboard users (mouse and touch clicks never show it) */
+:focus-visible {
+  outline: 3px solid #B8451D;
+  outline-offset: 3px;
+}
+
 .font-malayalam {
   font-family: var(--font-baloo-chettan-2), cursive;
 }

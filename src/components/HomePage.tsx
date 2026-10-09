@@ -500,7 +500,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             type="button"
             onClick={() => setMobileNavOpen(true)}
             aria-label="Open menu"
-            className="lg:hidden p-1"
+            className="lg:hidden -m-2 p-3"
           >
             <Menu size="1.5em" />
           </button>
@@ -958,18 +958,18 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-32 font-mono">
               <div data-reveal style={{ "--d": 0 } as React.CSSProperties}>
                 <div className="text-[#E0623A] mb-8 tracking-widest">LINKS</div>
-                <div className="flex flex-col gap-5 text-sm">
-                  <a href="#statement-wipe" className="hover:text-[#B8451D] transition-colors">MANIFESTO</a>
-                  <a href="#events" className="hover:text-[#B8451D] transition-colors">EVENTS</a>
-                  {recap && <Link href="/nights" className="hover:text-[#B8451D] transition-colors">PAST NIGHTS</Link>}
-                  <a href="#venues" className="hover:text-[#B8451D] transition-colors">VENUES</a>
+                <div className="flex flex-col text-sm">
+                  <a href="#statement-wipe" className="py-3 hover:text-[#B8451D] transition-colors">MANIFESTO</a>
+                  <a href="#events" className="py-3 hover:text-[#B8451D] transition-colors">EVENTS</a>
+                  {recap && <Link href="/nights" className="py-3 hover:text-[#B8451D] transition-colors">PAST NIGHTS</Link>}
+                  <a href="#venues" className="py-3 hover:text-[#B8451D] transition-colors">VENUES</a>
                 </div>
               </div>
               <div data-reveal style={{ "--d": 100 } as React.CSSProperties}>
                 <div className="text-[#E0623A] mb-8 tracking-widest">LEGAL</div>
-                <div className="flex flex-col gap-5 text-sm">
-                  <Link href="/privacy" className="hover:text-[#B8451D] transition-colors">PRIVACY</Link>
-                  <Link href="/terms" className="hover:text-[#B8451D] transition-colors">TERMS</Link>
+                <div className="flex flex-col text-sm">
+                  <Link href="/privacy" className="py-3 hover:text-[#B8451D] transition-colors">PRIVACY</Link>
+                  <Link href="/terms" className="py-3 hover:text-[#B8451D] transition-colors">TERMS</Link>
                 </div>
               </div>
             </div>
