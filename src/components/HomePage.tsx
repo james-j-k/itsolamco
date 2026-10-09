@@ -12,7 +12,6 @@ import {
   Sparkles,
   CalendarDays,
   ArrowUpRight,
-  MapPin,
   MessageCircle,
   Users,
   Mail,
@@ -579,7 +578,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               </div>
               {nextEvent ? (
                 <div>
-                  <h3 className="font-display text-3xl md:text-4xl mb-1 md:mb-2">{nextEvent.theme ?? nextEvent.title}</h3>
+                  <h2 className="font-display text-3xl md:text-4xl mb-1 md:mb-2">{nextEvent.theme ?? nextEvent.title}</h2>
                   <p className="font-mono text-[#6A6357] mb-3 md:mb-6">
                     {formatShortDate(new Date(nextEvent.date))} / {nextEvent.venueName.toUpperCase()}, KOCHI / {formatTime(new Date(nextEvent.date))}
                   </p>
@@ -806,23 +805,18 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
           )}
         </section>
 
-        {/* Past night: the latest published recap */}
+        {/* The winners: just the photo and the team; the clips above already tell the rest of the night */}
         {recap && (
-          <section id="past-nights" className="section-border bg-[#EEE7D8] text-[#1C1712] px-6 md:px-8 py-16 md:py-28">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-              <h2 className="font-display text-[15vw] sm:text-6xl md:text-[8vw] flex items-center gap-3 sm:gap-4">
-                LAST NIGHT <Trophy size="1em" className="text-[#B8451D] text-[8vw] sm:text-4xl md:text-6xl" />
-              </h2>
-              <div className="font-mono w-72 text-right text-[#6A6357] border-r-4 border-[#B8451D] pr-4">
-                THE WINNERS, THE NOISE, THE PROOF.
-              </div>
-            </div>
+          <section id="past-nights" className="section-border bg-[#EEE7D8] text-[#1C1712] px-6 md:px-8 py-10 md:py-20">
+            <h2 className="mb-6 flex items-center gap-3 font-display text-4xl md:mb-10 md:text-6xl">
+              THE WINNERS <Trophy size="1em" className="text-[#B8451D]" />
+            </h2>
             <Link
               href={`/nights/${recap.id}`}
               data-reveal
-              className="group grid grid-cols-1 md:grid-cols-2 border-2 border-[#1C1712] bg-[#F5F0E6] hover:border-[#B8451D] transition-colors"
+              className="group grid grid-cols-1 border-2 border-[#1C1712] bg-[#F5F0E6] transition-colors hover:border-[#B8451D] md:grid-cols-2"
             >
-              <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[26rem] overflow-hidden border-b-2 md:border-b-0 md:border-r-2 border-[#1C1712] bg-[#EEE7D8]">
+              <div className="relative aspect-[16/10] overflow-hidden border-b-2 border-[#1C1712] bg-[#EEE7D8] md:aspect-auto md:min-h-[20rem] md:border-b-0 md:border-r-2">
                 {recap.cover && (
                   <Image
                     src={recap.cover.url}
@@ -834,36 +828,16 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                   />
                 )}
               </div>
-              <div className="flex flex-col justify-between gap-10 p-8 md:p-12">
-                <div>
-                  <div className="font-mono text-xs tracking-[0.25em] text-[#B8451D] mb-3">{recap.dateText.toUpperCase()}</div>
-                  <h3 className="font-display text-4xl md:text-5xl mb-3">{recap.title}</h3>
-                  <div className="font-mono text-xs md:text-sm text-[#6A6357] mb-6 flex items-center gap-2">
-                    <MapPin size="1.1em" className="text-[#B8451D] shrink-0" />
-                    <span>{recap.venue.toUpperCase()}</span>
-                  </div>
-                  {recap.winnerTeam && (
-                    <div className="mb-4">
-                      <div className="font-mono text-xs tracking-[0.3em] text-[#6A6357]">WINNERS</div>
-                      <div className="font-display text-5xl md:text-6xl text-[#B8451D]">{recap.winnerTeam}</div>
-                    </div>
-                  )}
-                  {recap.stats && <div className="font-mono text-sm text-[#6A6357]">{recap.stats}</div>}
-                </div>
+              <div className="flex flex-col justify-between gap-6 p-5 md:p-10">
+                <div className="font-display text-5xl text-[#B8451D] md:text-7xl">{recap.winnerTeam ?? recap.title}</div>
                 <div className="flex items-center justify-between font-mono text-sm tracking-[0.2em]">
-                  <span>
-                    SEE THE NIGHT
-                    {recap.videos.length + recap.photos.length > 0 &&
-                      ` · ${recap.photos.length} PHOTO${recap.photos.length === 1 ? "" : "S"}${
-                        recap.videos.length > 0 ? ` · ${recap.videos.length} CLIP${recap.videos.length === 1 ? "" : "S"}` : ""
-                      }`}
-                  </span>
-                  <ArrowUpRight size="1.5em" className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  <span>SEE THE WHOLE NIGHT</span>
+                  <ArrowUpRight size="1.5em" className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
                 </div>
               </div>
             </Link>
-            <div className="mt-6 font-mono text-xs tracking-[0.2em]">
-              <Link href="/nights" className="inline-flex min-h-11 items-center text-[#1C1712] hover:text-[#B8451D] transition-colors">
+            <div className="mt-4 font-mono text-xs tracking-[0.2em]">
+              <Link href="/nights" className="inline-flex min-h-11 items-center text-[#1C1712] transition-colors hover:text-[#B8451D]">
                 ALL PAST NIGHTS →
               </Link>
             </div>

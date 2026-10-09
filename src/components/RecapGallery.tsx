@@ -31,7 +31,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
         if (entry.isIntersecting) video.play().catch(() => {});
         else video.pause();
       },
-      { threshold: 0.6 }
+      { threshold: 0.2 }
     );
     observer.observe(video);
     return () => observer.disconnect();
