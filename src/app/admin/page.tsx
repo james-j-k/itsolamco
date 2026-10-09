@@ -7,7 +7,10 @@ export default async function AdminPage() {
   const [events, bookings, inquiries, rounds, venues] = await Promise.all([
     prisma.event.findMany({
       orderBy: { date: "asc" },
-      include: { _count: { select: { bookings: true } } },
+      include: {
+        _count: { select: { bookings: true } },
+        media: { orderBy: { createdAt: "asc" } },
+      },
     }),
     prisma.booking.findMany({
       orderBy: { createdAt: "desc" },
@@ -32,6 +35,18 @@ export default async function AdminPage() {
         districtUrl: e.districtUrl,
         swiggyUrl: e.swiggyUrl,
         reminderOfferNote: e.reminderOfferNote,
+        recapPublished: e.recapPublished,
+        winnerTeam: e.winnerTeam,
+        recapStats: e.recapStats,
+        recapSummary: e.recapSummary,
+        media: e.media.map((m) => ({
+          id: m.id,
+          kind: m.kind === "video" ? ("video" as const) : ("image" as const),
+          role: m.role === "winners" ? ("winners" as const) : ("gallery" as const),
+          url: m.url,
+          posterUrl: m.posterUrl,
+          caption: m.caption,
+        })),
       }))}
       initialBookings={bookings.map((b) => ({
         id: b.id,

@@ -27,9 +27,34 @@ model Event {
   districtUrl       String? // venue page / booking link on District
   swiggyUrl         String? // venue page / booking link on Swiggy Dineout
   reminderOfferNote String? // the line shown above the table-booking buttons
+  // Past-night recap shown on the public "Past nights" pages. Hidden until
+  // recapPublished is switched on.
+  recapPublished Boolean @default(false)
+  winnerTeam     String?
+  recapStats     String? // e.g. "20 teams · 73 quizzers"
+  recapSummary   String?
+  media          EventMedia[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   bookings  Booking[]
+}
+
+// A photo or clip for an event's recap. The file itself lives in Vercel Blob;
+// pathname is kept so it can be deleted from there too.
+model EventMedia {
+  id             String   @id @default(cuid())
+  eventId        String
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  kind           String // "image" | "video"
+  role           String   @default("gallery") // "winners" | "gallery"
+  url            String
+  pathname       String
+  posterUrl      String? // still frame shown before a video plays
+  posterPathname String?
+  caption        String?
+  createdAt      DateTime @default(now())
+
+  @@index([eventId])
 }
 
 model Booking {

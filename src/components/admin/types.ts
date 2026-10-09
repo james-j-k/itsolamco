@@ -1,3 +1,5 @@
+import type { RecapMedia } from "@/lib/media";
+
 export type AdminEvent = {
   id: string;
   title: string;
@@ -10,6 +12,11 @@ export type AdminEvent = {
   districtUrl: string | null;
   swiggyUrl: string | null;
   reminderOfferNote: string | null;
+  recapPublished: boolean;
+  winnerTeam: string | null;
+  recapStats: string | null;
+  recapSummary: string | null;
+  media: RecapMedia[];
 };
 
 export type AdminBooking = {

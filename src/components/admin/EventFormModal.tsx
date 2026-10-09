@@ -63,7 +63,7 @@ export default function EventFormModal({ open, onClose, onSaved, editing }: Prop
         throw new Error(reason ?? data.error ?? "Failed to save event");
       }
       const data = await res.json();
-      onSaved({ ...data.event, bookingCount: editing?.bookingCount ?? 0 });
+      onSaved({ ...data.event, bookingCount: editing?.bookingCount ?? 0, media: editing?.media ?? [] });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save event");

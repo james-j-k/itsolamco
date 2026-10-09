@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AdminEvent, AdminBooking, AdminInquiry, AdminRound, AdminVenue } from "./types";
 import EventFormModal from "./EventFormModal";
+import RecapModal from "./RecapModal";
 import RoundFormModal from "./RoundFormModal";
 import VenueFormModal from "./VenueFormModal";
 import ConfirmDialog from "./ConfirmDialog";
@@ -485,6 +486,9 @@ export default function AdminDashboard({
   // nights doesn't shift under the admin mid-session.
   const [now] = useState(() => Date.now());
   const [reminderEventId, setReminderEventId] = useState("");
+  // Which night the Bookings tab shows. null = the default: the next upcoming night.
+  const [bookingNightChoice, setBookingNightChoice] = useState<string | null>(null);
+  const [recapEventId, setRecapEventId] = useState<string | null>(null);
   const [reminderRun, setReminderRun] = useState<{ mode: ReminderMode; done: number; total: number } | null>(null);
   const [reminderResult, setReminderResult] = useState<{ text: string; isError: boolean } | null>(null);
 
@@ -1103,6 +1107,86 @@ export default function AdminDashboard({
     expectedTicketing: expectedPeople(confirmedForEvent.filter((b) => b.source === TICKETING_SOURCE)),
   };
 
+  // Bookings tab: one night at a time (default the next upcoming night), so old
+  // nights stay out of the way but are never lost.
+  const pastEvents = events.filter((e) => new Date(e.date).getTime() < now).sort((a, b) => b.date.localeCompare(a.date));
+  const unassignedCount = bookings.filter((b) => !b.eventId).length;
+  const nightChoiceValid =
+    bookingNightChoice === "all" ||
+    (bookingNightChoice === "none" && unassignedCount > 0) ||
+    events.some((e) => e.id === bookingNightChoice);
+  const bookingNight = nightChoiceValid && bookingNightChoice ? bookingNightChoice : (upcomingEvents[0]?.id ?? "all");
+  const visibleBookings =
+    bookingNight === "all"
+      ? bookings
+      : bookingNight === "none"
+        ? bookings.filter((b) => !b.eventId)
+        : bookings.filter((b) => b.eventId === bookingNight);
+  const nightEvent = events.find((e) => e.id === bookingNight) ?? null;
+  const nightIsPast = nightEvent ? new Date(nightEvent.date).getTime() < now : false;
+  const nightSummary = {
+    teams: visibleBookings.filter((b) => b.status !== "cancelled").length,
+    confirmed: visibleBookings.filter((b) => b.status === "confirmed").length,
+    pending: visibleBookings.filter((b) => b.status === "pending").length,
+    cancelled: visibleBookings.filter((b) => b.status === "cancelled").length,
+    people: visibleBookings.filter((b) => b.status === "confirmed").reduce((sum, b) => sum + b.teamSize, 0),
+    showedUp: visibleBookings.filter((b) => b.attended).length,
+    showedUpPeople: visibleBookings.filter((b) => b.attended).reduce((sum, b) => sum + b.teamSize, 0),
+    didntShow: visibleBookings.filter((b) => b.status === "confirmed" && !b.attended).length,
+  };
+
+  function eventRow(ev: AdminEvent, isPast: boolean) {
+    const photoCount = ev.media.filter((m) => m.kind === "image").length;
+    const clipCount = ev.media.length - photoCount;
+    return (
+      <tr key={ev.id} className={`border-b border-[#1C1712]/15 ${isPast ? "text-[#1C1712]/80" : ""}`}>
+        <td className="p-3">
+          <div className="font-semibold">{ev.title}</div>
+          {ev.theme && <div className="text-[#8C8477] text-xs">{ev.theme}</div>}
+        </td>
+        <td className="p-3 whitespace-nowrap">{fmtDate(ev.date)}</td>
+        <td className="p-3">{ev.venueName}, {ev.venueArea}</td>
+        <td className="p-3">{ev.bookingCount}</td>
+        <td className="p-3 whitespace-nowrap">
+          {isPast ? (
+            <div className="flex flex-col items-start gap-1">
+              <span
+                className={`font-mono text-[10px] uppercase ${ev.recapPublished ? "text-[#4B7B4E]" : "text-[#8C8477]"}`}
+              >
+                {ev.recapPublished ? "● Live" : ev.media.length > 0 || ev.winnerTeam ? "○ Draft" : "○ Not started"}
+              </span>
+              {(photoCount > 0 || clipCount > 0) && (
+                <span className="font-mono text-[10px] text-[#8C8477]">
+                  {photoCount} photo{photoCount === 1 ? "" : "s"} · {clipCount} clip{clipCount === 1 ? "" : "s"}
+                </span>
+              )}
+              <button onClick={() => setRecapEventId(ev.id)} className="font-mono text-[10px] uppercase text-[#B8451D] hover:underline">
+                {ev.media.length > 0 || ev.winnerTeam ? "Edit recap" : "Add recap"}
+              </button>
+            </div>
+          ) : (
+            <span className="font-mono text-[10px] text-[#8C8477]/60">—</span>
+          )}
+        </td>
+        <td className="p-3 whitespace-nowrap">
+          <button
+            onClick={() => {
+              setEditingEvent(ev);
+              setEventModalKey((k) => k + 1);
+              setEventModalOpen(true);
+            }}
+            className="font-mono text-[10px] uppercase mr-3 hover:text-[#B8451D]"
+          >
+            Edit
+          </button>
+          <button onClick={() => deleteEvent(ev.id, ev.title)} className="font-mono text-[10px] uppercase hover:text-[#B8451D]">
+            Delete
+          </button>
+        </td>
+      </tr>
+    );
+  }
+
   const tabs: { key: Tab; label: string; count: number; unread?: number }[] = [
     { key: "events", label: "Events", count: events.length },
     { key: "bookings", label: "Bookings", count: bookings.length, unread: bookingUnreadCount },
@@ -1153,39 +1237,23 @@ export default function AdminDashboard({
                   <th className="p-3">Date</th>
                   <th className="p-3">Venue</th>
                   <th className="p-3">Bookings</th>
+                  <th className="p-3">Recap</th>
                   <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {events.map((ev) => (
-                  <tr key={ev.id} className="border-b border-[#1C1712]/15">
-                    <td className="p-3">
-                      <div className="font-semibold">{ev.title}</div>
-                      {ev.theme && <div className="text-[#8C8477] text-xs">{ev.theme}</div>}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">{fmtDate(ev.date)}</td>
-                    <td className="p-3">{ev.venueName}, {ev.venueArea}</td>
-                    <td className="p-3">{ev.bookingCount}</td>
-                    <td className="p-3 whitespace-nowrap">
-                      <button
-                        onClick={() => {
-                          setEditingEvent(ev);
-                          setEventModalKey((k) => k + 1);
-                          setEventModalOpen(true);
-                        }}
-                        className="font-mono text-[10px] uppercase mr-3 hover:text-[#B8451D]"
-                      >
-                        Edit
-                      </button>
-                      <button onClick={() => deleteEvent(ev.id, ev.title)} className="font-mono text-[10px] uppercase hover:text-[#B8451D]">
-                        Delete
-                      </button>
+                {upcomingEvents.map((ev) => eventRow(ev, false))}
+                {pastEvents.length > 0 && (
+                  <tr className="border-b-2 border-t-2 border-[#1C1712] bg-[#EEE7D8]">
+                    <td colSpan={6} className="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8C8477]">
+                      Past nights ({pastEvents.length}) · add winners, photos and clips under Recap
                     </td>
                   </tr>
-                ))}
+                )}
+                {pastEvents.map((ev) => eventRow(ev, true))}
                 {events.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-[#8C8477] font-mono text-xs">
+                    <td colSpan={6} className="p-6 text-center text-[#8C8477] font-mono text-xs">
                       No events yet.
                     </td>
                   </tr>
@@ -1215,6 +1283,86 @@ export default function AdminDashboard({
           newReplies={newReplyIds.size}
           onClearNew={() => setNewReplyIds(new Set())}
         />
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
+            Showing
+            <select
+              value={bookingNight}
+              onChange={(e) => {
+                setBookingNightChoice(e.target.value);
+                // The reminders panel above follows when an upcoming night is picked.
+                if (upcomingEventIds.has(e.target.value)) {
+                  setReminderEventId(e.target.value);
+                  setReminderResult(null);
+                }
+              }}
+              className="max-w-[18rem] border border-[#1C1712] bg-[#F5F0E6] px-2 py-1 font-mono text-[10px] uppercase"
+            >
+              {upcomingEvents.length > 0 && (
+                <optgroup label="Upcoming nights">
+                  {upcomingEvents.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} — {fmtDate(ev.date)} ({bookings.filter((b) => b.eventId === ev.id).length})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {pastEvents.length > 0 && (
+                <optgroup label="Past nights">
+                  {pastEvents.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} — {fmtDate(ev.date)} ({bookings.filter((b) => b.eventId === ev.id).length})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {unassignedCount > 0 && <option value="none">No night picked ({unassignedCount})</option>}
+              <option value="all">All nights ({bookings.length})</option>
+            </select>
+          </label>
+          {bookingNight !== "all" && bookings.length > visibleBookings.length && (
+            <button
+              onClick={() => setBookingNightChoice("all")}
+              className="font-mono text-[10px] uppercase text-[#8C8477] underline underline-offset-2 hover:text-[#B8451D]"
+            >
+              Show all nights
+            </button>
+          )}
+        </div>
+        {unassignedCount > 0 && bookingNight !== "none" && bookingNight !== "all" && (
+          <p className="mb-3 font-mono text-[10px] text-[#B8451D]">
+            {unassignedCount} {unassignedCount === 1 ? "booking isn't" : "bookings aren't"} tied to a night yet.{" "}
+            <button onClick={() => setBookingNightChoice("none")} className="underline underline-offset-2">
+              View {unassignedCount === 1 ? "it" : "them"}
+            </button>
+          </p>
+        )}
+        <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] leading-relaxed">
+          <span>
+            Teams <strong>{nightSummary.teams}</strong>
+          </span>
+          <span>
+            Confirmed <strong>{nightSummary.confirmed}</strong> ({nightSummary.people} {nightSummary.people === 1 ? "person" : "people"})
+          </span>
+          {nightSummary.pending > 0 && (
+            <span className="text-[#B8451D]">
+              Pending <strong>{nightSummary.pending}</strong>
+            </span>
+          )}
+          {nightSummary.cancelled > 0 && (
+            <span className="text-[#8C8477]">
+              Cancelled <strong>{nightSummary.cancelled}</strong>
+            </span>
+          )}
+          <span>
+            Showed up <strong>{nightSummary.showedUp}</strong> {nightSummary.showedUp === 1 ? "team" : "teams"} ({nightSummary.showedUpPeople})
+          </span>
+          {nightIsPast && nightSummary.confirmed > 0 && (
+            <span className="text-[#8C8477]">
+              Didn&apos;t show <strong>{nightSummary.didntShow}</strong>
+            </span>
+          )}
+        </div>
         <div className="border-2 border-[#1C1712] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -1233,7 +1381,7 @@ export default function AdminDashboard({
               </tr>
             </thead>
             <tbody>
-              {bookings.map((b) => (
+              {visibleBookings.map((b) => (
                 <tr
                   key={b.id}
                   className={`border-b border-[#1C1712]/15 align-top ${newReplyIds.has(b.id) ? "bg-[#B8451D]/10" : ""}`}
@@ -1354,10 +1502,10 @@ export default function AdminDashboard({
                   </td>
                 </tr>
               ))}
-              {bookings.length === 0 && (
+              {visibleBookings.length === 0 && (
                 <tr>
                   <td colSpan={11} className="p-6 text-center text-[#8C8477] font-mono text-xs">
-                    No bookings yet.
+                    {bookings.length === 0 ? "No bookings yet." : "No bookings for this night."}
                   </td>
                 </tr>
               )}
@@ -1584,6 +1732,17 @@ export default function AdminDashboard({
             </table>
           </div>
         </div>
+      )}
+
+      {recapEventId && events.some((e) => e.id === recapEventId) && (
+        <RecapModal
+          key={`recap-${recapEventId}`}
+          open
+          onClose={() => setRecapEventId(null)}
+          event={events.find((e) => e.id === recapEventId)!}
+          onChange={(patch) => setEvents((prev) => prev.map((e) => (e.id === recapEventId ? { ...e, ...patch } : e)))}
+          onMedia={(update) => setEvents((prev) => prev.map((e) => (e.id === recapEventId ? { ...e, media: update(e.media) } : e)))}
+        />
       )}
 
       <EventFormModal

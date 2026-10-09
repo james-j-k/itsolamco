@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { TICKETING_SOURCE } from "@/lib/bookingSource";
+import { getPublishedRecaps } from "@/lib/recaps";
 import HomePage from "@/components/HomePage";
 import type { EventDTO } from "@/types/event";
 import type { QuizRoundDTO, VenueDTO } from "@/types/content";
@@ -7,7 +8,7 @@ import type { QuizRoundDTO, VenueDTO } from "@/types/content";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [events, rounds, venues, unassignedBookingCount] = await Promise.all([
+  const [events, rounds, venues, unassignedBookingCount, recaps] = await Promise.all([
     prisma.event.findMany({
       where: { date: { gte: new Date() } },
       orderBy: { date: "asc" },
@@ -24,6 +25,11 @@ export default async function Page() {
     // aren't tied to an event's id, so they'd otherwise be invisible to
     // the count above — they belong to whichever night comes first.
     prisma.booking.count({ where: { eventId: null, status: { not: "cancelled" }, source: { not: TICKETING_SOURCE } } }),
+    // The home page must never fail just because the recap lookup did.
+    getPublishedRecaps(1).catch((err) => {
+      console.error("Couldn't load the latest recap:", err);
+      return [];
+    }),
   ]);
 
   const eventDTOs: EventDTO[] = events.map((e, i) => ({
@@ -50,5 +56,5 @@ export default async function Page() {
     area: v.area,
   }));
 
-  return <HomePage events={eventDTOs} rounds={roundDTOs} venues={venueDTOs} />;
+  return <HomePage events={eventDTOs} rounds={roundDTOs} venues={venueDTOs} recap={recaps[0] ?? null} />;
 }

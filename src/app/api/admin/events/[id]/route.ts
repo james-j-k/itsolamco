@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { del } from "@vercel/blob";
 import { eventSchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
@@ -44,7 +45,17 @@ export async function PUT(request: NextRequest, { params }: Params) {
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   try {
+    // The recap records are removed with the night; clear their stored files too.
+    const media = await prisma.eventMedia.findMany({ where: { eventId: id }, select: { url: true, posterUrl: true } });
     await prisma.event.delete({ where: { id } });
+    const files = media.flatMap((m) => [m.url, m.posterUrl]).filter((u): u is string => !!u);
+    if (files.length > 0) {
+      try {
+        await del(files);
+      } catch (err) {
+        console.error(`Couldn't delete stored files for event ${id}:`, err);
+      }
+    }
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });

@@ -7,13 +7,18 @@ import type { NextConfig } from "next";
 // loaded from a third-party CDN, so no external script/connect origins are needed.
 // 'unsafe-eval' is dev-only — React's dev mode uses eval() for its debugging
 // overlay; it never does in production, so prod keeps the stricter policy.
+// Recap photos and clips are served from this site's public Vercel Blob store.
+const BLOB_FILES = "https://*.public.blob.vercel-storage.com";
+
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  `img-src 'self' data: ${BLOB_FILES}`,
+  `media-src 'self' ${BLOB_FILES}`,
   "font-src 'self' data:",
-  "connect-src 'self'",
+  // Recap photos and clips are uploaded from the admin's browser straight to Vercel Blob.
+  `connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

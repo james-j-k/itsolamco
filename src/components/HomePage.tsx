@@ -23,6 +23,7 @@ import type { QuizRoundDTO, VenueDTO } from "@/types/content";
 import BookingModal from "@/components/BookingModal";
 import VenueInquiryModal from "@/components/VenueInquiryModal";
 import { useModalA11y } from "@/lib/useModalA11y";
+import type { RecapDTO } from "@/lib/recaps";
 
 const INSTAGRAM_URL = "https://www.instagram.com/itsolamco/";
 const X_URL = "https://x.com/itsOlamco";
@@ -102,9 +103,13 @@ function getHoverCapabilityServerSnapshot() {
   return true;
 }
 
-type Props = { events: EventDTO[]; rounds: QuizRoundDTO[]; venues: VenueDTO[] };
+type Props = { events: EventDTO[]; rounds: QuizRoundDTO[]; venues: VenueDTO[]; recap?: RecapDTO | null };
 
-export default function HomePage({ events, rounds, venues }: Props) {
+export default function HomePage({ events, rounds, venues, recap = null }: Props) {
+  // "Past Nights" only appears in the menu once there is a recap to show.
+  const navLinks = recap
+    ? [...NAV_LINKS.slice(0, 3), { href: "#past-nights", label: "Past Nights" }, ...NAV_LINKS.slice(3)]
+    : NAV_LINKS;
   const [flipped, setFlipped] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [bookingPreselect, setBookingPreselect] = useState<string | null>(null);
@@ -473,7 +478,7 @@ export default function HomePage({ events, rounds, venues }: Props) {
             <Image src="/logo.png" alt="It's Olam Company" width={2000} height={1042} priority className="h-12 w-auto" />
           </a>
           <div className="hidden lg:flex gap-8 font-mono">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
             ))}
           </div>
@@ -510,7 +515,7 @@ export default function HomePage({ events, rounds, venues }: Props) {
             </button>
           </div>
           <div className="flex flex-col gap-2 px-8 py-12 overflow-y-auto">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -751,6 +756,66 @@ export default function HomePage({ events, rounds, venues }: Props) {
           )}
         </section>
 
+        {/* Past night: the latest published recap */}
+        {recap && (
+          <section id="past-nights" className="section-border bg-[#1C1712] text-[#F5F0E6] px-6 md:px-8 py-16 md:py-28">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+              <h2 className="font-display text-[15vw] sm:text-6xl md:text-[8vw] flex items-center gap-3 sm:gap-4">
+                LAST NIGHT <Trophy size="1em" className="text-[#B8451D] text-[8vw] sm:text-4xl md:text-6xl" />
+              </h2>
+              <div className="font-mono w-72 text-right text-[#F5F0E6]/60 border-r-4 border-[#B8451D] pr-4">
+                THE WINNERS, THE NOISE, THE PROOF.
+              </div>
+            </div>
+            <Link
+              href={`/nights/${recap.id}`}
+              data-reveal
+              className="group grid grid-cols-1 md:grid-cols-2 border-2 border-[#F5F0E6]/30 hover:border-[#B8451D] transition-colors"
+            >
+              <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[26rem] overflow-hidden bg-[#2a231b]">
+                {recap.cover && (
+                  <Image
+                    src={recap.cover.url}
+                    alt={recap.winnerTeam ? `${recap.winnerTeam}, winners of ${recap.title}` : recap.title}
+                    fill
+                    unoptimized
+                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col justify-between gap-10 p-8 md:p-12">
+                <div>
+                  <div className="font-mono text-[11px] tracking-[0.25em] text-[#B8451D] mb-3">{recap.dateText.toUpperCase()}</div>
+                  <h3 className="font-display text-4xl md:text-5xl mb-6">{recap.title}</h3>
+                  {recap.winnerTeam && (
+                    <div className="mb-4">
+                      <div className="font-mono text-[11px] tracking-[0.3em] text-[#F5F0E6]/60">WINNERS</div>
+                      <div className="font-display text-5xl md:text-6xl text-[#B8451D]">{recap.winnerTeam}</div>
+                    </div>
+                  )}
+                  {recap.stats && <div className="font-mono text-sm text-[#F5F0E6]/70">{recap.stats}</div>}
+                </div>
+                <div className="flex items-center justify-between font-mono text-sm tracking-[0.2em]">
+                  <span>
+                    SEE THE NIGHT
+                    {recap.videos.length + recap.photos.length > 0 &&
+                      ` · ${recap.photos.length} PHOTO${recap.photos.length === 1 ? "" : "S"}${
+                        recap.videos.length > 0 ? ` · ${recap.videos.length} CLIP${recap.videos.length === 1 ? "" : "S"}` : ""
+                      }`}
+                  </span>
+                  <ArrowUpRight size="1.5em" className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+            <div className="mt-6 font-mono text-[11px] tracking-[0.2em]">
+              <Link href="/nights" className="text-[#F5F0E6]/70 hover:text-[#B8451D] transition-colors">
+                ALL PAST NIGHTS →
+              </Link>
+            </div>
+          </section>
+        )}
+
         {/* Venues */}
         <section id="venues" className="section-border bg-[#EEE7D8] relative overflow-hidden py-20 md:py-32 flex items-center min-h-[125vh] md:min-h-[160vh]">
           <div className="absolute inset-0 grid-bg opacity-30" />
@@ -855,6 +920,7 @@ export default function HomePage({ events, rounds, venues }: Props) {
                 <div className="flex flex-col gap-5 text-sm">
                   <a href="#statement-wipe" className="hover:text-[#B8451D] transition-colors">MANIFESTO</a>
                   <a href="#events" className="hover:text-[#B8451D] transition-colors">EVENTS</a>
+                  {recap && <Link href="/nights" className="hover:text-[#B8451D] transition-colors">PAST NIGHTS</Link>}
                   <a href="#venues" className="hover:text-[#B8451D] transition-colors">VENUES</a>
                 </div>
               </div>
