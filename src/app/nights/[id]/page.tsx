@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { MapPin } from "lucide-react";
 import RecapShell from "@/components/RecapShell";
 import { PhotoGrid, RecapClip } from "@/components/RecapGallery";
 import { getPublishedRecap } from "@/lib/recaps";
@@ -16,8 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!recap) return { title: "Past Nights | It's Olam Company" };
 
   const description = recap.winnerTeam
-    ? `${recap.winnerTeam} won ${recap.title}. See the photos and clips from the night.`
-    : `Photos and clips from ${recap.title}.`;
+    ? `${recap.winnerTeam} won ${recap.title} at ${recap.venue}. See the photos and clips from the night.`
+    : `Photos and clips from ${recap.title} at ${recap.venue}.`;
   return {
     title: `${recap.title} | It's Olam Company`,
     description,
@@ -45,8 +46,11 @@ export default async function NightRecapPage({ params }: Props) {
       </Link>
 
       <div className="mt-6 font-mono text-[11px] tracking-[0.2em] uppercase text-[#B8451D]">{recap.dateText}</div>
-      <h1 className="font-display text-5xl md:text-7xl mt-2 mb-2">{recap.title}</h1>
-      <p className="text-[#8C8477] mb-10">{recap.venue}</p>
+      <h1 className="font-display text-5xl md:text-7xl mt-2 mb-3">{recap.title}</h1>
+      <p className="mb-8 flex items-center gap-2 font-mono text-sm md:text-base">
+        <MapPin size="1.1em" className="text-[#B8451D] shrink-0" />
+        <span>{recap.venue.toUpperCase()}</span>
+      </p>
 
       {recap.cover && (
         <div className="mb-12 border-2 border-[#1C1712]">
@@ -62,14 +66,14 @@ export default async function NightRecapPage({ params }: Props) {
             />
           </div>
           {(recap.winnerTeam || recap.stats) && (
-            <div className="flex flex-col gap-2 border-t-2 border-[#1C1712] bg-[#1C1712] p-6 text-[#F5F0E6] sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-2 border-t-2 border-[#1C1712] bg-[#EEE7D8] p-6 sm:flex-row sm:items-end sm:justify-between">
               {recap.winnerTeam && (
                 <div>
-                  <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-[#B8451D]">Winners</div>
-                  <div className="font-display text-4xl md:text-5xl">{recap.winnerTeam}</div>
+                  <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-[#8C8477]">Winners</div>
+                  <div className="font-display text-4xl md:text-5xl text-[#B8451D]">{recap.winnerTeam}</div>
                 </div>
               )}
-              {recap.stats && <div className="font-mono text-xs opacity-80">{recap.stats}</div>}
+              {recap.stats && <div className="font-mono text-xs text-[#8C8477]">{recap.stats}</div>}
             </div>
           )}
         </div>

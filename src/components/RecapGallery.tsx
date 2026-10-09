@@ -39,7 +39,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
 
   return (
     // Phone clips are usually upright; a wide clip gets two columns so it isn't tiny.
-    <figure className={`border-2 border-[#1C1712] bg-[#1C1712] ${aspect > 1 ? "sm:col-span-2" : ""}`}>
+    <figure className={`border-2 border-[#1C1712] bg-[#EEE7D8] ${aspect > 1 ? "sm:col-span-2" : ""}`}>
       <div className="relative">
       <video
         ref={ref}
@@ -55,7 +55,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
         playsInline
         preload={clip.posterUrl ? "none" : "metadata"}
         controls={reduceMotion}
-        className="block w-full object-contain bg-black"
+        className="block w-full object-contain bg-[#EEE7D8]"
         aria-label={clip.caption ?? "Clip from the night"}
       />
       {!reduceMotion && (
@@ -63,7 +63,7 @@ export function RecapClip({ clip }: { clip: RecapMedia }) {
           type="button"
           onClick={() => setMuted((m) => !m)}
           aria-label={muted ? "Turn sound on" : "Turn sound off"}
-          className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#1C1712]/80 text-[#F5F0E6] hover:bg-[#B8451D] active:bg-[#B8451D] transition-colors"
+          className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#1C1712] bg-[#F5F0E6] text-[#1C1712] hover:bg-[#B8451D] hover:text-[#F5F0E6] active:bg-[#B8451D] active:text-[#F5F0E6] transition-colors"
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
@@ -178,7 +178,7 @@ export function PhotoGrid({ photos, alt }: { photos: RecapMedia[]; alt: string }
                     step(-1);
                   }}
                   aria-label="Previous photo"
-                  className="absolute left-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-[#1C1712]/70 font-display text-2xl text-[#F5F0E6] hover:bg-[#B8451D]"
+                  className="absolute left-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#1C1712] bg-[#F5F0E6] font-display text-2xl text-[#1C1712] hover:bg-[#B8451D] hover:text-[#F5F0E6]"
                 >
                   ‹
                 </button>
@@ -189,7 +189,7 @@ export function PhotoGrid({ photos, alt }: { photos: RecapMedia[]; alt: string }
                     step(1);
                   }}
                   aria-label="Next photo"
-                  className="absolute right-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-[#1C1712]/70 font-display text-2xl text-[#F5F0E6] hover:bg-[#B8451D]"
+                  className="absolute right-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#1C1712] bg-[#F5F0E6] font-display text-2xl text-[#1C1712] hover:bg-[#B8451D] hover:text-[#F5F0E6]"
                 >
                   ›
                 </button>

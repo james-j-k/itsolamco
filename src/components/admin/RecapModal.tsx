@@ -421,7 +421,7 @@ export default function RecapModal({ open, onClose, event, onChange, onMedia }: 
           </button>
         </div>
         {photos.length > 0 && (
-          <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {photos.map((m) => (
               <div key={m.id} className={`border-2 ${m.role === "winners" ? "border-[#B8451D]" : "border-[#1C1712]"}`}>
                 <div className="aspect-square">

@@ -32,7 +32,7 @@ export default async function NightsPage() {
             <Link
               key={r.id}
               href={`/nights/${r.id}`}
-              className="group block border-2 border-[#1C1712] transition-colors hover:bg-[#1C1712] hover:text-[#F5F0E6]"
+              className="group block border-2 border-[#1C1712] transition-colors hover:bg-[#B8451D] hover:text-[#F5F0E6] active:bg-[#B8451D] active:text-[#F5F0E6]"
             >
               <div className="relative aspect-[4/3] overflow-hidden border-b-2 border-[#1C1712] bg-[#EEE7D8]">
                 {r.cover && (
@@ -49,6 +49,7 @@ export default async function NightsPage() {
               <div className="p-6">
                 <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-[#B8451D]">{r.dateText}</div>
                 <h2 className="font-display text-3xl mt-2">{r.title}</h2>
+                <div className="mt-2 font-mono text-xs opacity-70">{r.venue.toUpperCase()}</div>
                 {r.winnerTeam && (
                   <div className="mt-3 font-mono text-xs">
                     WINNERS: <span className="font-bold">{r.winnerTeam.toUpperCase()}</span>

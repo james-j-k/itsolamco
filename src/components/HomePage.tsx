@@ -12,6 +12,7 @@ import {
   Sparkles,
   CalendarDays,
   ArrowUpRight,
+  MapPin,
   MessageCircle,
   Users,
   Mail,
@@ -758,21 +759,21 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
 
         {/* Past night: the latest published recap */}
         {recap && (
-          <section id="past-nights" className="section-border bg-[#1C1712] text-[#F5F0E6] px-6 md:px-8 py-16 md:py-28">
+          <section id="past-nights" className="section-border bg-[#EEE7D8] text-[#1C1712] px-6 md:px-8 py-16 md:py-28">
             <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
               <h2 className="font-display text-[15vw] sm:text-6xl md:text-[8vw] flex items-center gap-3 sm:gap-4">
                 LAST NIGHT <Trophy size="1em" className="text-[#B8451D] text-[8vw] sm:text-4xl md:text-6xl" />
               </h2>
-              <div className="font-mono w-72 text-right text-[#F5F0E6]/60 border-r-4 border-[#B8451D] pr-4">
+              <div className="font-mono w-72 text-right text-[#8C8477] border-r-4 border-[#B8451D] pr-4">
                 THE WINNERS, THE NOISE, THE PROOF.
               </div>
             </div>
             <Link
               href={`/nights/${recap.id}`}
               data-reveal
-              className="group grid grid-cols-1 md:grid-cols-2 border-2 border-[#F5F0E6]/30 hover:border-[#B8451D] transition-colors"
+              className="group grid grid-cols-1 md:grid-cols-2 border-2 border-[#1C1712] bg-[#F5F0E6] hover:border-[#B8451D] transition-colors"
             >
-              <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[26rem] overflow-hidden bg-[#2a231b]">
+              <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[26rem] overflow-hidden border-b-2 md:border-b-0 md:border-r-2 border-[#1C1712] bg-[#EEE7D8]">
                 {recap.cover && (
                   <Image
                     src={recap.cover.url}
@@ -787,14 +788,18 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               <div className="flex flex-col justify-between gap-10 p-8 md:p-12">
                 <div>
                   <div className="font-mono text-[11px] tracking-[0.25em] text-[#B8451D] mb-3">{recap.dateText.toUpperCase()}</div>
-                  <h3 className="font-display text-4xl md:text-5xl mb-6">{recap.title}</h3>
+                  <h3 className="font-display text-4xl md:text-5xl mb-3">{recap.title}</h3>
+                  <div className="font-mono text-xs md:text-sm text-[#8C8477] mb-6 flex items-center gap-2">
+                    <MapPin size="1.1em" className="text-[#B8451D] shrink-0" />
+                    <span>{recap.venue.toUpperCase()}</span>
+                  </div>
                   {recap.winnerTeam && (
                     <div className="mb-4">
-                      <div className="font-mono text-[11px] tracking-[0.3em] text-[#F5F0E6]/60">WINNERS</div>
+                      <div className="font-mono text-[11px] tracking-[0.3em] text-[#8C8477]">WINNERS</div>
                       <div className="font-display text-5xl md:text-6xl text-[#B8451D]">{recap.winnerTeam}</div>
                     </div>
                   )}
-                  {recap.stats && <div className="font-mono text-sm text-[#F5F0E6]/70">{recap.stats}</div>}
+                  {recap.stats && <div className="font-mono text-sm text-[#8C8477]">{recap.stats}</div>}
                 </div>
                 <div className="flex items-center justify-between font-mono text-sm tracking-[0.2em]">
                   <span>
@@ -809,7 +814,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               </div>
             </Link>
             <div className="mt-6 font-mono text-[11px] tracking-[0.2em]">
-              <Link href="/nights" className="text-[#F5F0E6]/70 hover:text-[#B8451D] transition-colors">
+              <Link href="/nights" className="text-[#1C1712] hover:text-[#B8451D] transition-colors">
                 ALL PAST NIGHTS →
               </Link>
             </div>
