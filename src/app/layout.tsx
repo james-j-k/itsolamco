@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Archivo, JetBrains_Mono, Baloo_Chettan_2 } from "next/font/google";
+import { Anton, Archivo, JetBrains_Mono, Noto_Sans_Malayalam } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -21,10 +21,14 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
-const balooChettan2 = Baloo_Chettan_2({
-  weight: "600",
-  subsets: ["latin"],
-  variable: "--font-baloo-chettan-2",
+// Draws the Malayalam answer on the quiz card. The earlier display font (Baloo
+// Chettan 2) didn't form conjuncts like മ്പ and ള്ള, so the word looked wrong;
+// Noto Sans Malayalam shapes them correctly. Only fetched when a page uses it.
+const malayalam = Noto_Sans_Malayalam({
+  weight: "700",
+  subsets: ["malayalam"],
+  variable: "--font-malayalam",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -46,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`scroll-smooth ${anton.variable} ${archivo.variable} ${jetbrainsMono.variable} ${balooChettan2.variable}`}
+      className={`scroll-smooth ${anton.variable} ${archivo.variable} ${jetbrainsMono.variable} ${malayalam.variable}`}
     >
       <body>
         {children}

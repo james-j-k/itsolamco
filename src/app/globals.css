@@ -49,7 +49,8 @@ body {
 }
 
 .font-malayalam {
-  font-family: var(--font-baloo-chettan-2), cursive;
+  font-family: var(--font-malayalam), sans-serif;
+  font-weight: 700;
 }
 
 .grid-bg {
