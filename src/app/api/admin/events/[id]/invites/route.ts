@@ -35,8 +35,10 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (!audience.success) return NextResponse.json({ error: "Invalid audience" }, { status: 400 });
   const includeTicketing = request.nextUrl.searchParams.get("ticketing") !== "0";
 
-  const { counts } = await inviteAudience(id, audience.data, includeTicketing);
-  return NextResponse.json({ counts }, { headers: { "Cache-Control": "no-store" } });
+  const { counts, eligible } = await inviteAudience(id, audience.data, includeTicketing);
+  // With ?list=1 the people themselves come back too (for picking individuals).
+  const guests = request.nextUrl.searchParams.get("list") === "1" ? eligible : undefined;
+  return NextResponse.json({ counts, guests }, { headers: { "Cache-Control": "no-store" } });
 }
 
 const sendSchema = z.object({
@@ -44,6 +46,8 @@ const sendSchema = z.object({
   includeTicketing: z.boolean(),
   // Addresses that failed earlier in this run, so they aren't retried forever.
   exclude: z.array(z.string().max(320)).max(500).optional(),
+  // When given, only these people are invited (still subject to every skip rule).
+  emails: z.array(z.string().max(320)).min(1).max(300).optional(),
 });
 
 export async function POST(request: NextRequest, { params }: Params) {
@@ -52,6 +56,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   const { audience, includeTicketing } = parsed.data;
   const exclude = new Set((parsed.data.exclude ?? []).map(normalizeEmail));
+  const only = parsed.data.emails ? new Set(parsed.data.emails.map(normalizeEmail)) : null;
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: "RESEND_API_KEY isn't configured" }, { status: 503 });
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   const event = found.event;
 
   const { eligible } = await inviteAudience(id, audience as InviteAudience, includeTicketing);
-  const pending = eligible.filter((g) => !exclude.has(g.email));
+  const pending = eligible.filter((g) => !exclude.has(g.email) && (!only || only.has(g.email)));
   const batch = pending.slice(0, CHUNK);
 
   let sent = 0;
@@ -71,17 +76,22 @@ export async function POST(request: NextRequest, { params }: Params) {
   for (const [i, guest] of batch.entries()) {
     if (i > 0) await sleep(GAP_MS);
 
-    // Re-check right before sending: they may have opted out, booked, or been
-    // invited from another tab since the list was worked out.
-    const [optedOut, invited, booked] = await Promise.all([
+    // Re-check right before sending: they may have opted out or booked since
+    // the list was worked out.
+    const [optedOut, booked] = await Promise.all([
       prisma.emailOptOut.findUnique({ where: { email: guest.email } }),
-      prisma.nightInvite.findUnique({ where: { eventId_email: { eventId: id, email: guest.email } } }),
       prisma.booking.findFirst({
         where: { eventId: id, status: { not: "cancelled" }, email: { equals: guest.email, mode: "insensitive" } },
         select: { id: true },
       }),
     ]);
-    if (optedOut || invited || booked) continue;
+    if (optedOut || booked) continue;
+
+    // Claim this guest before emailing. The (night, email) pair is unique, so if
+    // two sends run at once (a double click, two tabs) only one of them gets the
+    // claim and the other skips this guest: nobody is emailed twice.
+    const claim = await prisma.nightInvite.createMany({ data: [{ eventId: id, email: guest.email }], skipDuplicates: true });
+    if (claim.count === 0) continue;
 
     try {
       await sendInviteEmail(guest, event, {
@@ -89,14 +99,10 @@ export async function POST(request: NextRequest, { params }: Params) {
         unsubscribePageUrl: unsubscribePageUrl(guest.email),
         unsubscribeOneClickUrl: unsubscribeOneClickUrl(guest.email),
       });
-      // Recorded only after the email really went out; a failure stays eligible.
-      await prisma.nightInvite.upsert({
-        where: { eventId_email: { eventId: id, email: guest.email } },
-        create: { eventId: id, email: guest.email },
-        update: {},
-      });
       sent++;
     } catch (err) {
+      // It didn't go out, so release the claim; they stay eligible for another try.
+      await prisma.nightInvite.deleteMany({ where: { eventId: id, email: guest.email } }).catch(() => {});
       const reason = err instanceof Error ? err.message : "Unknown error";
       console.error(`Failed to send invite for ${id} to ${guest.email}:`, err);
       failed.push({ email: guest.email, reason });

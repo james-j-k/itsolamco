@@ -4,7 +4,7 @@ import { normalizeEmail } from "@/lib/unsubscribe";
 
 export type InviteAudience = "attended" | "all";
 
-export type InviteGuest = { email: string; name: string };
+export type InviteGuest = { email: string; name: string; attended: boolean; ticketing: boolean };
 
 export type InviteCounts = {
   pastGuests: number; // distinct people who match the chosen group
@@ -32,17 +32,20 @@ export async function inviteAudience(
       ...(audience === "attended" ? { attended: true } : {}),
       ...(includeTicketing ? {} : { source: { not: TICKETING_SOURCE } }),
     },
-    select: { email: true, contactName: true, event: { select: { date: true } } },
+    select: { email: true, contactName: true, attended: true, source: true, event: { select: { date: true } } },
   });
 
   // One entry per person; their most recent night supplies the name.
-  const people = new Map<string, { name: string; when: number }>();
+  const people = new Map<string, { name: string; when: number; attended: boolean; ticketing: boolean }>();
   for (const b of past) {
     const email = normalizeEmail(b.email);
     if (!EMAIL_PATTERN.test(email)) continue;
     const when = b.event?.date.getTime() ?? 0;
     const seen = people.get(email);
-    if (!seen || when > seen.when) people.set(email, { name: b.contactName, when });
+    const attended = b.attended || !!seen?.attended;
+    const ticketing = b.source === TICKETING_SOURCE || !!seen?.ticketing;
+    if (!seen || when > seen.when) people.set(email, { name: b.contactName, when, attended, ticketing });
+    else people.set(email, { ...seen, attended, ticketing });
   }
   const emails = [...people.keys()];
 
@@ -64,7 +67,10 @@ export async function inviteAudience(
     if (optedOut.has(email)) counts.optedOut++;
     else if (alreadyBooked.has(email)) counts.alreadyBooked++;
     else if (alreadyInvited.has(email)) counts.alreadyInvited++;
-    else eligible.push({ email, name: people.get(email)!.name });
+    else {
+      const person = people.get(email)!;
+      eligible.push({ email, name: person.name, attended: person.attended, ticketing: person.ticketing });
+    }
   }
   counts.eligible = eligible.length;
   return { eligible, counts };
