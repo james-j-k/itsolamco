@@ -136,6 +136,16 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
     setBookingOpen(true);
   }
 
+  // The "Book your team" button in an invite email links to /?book=<night>; open the form for it.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("book");
+    if (!id || !events.some((e) => e.id === id)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time open driven by the link the visitor arrived on
+    openBooking(id);
+    window.history.replaceState(null, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival; the link is only read then
+  }, []);
+
   // Hero copy reveal on mount
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

@@ -10,14 +10,17 @@ const updateSchema = z
     teamSize: z.number().int().min(1).max(15).optional(),
     email: z.string().trim().email("Enter a valid email").optional(),
     attended: z.boolean().optional(),
+    // Tie a booking that has no night yet to an upcoming night.
+    eventId: z.string().min(1).max(64).optional(),
   })
   .refine(
     (data) =>
       data.status !== undefined ||
       data.teamSize !== undefined ||
       data.email !== undefined ||
-      data.attended !== undefined,
-    { message: "Provide status, teamSize, email and/or attended" }
+      data.attended !== undefined ||
+      data.eventId !== undefined,
+    { message: "Provide status, teamSize, email, attended and/or eventId" }
   );
 
 export async function PATCH(request: NextRequest, { params }: Params) {
@@ -30,6 +33,21 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { email, ...fields } = parsed.data;
+
+  if (fields.eventId !== undefined) {
+    const [existing, event] = await Promise.all([
+      prisma.booking.findUnique({ where: { id }, select: { eventId: true } }),
+      prisma.event.findUnique({ where: { id: fields.eventId }, select: { date: true } }),
+    ]);
+    if (!existing) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    if (existing.eventId) {
+      return NextResponse.json({ error: "That team is already tied to a night." }, { status: 409 });
+    }
+    if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    if (event.date.getTime() < Date.now()) {
+      return NextResponse.json({ error: "You can only attach a team to an upcoming night." }, { status: 400 });
+    }
+  }
 
   try {
     // Everything sent so far (registration + any update emails) went to the

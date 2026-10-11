@@ -358,3 +358,42 @@ export async function sendNudgeEmail(
   });
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// "New night" invite to someone who came before. Sent manually from the admin
+// panel, once per person per night. Every one carries an unsubscribe link, and
+// the one-tap unsubscribe headers mail apps look for.
+// ---------------------------------------------------------------------------
+
+export async function sendInviteEmail(
+  guest: { name: string; email: string },
+  event: ReminderEvent,
+  links: { bookUrl: string; unsubscribePageUrl: string; unsubscribeOneClickUrl: string }
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+
+  await sendOrThrow(client, {
+    from: FROM,
+    to: guest.email,
+    subject: `New night: ${event.title} — ${shortDateText(event.date)}`,
+    headers: {
+      "List-Unsubscribe": `<${links.unsubscribeOneClickUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    html: wrapEmail(`
+      <h1 style="font-size:24px;margin:0 0 16px;">We're back, ${esc(guest.name)}.</h1>
+      <p style="line-height:1.6;">Thanks for being part of a night with us. The next one is on the calendar:</p>
+      <p style="line-height:1.6;font-size:18px;"><strong>${esc(event.title)}</strong></p>
+      ${eventDetailsBlock(event, mapsLinkFor(event))}
+      <p style="margin:20px 0;"><a href="${esc(links.bookUrl)}" style="${BUTTON_STYLE}">Book your team →</a></p>
+      <p style="line-height:1.6;font-size:13px;color:#8C8477;">Bring the same gang or a new one. Spots fill up.</p>
+      ${tableBookingBlock(event)}
+      <p style="line-height:1.6;font-size:12px;color:#8C8477;margin-top:28px;">
+        You're getting this because you booked a night with us before.
+        <a href="${esc(links.unsubscribePageUrl)}" style="color:#8C8477;">Stop emails about new nights</a>.
+      </p>
+    `),
+  });
+  return true;
+}

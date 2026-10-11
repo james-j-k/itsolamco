@@ -34,6 +34,7 @@ model Event {
   recapStats     String? // e.g. "20 teams · 73 quizzers"
   recapSummary   String?
   media          EventMedia[]
+  invites        NightInvite[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   bookings  Booking[]
@@ -131,4 +132,23 @@ model Venue {
   area      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Someone who asked (via the link in an invite email) not to hear about new
+// nights. Only invites check this; booking/reminder emails are separate.
+model EmailOptOut {
+  email     String   @id // lower-cased
+  createdAt DateTime @default(now())
+}
+
+// One row per "new night" invite email actually sent, so nobody gets the same
+// invite twice.
+model NightInvite {
+  id      String   @id @default(cuid())
+  eventId String
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  email   String // lower-cased
+  sentAt  DateTime @default(now())
+
+  @@unique([eventId, email])
 }

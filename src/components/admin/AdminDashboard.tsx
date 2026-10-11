@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AdminEvent, AdminBooking, AdminInquiry, AdminRound, AdminVenue } from "./types";
 import EventFormModal from "./EventFormModal";
 import RecapModal from "./RecapModal";
+import InviteModal from "./InviteModal";
 import RoundFormModal from "./RoundFormModal";
 import VenueFormModal from "./VenueFormModal";
 import ConfirmDialog from "./ConfirmDialog";
@@ -489,6 +490,9 @@ export default function AdminDashboard({
   // Which night the Bookings tab shows. null = the default: the next upcoming night.
   const [bookingNightChoice, setBookingNightChoice] = useState<string | null>(null);
   const [recapEventId, setRecapEventId] = useState<string | null>(null);
+  const [inviteEventId, setInviteEventId] = useState<string | null>(null);
+  // Which upcoming night the "attach all" bar in the "No night picked" view targets (empty = the soonest).
+  const [bulkNightId, setBulkNightId] = useState("");
   const [reminderRun, setReminderRun] = useState<{ mode: ReminderMode; done: number; total: number } | null>(null);
   const [reminderResult, setReminderResult] = useState<{ text: string; isError: boolean } | null>(null);
 
@@ -686,6 +690,50 @@ export default function AdminDashboard({
         } catch {
           pushError("Couldn't delete that event — try again.");
         }
+      },
+    });
+  }
+
+  // Teams that signed up while no night was scheduled have no night ("—"); these
+  // tie them to an upcoming one. Nothing is emailed by attaching.
+  async function attachBookings(ids: string[], ev: AdminEvent) {
+    try {
+      const res = await fetch(`/api/admin/events/${ev.id}/attach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIds: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "");
+      setBookings((cur) => cur.map((b) => (ids.includes(b.id) && !b.eventId ? { ...b, eventId: ev.id, eventTitle: ev.title } : b)));
+      setEvents((prev) => prev.map((e) => (e.id === ev.id ? { ...e, bookingCount: e.bookingCount + (data.attached ?? 0) } : e)));
+    } catch (err) {
+      pushError(err instanceof Error && err.message ? err.message : "Couldn't attach that team — try again.");
+    }
+  }
+
+  function confirmAttach(b: AdminBooking, eventId: string) {
+    const ev = events.find((e) => e.id === eventId);
+    if (!ev) return;
+    askConfirm({
+      title: "Attach to this night?",
+      message: `Attach "${b.teamName}" to ${ev.title} (${fmtDate(ev.date)})? It can't be moved to a different night from here afterwards.`,
+      confirmLabel: "Attach",
+      onConfirm: async () => {
+        setConfirmState(null);
+        await attachBookings([b.id], ev);
+      },
+    });
+  }
+
+  function confirmAttachAll(ids: string[], ev: AdminEvent) {
+    askConfirm({
+      title: `Attach ${ids.length} ${ids.length === 1 ? "team" : "teams"}?`,
+      message: `Attach ${ids.length} ${ids.length === 1 ? "team" : "teams"} with no night to ${ev.title} (${fmtDate(ev.date)})? They can't be moved to a different night from here afterwards.`,
+      confirmLabel: "Attach all",
+      onConfirm: async () => {
+        setConfirmState(null);
+        await attachBookings(ids, ev);
       },
     });
   }
@@ -1122,6 +1170,8 @@ export default function AdminDashboard({
       : bookingNight === "none"
         ? bookings.filter((b) => !b.eventId)
         : bookings.filter((b) => b.eventId === bookingNight);
+  const bulkTarget = upcomingEvents.find((e) => e.id === bulkNightId) ?? upcomingEvents[0] ?? null;
+  const bulkIds = visibleBookings.filter((b) => b.status !== "cancelled" && !b.eventId).map((b) => b.id);
   const nightEvent = events.find((e) => e.id === bookingNight) ?? null;
   const nightIsPast = nightEvent ? new Date(nightEvent.date).getTime() < now : false;
   const nightSummary = {
@@ -1169,6 +1219,11 @@ export default function AdminDashboard({
           )}
         </td>
         <td className="p-3 whitespace-nowrap">
+          {!isPast && (
+            <button onClick={() => setInviteEventId(ev.id)} className="mr-3 font-mono text-[10px] uppercase text-[#B8451D] hover:underline">
+              Invite past guests
+            </button>
+          )}
           <button
             onClick={() => {
               setEditingEvent(ev);
@@ -1337,6 +1392,37 @@ export default function AdminDashboard({
             </button>
           </p>
         )}
+        {bookingNight === "none" && visibleBookings.some((b) => b.status !== "cancelled") && (
+          <div className="mb-3 flex flex-wrap items-center gap-3 border-2 border-[#B8451D] p-3 font-mono text-[11px]">
+            {bulkTarget ? (
+              <>
+                <span>
+                  Attach {bulkIds.length === 1 ? "the 1 team" : `all ${bulkIds.length} teams`} with no night to
+                </span>
+                <select
+                  value={bulkTarget.id}
+                  onChange={(e) => setBulkNightId(e.target.value)}
+                  aria-label="Night to attach to"
+                  className="max-w-[16rem] border border-[#1C1712] bg-[#F5F0E6] px-2 py-1 uppercase"
+                >
+                  {upcomingEvents.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} · {fmtDate(ev.date)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => confirmAttachAll(bulkIds, bulkTarget)}
+                  className="bg-[#B8451D] px-3 py-2 uppercase tracking-wider text-[#F5F0E6]"
+                >
+                  Attach all
+                </button>
+              </>
+            ) : (
+              <span>These teams have no night yet. Create an upcoming night under Events, then attach them here.</span>
+            )}
+          </div>
+        )}
         <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] leading-relaxed">
           <span>
             Teams <strong>{nightSummary.teams}</strong>
@@ -1404,7 +1490,33 @@ export default function AdminDashboard({
                     />
                     {b.phone && <div className="text-[#8C8477] text-xs">{b.phone}</div>}
                   </td>
-                  <td className="p-3">{b.eventTitle ?? "—"}</td>
+                  <td className="p-3">
+                    {b.eventId ? (
+                      b.eventTitle
+                    ) : b.status === "cancelled" ? (
+                      "—"
+                    ) : upcomingEvents.length > 0 ? (
+                      <select
+                        aria-label={`Attach ${b.teamName} to a night`}
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) confirmAttach(b, e.target.value);
+                        }}
+                        className="max-w-[10rem] border border-[#B8451D] bg-[#F5F0E6] px-2 py-1 font-mono text-[10px] uppercase text-[#B8451D]"
+                      >
+                        <option value="">— Attach to…</option>
+                        {upcomingEvents.map((ev) => (
+                          <option key={ev.id} value={ev.id}>
+                            {ev.title} · {fmtDate(ev.date)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-[#6A6357]" title="Create an upcoming night under Events, then attach this team to it">
+                        — (no night yet)
+                      </span>
+                    )}
+                  </td>
                   <td className="p-3">
                     <TeamSizeCell
                       size={b.teamSize}
@@ -1732,6 +1844,15 @@ export default function AdminDashboard({
             </table>
           </div>
         </div>
+      )}
+
+      {inviteEventId && events.some((e) => e.id === inviteEventId) && (
+        <InviteModal
+          key={`invite-${inviteEventId}`}
+          open
+          onClose={() => setInviteEventId(null)}
+          event={events.find((e) => e.id === inviteEventId)!}
+        />
       )}
 
       {recapEventId && events.some((e) => e.id === recapEventId) && (
