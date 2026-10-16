@@ -969,6 +969,8 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                 <div className="flex flex-col text-sm">
                   <Link href="/privacy" className="py-3 hover:text-[#B8451D] transition-colors">PRIVACY</Link>
                   <Link href="/terms" className="py-3 hover:text-[#B8451D] transition-colors">TERMS</Link>
+                  <Link href="/refund-policy" className="py-3 hover:text-[#B8451D] transition-colors">REFUNDS</Link>
+                  <Link href="/contact" className="py-3 hover:text-[#B8451D] transition-colors">CONTACT</Link>
                 </div>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import LegalPage from "@/components/LegalPage";
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms of Service" lastUpdated="September 14, 2026">
+    <LegalPage title="Terms of Service" lastUpdated="October 16, 2026">
       <p>
         These terms cover your use of itsolamco.in (the &quot;Site&quot;), run by It&apos;s Olam
         Company (&quot;we&quot;, &quot;us&quot;), a Kochi-based events outfit hosting Malayalam
@@ -17,18 +18,34 @@ export default function TermsPage() {
 
       <h2>What the Site Is</h2>
       <p>
-        The Site is an information and interest-registration page for our quiz nights. It lists
-        upcoming events, explains our round format, and lets you:
+        The Site lists our upcoming quiz nights, explains our round format, and lets you:
       </p>
       <ul>
-        <li>Register interest in attending a quiz night as a team, or</li>
+        <li>Register a team for a quiz night (free or ticketed, as shown for each night), or</li>
         <li>Get in touch as a venue interested in hosting a night.</li>
       </ul>
       <p>
-        Submitting a form on the Site is an <strong>expression of interest</strong>, not a confirmed
-        reservation, ticket, or contract. Final RSVP, table booking, and any payment (for food,
-        drinks, or entry, where applicable) happen directly with the host venue or through our
-        official Instagram, not through this Site.
+        For a night that is <strong>free to register</strong>, submitting the form is an{" "}
+        <strong>expression of interest</strong>, not a confirmed reservation. Final RSVP, table
+        booking, and headcount are confirmed with you closer to the night.
+      </p>
+
+      <h2>Tickets and Payments</h2>
+      <p>
+        Some nights are <strong>ticketed</strong>. The ticket price, shown when you register, is the price of{" "}
+        <strong>entry to the quiz night</strong> for each person in your team. It is paid to It&apos;s Olam Company and
+        does not include food or drinks. A ticketed booking is confirmed once your payment has been received
+        and checked, and we&apos;ll email you when it is.
+      </p>
+      <p>
+        Some host venues may charge their own entry or cover fee, which is set and collected by the venue
+        and is normally redeemable against food and drinks. That fee is separate from your ticket.
+      </p>
+      <p>
+        Cancellations, refunds, credits, and transfers are covered by our{" "}
+        <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>, which forms part of these terms.
+        Payments may be handled through a third-party payment provider; we never see or store your card or
+        bank login details.
       </p>
 
       <h2>Event Details</h2>
@@ -58,7 +75,14 @@ export default function TermsPage() {
       <p>
         Quiz nights take place at independently owned pubs and restobars. We aren&apos;t responsible
         for the venue&apos;s own service, food, drinks, pricing, seating, or house policies — that&apos;s
-        between you and the venue.
+        between you and the venue. The venue&apos;s rules and the law apply on its premises, including any
+        age or ID requirements.
+      </p>
+
+      <h2>Photos and Video</h2>
+      <p>
+        We may take photos and video at our nights and share them on the Site and our social accounts. If
+        you would like a photo or clip of you removed, email us and we&apos;ll take it down.
       </p>
 
       <h2>No Warranty</h2>
@@ -89,7 +113,8 @@ export default function TermsPage() {
       <h2>Contact</h2>
       <p>
         Questions about these terms — reach us at{" "}
-        <a href="mailto:itsolamco@gmail.com">itsolamco@gmail.com</a>.
+        <a href="mailto:itsolamco@gmail.com">itsolamco@gmail.com</a>, or see our{" "}
+        <Link href="/contact">Contact page</Link>.
       </p>
     </LegalPage>
   );
