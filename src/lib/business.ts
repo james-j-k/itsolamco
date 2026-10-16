@@ -7,8 +7,10 @@ export const BUSINESS = {
   operator: "James J Koduppanapolackal",
   operatorRole: "Founder",
   email: "itsolamco@gmail.com",
-  // Shown on the Contact page only when filled in (e.g. "+91 98765 43210").
-  phone: "",
+  // Shown on the Contact page only when filled in.
+  phone: "+91 70853 88330",
+  phoneContactName: "James",
+  address: "348A Koduppanapolackal, Kangarappady, Kochi 682021, Kerala, India",
   location: "Kochi, Kerala, India",
   siteUrl: "https://itsolamco.in",
   instagramUrl: "https://www.instagram.com/itsolamco/",

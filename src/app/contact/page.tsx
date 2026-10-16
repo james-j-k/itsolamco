@@ -25,11 +25,13 @@ export default function ContactPage() {
       <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <a href={`mailto:${BUSINESS.email}`} className={card}>
           <div className={label}>EMAIL</div>
-          <div className={`${value} normal-case`}>{BUSINESS.email}</div>
+          <div className={value} style={{ textTransform: "none" }}>
+            {BUSINESS.email}
+          </div>
         </a>
         {BUSINESS.phone && (
           <a href={`tel:${phoneDigits}`} className={card}>
-            <div className={label}>PHONE</div>
+            <div className={label}>PHONE · {BUSINESS.phoneContactName.toUpperCase()}</div>
             <div className={value}>{BUSINESS.phone}</div>
           </a>
         )}
@@ -63,7 +65,7 @@ export default function ContactPage() {
           <strong>Operated by:</strong> {BUSINESS.operator}, {BUSINESS.operatorRole}
         </li>
         <li>
-          <strong>Based in:</strong> {BUSINESS.location}
+          <strong>Address:</strong> {BUSINESS.address}
         </li>
         <li>
           <strong>Website:</strong> {BUSINESS.siteUrl.replace("https://", "")}
