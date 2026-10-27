@@ -33,11 +33,25 @@ export async function POST(request: NextRequest) {
   let resolvedEventId = eventId || null;
   if (!resolvedEventId) {
     const nextEvent = await prisma.event.findFirst({
-      where: { date: { gte: new Date() } },
+      where: { date: { gte: new Date() }, externalTicketUrl: null },
       orderBy: { date: "asc" },
       select: { id: true },
     });
     resolvedEventId = nextEvent?.id ?? null;
+  }
+
+  // A night whose tickets are sold on another site isn't booked here.
+  if (resolvedEventId) {
+    const sold = await prisma.event.findUnique({
+      where: { id: resolvedEventId },
+      select: { externalTicketUrl: true, externalTicketLabel: true },
+    });
+    if (sold?.externalTicketUrl) {
+      return NextResponse.json(
+        { error: `Tickets for this night are booked on ${sold.externalTicketLabel || "another site"}. Please book there.`, externalUrl: sold.externalTicketUrl },
+        { status: 409 }
+      );
+    }
   }
 
   // Same email registering twice for the same night is almost always a

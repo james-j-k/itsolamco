@@ -53,6 +53,9 @@ export const eventSchema = z.object({
   districtUrl: optionalWebLink,
   swiggyUrl: optionalWebLink,
   reminderOfferNote: z.string().trim().max(300).optional(),
+  // Tickets for this night are sold on another site; our own booking is switched off for it.
+  externalTicketUrl: optionalWebLink,
+  externalTicketLabel: z.string().trim().max(60).optional(),
 });
 
 // Public RSVP form. headcount only matters (and is required) when coming.

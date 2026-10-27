@@ -5,6 +5,7 @@ import type { AdminEvent, AdminBooking, AdminInquiry, AdminRound, AdminVenue } f
 import EventFormModal from "./EventFormModal";
 import RecapModal from "./RecapModal";
 import InviteModal from "./InviteModal";
+import ExternalNudgeModal from "./ExternalNudgeModal";
 import RoundFormModal from "./RoundFormModal";
 import VenueFormModal from "./VenueFormModal";
 import ConfirmDialog from "./ConfirmDialog";
@@ -450,6 +451,7 @@ export default function AdminDashboard({
   const [tab, setTab] = useState<Tab>("events");
   const [events, setEvents] = useState(initialEvents);
   const [bookings, setBookings] = useState(initialBookings);
+  const [nudgeEventId, setNudgeEventId] = useState<string | null>(null);
   const [inquiries, setInquiries] = useState(initialInquiries);
   const [rounds, setRounds] = useState(initialRounds);
   const [venues, setVenues] = useState(initialVenues);
@@ -1193,6 +1195,18 @@ export default function AdminDashboard({
         <td className="p-3">
           <div className="font-semibold">{ev.title}</div>
           {ev.theme && <div className="text-[#8C8477] text-xs">{ev.theme}</div>}
+          {ev.externalTicketUrl && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="border border-[#1C1712] px-1.5 py-0.5 font-mono text-[10px] uppercase">
+                Tickets on {ev.externalTicketLabel || "another site"}
+              </span>
+              {!isPast && (
+                <button onClick={() => setNudgeEventId(ev.id)} className="min-h-9 font-mono text-[10px] uppercase text-[#B8451D] hover:underline">
+                  Ask pending guests to book there
+                </button>
+              )}
+            </div>
+          )}
         </td>
         <td className="p-3 whitespace-nowrap">{fmtDate(ev.date)}</td>
         <td className="p-3">{ev.venueName}, {ev.venueArea}</td>
@@ -1252,6 +1266,17 @@ export default function AdminDashboard({
 
   return (
     <div className="max-w-6xl mx-auto">
+      <ExternalNudgeModal
+        key={`nudge-${nudgeEventId ?? "none"}`}
+        eventId={nudgeEventId}
+        eventTitle={events.find((e) => e.id === nudgeEventId)?.title ?? ""}
+        onClose={() => setNudgeEventId(null)}
+        onSent={(ids) => {
+          const when = new Date().toISOString();
+          const sentSet = new Set(ids);
+          setBookings((cur) => cur.map((x) => (sentSet.has(x.id) ? { ...x, externalAskedAt: when } : x)));
+        }}
+      />
       <div className="flex gap-2 mb-8 border-b-2 border-[#1C1712] flex-wrap">
         {tabs.map((t) => (
           <button
@@ -1475,6 +1500,14 @@ export default function AdminDashboard({
                   <td className="p-3 font-semibold">
                     {b.teamName}
                     {b.source === TICKETING_SOURCE && <TicketingBadge />}
+                    {b.externalAskedAt && b.status === "pending" && (
+                      <span
+                        title="You emailed them asking to book on the other ticketing site"
+                        className="ml-2 inline-block whitespace-nowrap border border-[#1C1712] px-1.5 py-0.5 align-middle font-mono text-[9px] uppercase tracking-[0.15em]"
+                      >
+                        Asked to book on {events.find((e) => e.id === b.eventId)?.externalTicketLabel || "another site"}
+                      </span>
+                    )}
                     {bookingSessionNew.has(b.id) && <NewBadge />}
                   </td>
                   <td className="p-3">

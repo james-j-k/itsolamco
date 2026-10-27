@@ -131,6 +131,12 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
   const mobileNavRef = useModalA11y(mobileNavOpen, () => setMobileNavOpen(false));
 
   function openBooking(eventId?: string) {
+    // A night whose tickets are sold on another site sends the visitor there.
+    const target = eventId ? events.find((e) => e.id === eventId) : nextEvent;
+    if (target?.externalUrl) {
+      window.open(target.externalUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     setBookingPreselect(eventId ?? null);
     setBookingKey((k) => k + 1);
     setBookingOpen(true);
@@ -140,6 +146,12 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("book");
     if (!id || !events.some((e) => e.id === id)) return;
+    const linked = events.find((e) => e.id === id);
+    if (linked?.externalUrl) {
+      // Arrived from an invite email for a night booked elsewhere: take them straight there.
+      window.location.replace(linked.externalUrl);
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time open driven by the link the visitor arrived on
     openBooking(id);
     window.history.replaceState(null, "", window.location.pathname);
@@ -598,7 +610,12 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.m}</div><div className="font-mono text-xs opacity-70">MIN</div></div>
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.s}</div><div className="font-mono text-xs opacity-70">SEC</div></div>
                   </div>
-                  {nextEvent.teamsBooked > 0 && (
+                  {nextEvent.externalUrl && (
+                    <p className="font-mono text-xs mt-3 md:mt-4 border border-[#1C1712] px-2 py-1.5 inline-block">
+                      TICKETS ON {(nextEvent.externalLabel || "THE TICKET SITE").toUpperCase()}
+                    </p>
+                  )}
+                  {nextEvent.teamsBooked > 0 && !nextEvent.externalUrl && (
                     <p className="font-mono text-xs text-[#B8451D] mt-3 md:mt-4 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-[#B8451D] rounded-full" />
                       {nextEvent.teamsBooked} {nextEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
@@ -608,9 +625,20 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
               ) : (
                 <p className="text-[#6A6357]">New nights dropping soon — check back shortly.</p>
               )}
-              <button onClick={() => openBooking(nextEvent?.id)} className="btn-rust magnetic w-full py-3 md:py-4 font-display text-xl text-center">
-                RSVP YOUR TEAM
-              </button>
+              {nextEvent?.externalUrl ? (
+                <a
+                  href={nextEvent.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-rust magnetic block w-full py-3 md:py-4 font-display text-xl text-center"
+                >
+                  {`BOOK ON ${(nextEvent.externalLabel || "THE TICKET SITE").toUpperCase()}`}
+                </a>
+              ) : (
+                <button onClick={() => openBooking(nextEvent?.id)} className="btn-rust magnetic w-full py-3 md:py-4 font-display text-xl text-center">
+                  RSVP YOUR TEAM
+                </button>
+              )}
               <a href="#partner" className="-mb-2 hidden min-h-11 items-center justify-center font-mono text-xs underline underline-offset-4 hover:text-[#B8451D] md:flex">
                 Own a bar? Host a night →
               </a>
@@ -785,7 +813,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                     onClick={() => openBooking(ev.id)}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Register your team for ${ev.title}`}
+                    aria-label={ev.externalUrl ? `Book tickets for ${ev.title} on ${ev.externalLabel || "the ticket site"}` : `Register your team for ${ev.title}`}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
@@ -796,7 +824,10 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                     className={`${borderClass} border-[#1C1712] p-10 hover:bg-[#B8451D] hover:text-[#F5F0E6] active:bg-[#B8451D] active:text-[#F5F0E6] transition-all duration-300 cursor-pointer focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-[#1C1712] group`}
                   >
                     <div className="flex justify-between items-center mb-10">
-                      <div className="font-mono">{formatDayDate(d)} / {formatTime(d)}</div>
+                      <div className="font-mono">
+                        {formatDayDate(d)} / {formatTime(d)}
+                        {ev.externalUrl && <span className="mt-1 block">TICKETS ON {(ev.externalLabel || "THE TICKET SITE").toUpperCase()}</span>}
+                      </div>
                       <div className="w-2 h-2 rounded-full bg-current" />
                     </div>
                     <h3 className="font-display text-5xl md:text-6xl mb-16 transform group-hover:-translate-y-2 group-active:-translate-y-2 transition-transform">
@@ -990,7 +1021,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
         key={bookingKey}
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        events={events}
+        events={events.filter((e) => !e.externalUrl)}
         preselectedEventId={bookingPreselect}
       />
       <VenueInquiryModal open={venueOpen} onClose={() => setVenueOpen(false)} />

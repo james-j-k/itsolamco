@@ -27,6 +27,9 @@ export default function EventFormModal({ open, onClose, onSaved, editing }: Prop
   const [districtUrl, setDistrictUrl] = useState(editing?.districtUrl ?? "");
   const [swiggyUrl, setSwiggyUrl] = useState(editing?.swiggyUrl ?? "");
   const [reminderOfferNote, setReminderOfferNote] = useState(editing?.reminderOfferNote ?? "");
+  const [externalOn, setExternalOn] = useState(Boolean(editing?.externalTicketUrl));
+  const [externalUrl, setExternalUrl] = useState(editing?.externalTicketUrl ?? "");
+  const [externalLabel, setExternalLabel] = useState(editing?.externalTicketLabel ?? "Sort My Scene");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const containerRef = useModalA11y(open, onClose);
@@ -53,6 +56,8 @@ export default function EventFormModal({ open, onClose, onSaved, editing }: Prop
           districtUrl,
           swiggyUrl,
           reminderOfferNote,
+          externalTicketUrl: externalOn ? externalUrl.trim() : "",
+          externalTicketLabel: externalOn ? externalLabel.trim() : "",
         }),
       });
       if (!res.ok) {
@@ -112,6 +117,46 @@ export default function EventFormModal({ open, onClose, onSaved, editing }: Prop
               <span className="font-mono text-[10px]">AREA</span>
               <input required value={venueArea} onChange={(e) => setVenueArea(e.target.value)} className="border-2 border-[#1C1712] bg-[#F5F0E6] px-3 py-2 focus:outline-none focus:border-[#B8451D]" />
             </label>
+          </div>
+
+          <div className="border-t-2 border-[#1C1712]/15 pt-4 flex flex-col gap-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={externalOn}
+                onChange={(e) => setExternalOn(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#B8451D]"
+              />
+              <span className="text-sm leading-relaxed">
+                <strong>Tickets are booked on another site</strong> (for example Sort My Scene). Every RSVP button for this night opens that link, and our
+                own booking form is switched off for it.
+              </span>
+            </label>
+            {externalOn && (
+              <>
+                <label className="flex flex-col gap-2">
+                  <span className="font-mono text-[10px]">TICKET PAGE LINK</span>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://sortmyscene.com/event/..."
+                    value={externalUrl}
+                    onChange={(e) => setExternalUrl(e.target.value)}
+                    className="border-2 border-[#1C1712] bg-[#F5F0E6] px-3 py-2 focus:outline-none focus:border-[#B8451D]"
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="font-mono text-[10px]">SITE NAME (SHOWN ON THE BUTTON: &ldquo;BOOK ON ...&rdquo;)</span>
+                  <input
+                    type="text"
+                    maxLength={60}
+                    value={externalLabel}
+                    onChange={(e) => setExternalLabel(e.target.value)}
+                    className="border-2 border-[#1C1712] bg-[#F5F0E6] px-3 py-2 focus:outline-none focus:border-[#B8451D]"
+                  />
+                </label>
+              </>
+            )}
           </div>
 
           <div className="border-t-2 border-[#1C1712]/15 pt-4 flex flex-col gap-4">

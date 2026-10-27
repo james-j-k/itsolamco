@@ -35,6 +35,8 @@ export default async function AdminPage() {
         districtUrl: e.districtUrl,
         swiggyUrl: e.swiggyUrl,
         reminderOfferNote: e.reminderOfferNote,
+        externalTicketUrl: e.externalTicketUrl,
+        externalTicketLabel: e.externalTicketLabel,
         recapPublished: e.recapPublished,
         winnerTeam: e.winnerTeam,
         recapStats: e.recapStats,
@@ -72,6 +74,7 @@ export default async function AdminPage() {
         nudgeSentAt: b.nudgeSentAt?.toISOString() ?? null,
         attended: b.attended,
         source: b.source,
+        externalAskedAt: b.externalAskedAt?.toISOString() ?? null,
       }))}
       initialInquiries={inquiries.map((i) => ({
         id: i.id,

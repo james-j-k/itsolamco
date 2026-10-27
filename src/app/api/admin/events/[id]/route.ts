@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     );
   }
 
-  const { theme, date, mapsUrl, districtUrl, swiggyUrl, reminderOfferNote, ...rest } = parsed.data;
+  const { theme, date, mapsUrl, districtUrl, swiggyUrl, reminderOfferNote, externalTicketUrl, externalTicketLabel, ...rest } = parsed.data;
   const parsedDate = new Date(date);
   if (Number.isNaN(parsedDate.getTime())) {
     return NextResponse.json({ error: "Invalid date" }, { status: 400 });
@@ -34,6 +34,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
         ...(districtUrl !== undefined && { districtUrl: districtUrl || null }),
         ...(swiggyUrl !== undefined && { swiggyUrl: swiggyUrl || null }),
         ...(reminderOfferNote !== undefined && { reminderOfferNote: reminderOfferNote || null }),
+        ...(externalTicketUrl !== undefined && {
+          externalTicketUrl: externalTicketUrl || null,
+          externalTicketLabel: externalTicketUrl ? externalTicketLabel || null : null,
+        }),
       },
     });
     return NextResponse.json({ event });

@@ -397,3 +397,29 @@ export async function sendInviteEmail(
   });
   return true;
 }
+
+// Sent once to someone who registered on our site for a night whose tickets are
+// now sold on another site, asking them to book there.
+export async function sendExternalTicketEmail(
+  booking: { contactName: string; teamName: string; email: string },
+  event: EmailEvent,
+  url: string,
+  label: string
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  await sendOrThrow(client, {
+    from: FROM,
+    to: booking.email,
+    subject: `Book your spot for ${event.title} on ${label}`,
+    html: wrapEmail(`
+      <h1 style="font-size:24px;margin:0 0 16px;">Hi ${esc(booking.contactName)},</h1>
+      <p style="line-height:1.6;">Thanks for registering your team <strong>${esc(booking.teamName)}</strong> for <strong>${esc(event.title)}</strong>.</p>
+      <p style="line-height:1.6;">For this night we're taking bookings on <strong>${esc(label)}</strong>, so your spot is confirmed together with your ticket. Please book there:</p>
+      ${eventDetailsBlock(event)}
+      <p style="margin:20px 0;"><a href="${esc(url)}" style="${BUTTON_STYLE}">Book on ${esc(label)} \u2192</a></p>
+      <p style="line-height:1.6;font-size:14px;">Your registration on our site doesn't confirm a place by itself. Questions? Just reply to this email.</p>
+    `),
+  });
+  return true;
+}

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { TICKETING_SOURCE } from "@/lib/bookingSource";
 import { getPublishedRecaps } from "@/lib/recaps";
+import { safeHttpUrl } from "@/lib/eventLinks";
 import HomePage from "@/components/HomePage";
 import type { EventDTO } from "@/types/event";
 import type { QuizRoundDTO, VenueDTO } from "@/types/content";
@@ -40,6 +41,8 @@ export default async function Page() {
     venueName: e.venueName,
     venueArea: e.venueArea,
     teamsBooked: e._count.bookings + (i === 0 ? unassignedBookingCount : 0),
+    externalUrl: safeHttpUrl(e.externalTicketUrl),
+    externalLabel: e.externalTicketLabel,
   }));
 
   const roundDTOs: QuizRoundDTO[] = rounds.map((r) => ({

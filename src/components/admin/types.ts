@@ -12,6 +12,8 @@ export type AdminEvent = {
   districtUrl: string | null;
   swiggyUrl: string | null;
   reminderOfferNote: string | null;
+  externalTicketUrl: string | null; // tickets sold on another site
+  externalTicketLabel: string | null;
   recapPublished: boolean;
   winnerTeam: string | null;
   recapStats: string | null;
@@ -43,6 +45,7 @@ export type AdminBooking = {
   nudgeSentAt: string | null;
   attended: boolean;
   source: string; // "website" | "ticketing"
+  externalAskedAt: string | null; // when we asked them to book on the other site
 };
 
 export type AdminInquiry = {

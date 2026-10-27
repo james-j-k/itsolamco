@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { theme, date, mapsUrl, districtUrl, swiggyUrl, reminderOfferNote, ...rest } = parsed.data;
+  const { theme, date, mapsUrl, districtUrl, swiggyUrl, reminderOfferNote, externalTicketUrl, externalTicketLabel, ...rest } = parsed.data;
   const parsedDate = new Date(date);
   if (Number.isNaN(parsedDate.getTime())) {
     return NextResponse.json({ error: "Invalid date" }, { status: 400 });
@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       districtUrl: districtUrl || null,
       swiggyUrl: swiggyUrl || null,
       reminderOfferNote: reminderOfferNote || null,
+      externalTicketUrl: externalTicketUrl || null,
+      externalTicketLabel: externalTicketUrl ? externalTicketLabel || null : null,
     },
   });
 

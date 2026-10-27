@@ -29,6 +29,9 @@ model Event {
   reminderOfferNote String? // the line shown above the table-booking buttons
   // Past-night recap shown on the public "Past nights" pages. Hidden until
   // recapPublished is switched on.
+  // Tickets for this night are sold on another site (for example Sort My Scene).
+  externalTicketUrl   String?
+  externalTicketLabel String?
   recapPublished Boolean @default(false)
   winnerTeam     String?
   recapStats     String? // e.g. "20 teams · 73 quizzers"
@@ -96,6 +99,8 @@ model Booking {
   // attendees are individuals, not teams, and stay out of the public
   // "teams booked" number.
   source          String    @default("website")
+  // When we asked them (by email) to book this night on the other ticketing site.
+  externalAskedAt DateTime?
   event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   eventId     String?
   createdAt   DateTime @default(now())
