@@ -25,6 +25,22 @@ const csp = [
   "frame-ancestors 'none'",
 ].join("; ");
 
+// The Orb pitch page (/orb) is a self-contained page that loads its fonts from Google Fonts.
+// Its rule sits after the general one below, so for this path only it replaces the policy.
+const orbCsp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "media-src 'self'",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   // Next.js's dev server only auto-allows localhost and the hostname it was
   // started with; any other origin (e.g. testing over the LAN IP on a phone)
@@ -43,6 +59,13 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+      {
+        source: "/orb/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: orbCsp },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
       },
     ];

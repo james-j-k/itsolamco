@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="theme-color" content="#120E10">
+<style>:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{background:#120E10}</style>
+
+<title>Quiz Night at The Orb</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Familjen+Grotesk:wght@400;500;600;700&family=Chilanka&family=Baloo+Chettan+2:wght@700;800&family=Courier+Prime:wght@700&display=swap">
+<style>
+/* Layout: a late-show screening room. Full-bleed dark bands, a phone-frame "screen" for footage, ticket-stub motifs for the facts. */
+:root{
+  color-scheme:dark;
+  --ink:#120E10; --ink2:#1C1518; --ink3:#271E21;
+  --cream:#F3E9D7; --muted:#B7A898; --line:rgba(243,233,215,.14);
+  --red:#D2362A; --red-ink:#FFF4EC; --mustard:#F2B33D; --mustard-ink:#1B1206; --good:#6BCB8B;
+  --display:'Anton',Impact,'Arial Narrow',sans-serif;
+  --body:'Familjen Grotesk','Helvetica Neue',Arial,sans-serif;
+  --brand:'Chilanka','Familjen Grotesk',cursive;
+  --mal:'Baloo Chettan 2','Noto Sans Malayalam',sans-serif;
+  --mono:'Courier Prime','Courier New',monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--cream);font:17px/1.55 var(--body);overflow-x:hidden}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+section{padding-block:88px}
+.band{background:var(--ink2);border-block:1px solid var(--line)}
+.eyebrow{font:700 13px var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--mustard)}
+h2{font:400 clamp(40px,6.4vw,76px)/.95 var(--display);letter-spacing:.01em;margin:10px 0 18px;text-wrap:balance}
+h2 em{font-style:normal;color:var(--mustard)}
+.lede{max-width:60ch;color:var(--muted);margin:0}
+.brand{font-family:var(--brand);font-weight:700}
+.mal{font-family:var(--mal);font-weight:800}
+.btn{display:inline-flex;align-items:center;gap:8px;font:700 16px var(--body);padding:13px 20px;border-radius:999px;border:2px solid var(--cream);background:transparent;color:var(--cream);text-decoration:none;cursor:pointer;transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn.fill{background:var(--red);border-color:var(--red);color:var(--red-ink)}
+.btn.gold{background:var(--mustard);border-color:var(--mustard);color:var(--mustard-ink)}
+:focus-visible{outline:3px solid var(--mustard);outline-offset:3px}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding-block:56px 80px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-40px;background:url(/orb/media/bg.jpg) center/cover;filter:blur(30px) saturate(1.3);opacity:.45}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--ink) 30%,rgba(18,14,16,.55) 70%,rgba(18,14,16,.85)),linear-gradient(0deg,var(--ink),transparent 30%)}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:48px;align-items:center}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:40px}
+.top .brand{font-size:28px}
+.top .for{font:700 12px var(--mono);letter-spacing:.2em;color:var(--muted);border:1px dashed var(--line);padding:8px 12px;border-radius:6px}
+.hero h1{font:400 clamp(58px,10.5vw,138px)/.86 var(--display);margin:14px 0 0;letter-spacing:.005em}
+.hero h1 .l2{color:var(--mustard);display:block}
+.hero h1 .l3{display:block;font-size:.5em;color:var(--cream);margin-top:12px}
+.hero h1 .l3 b{color:var(--red);font-weight:400}
+.tag-ml{display:inline-block;margin-top:22px;font:800 26px var(--mal);background:var(--red);color:var(--red-ink);padding:2px 18px;border-radius:8px;transform:rotate(-2deg)}
+.hero p.lede{margin-top:24px;font-size:19px;color:#D9CBB8}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+
+.phone{position:relative;width:min(320px,78vw);aspect-ratio:9/16;max-width:100%;margin-inline:auto;border-radius:34px;padding:10px;background:#0a0809;box-shadow:0 0 0 2px #3a2f33,0 40px 90px rgba(0,0,0,.6),0 0 120px rgba(210,54,42,.25)}
+.phone video{width:100%;height:100%;object-fit:cover;border-radius:26px;display:block;background:#000}
+.phone .live{position:absolute;left:24px;top:24px;font:700 12px var(--mono);letter-spacing:.15em;background:var(--red);color:var(--red-ink);padding:5px 9px;border-radius:5px;display:flex;align-items:center;gap:6px}
+.phone .live i{width:7px;height:7px;border-radius:50%;background:#fff;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.2}}
+.chip{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);white-space:nowrap;font:800 15px var(--body);background:var(--mustard);color:var(--mustard-ink);padding:9px 14px;border-radius:8px;box-shadow:4px 4px 0 var(--ink);transition:opacity .3s}
+.stub{position:absolute;right:-18px;top:46px;transform:rotate(8deg);background:var(--cream);color:var(--ink);font:700 12px/1.3 var(--mono);letter-spacing:.12em;padding:12px 16px;border-radius:6px;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.stub b{display:block;font:400 26px/1 var(--display);letter-spacing:.02em;color:var(--red);margin-top:4px}
+
+/* ---------- proof ---------- */
+.proof{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;align-items:center}
+.vidbox{position:relative}
+.sound{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2}
+.facts{display:grid;gap:14px;margin-top:28px}
+.fact{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;background:var(--ink3);border:1px solid var(--line);border-radius:12px;padding:16px 20px;position:relative}
+.fact::before,.fact::after{content:"";position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:var(--ink2)}
+.fact::before{left:-9px}.fact::after{right:-9px}
+.fact .big{font:400 44px/1 var(--display);color:var(--mustard);min-width:92px;text-align:center}
+.fact p{margin:0}.fact p b{display:block;font-size:18px}
+.fact p span{color:var(--muted);font-size:15px}
+
+/* ---------- quiz ---------- */
+.quiz{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:48px;align-items:start}
+.scorebar{display:flex;gap:8px;margin-top:22px}
+.scorebar span{flex:1;height:8px;border-radius:4px;background:var(--line)}
+.scorebar span.ok{background:var(--good)}.scorebar span.no{background:var(--red)}.scorebar span.now{background:var(--mustard)}
+.qcard{background:var(--cream);color:var(--ink);border-radius:18px;padding:28px;box-shadow:12px 12px 0 var(--red);position:relative;min-height:420px;display:flex;flex-direction:column}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:12px;font:700 13px var(--mono);letter-spacing:.14em;color:var(--red)}
+.timer{height:6px;background:rgba(18,14,16,.12);border-radius:3px;margin:14px 0 18px;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--red);transform-origin:left}
+.qtext{font:600 24px/1.3 var(--body);margin:0 0 18px;text-wrap:balance}
+.qtext.emoji{font-size:64px;line-height:1.1;text-align:center;letter-spacing:.08em}
+.qtext.dialog{font-style:italic}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+.opt{font:700 16px var(--body);text-align:left;padding:14px 14px;border-radius:10px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:background .15s,transform .1s}
+.opt:hover:not(:disabled){background:rgba(242,179,61,.35)}
+.opt:active:not(:disabled){transform:scale(.98)}
+.opt.right{background:var(--good);border-color:var(--good)}
+.opt.wrong{background:var(--red);border-color:var(--red);color:var(--red-ink)}
+.opt:disabled{cursor:default}
+.reveal{margin-top:14px;font-size:15px;min-height:46px;color:#3d2f28}
+.reveal b{color:var(--ink)}
+.next{margin-top:10px;align-self:flex-end}
+.next[hidden]{display:none}
+.result{text-align:center;margin:auto 0}
+.result .s{font:400 110px/1 var(--display);color:var(--red)}
+.result p{max-width:34ch;margin:10px auto 22px}
+
+/* ---------- timeline ---------- */
+.runsheet{margin-top:40px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.slot{background:var(--ink3);border:1px solid var(--line);border-radius:12px;padding:16px 14px;text-align:left;color:var(--cream);font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:border-color .2s,transform .2s,background .2s}
+.slot:hover{transform:translateY(-3px)}
+.slot[aria-pressed="true"]{border-color:var(--mustard);background:#2f2416}
+.slot .t{font:700 13px var(--mono);letter-spacing:.1em;color:var(--mustard)}
+.slot .n{font:400 22px/1 var(--display);letter-spacing:.02em}
+.slotinfo{margin-top:18px;background:var(--ink3);border-left:4px solid var(--mustard);border-radius:8px;padding:18px 22px;min-height:84px}
+.slotinfo b{font:400 26px var(--display);letter-spacing:.02em;display:block;margin-bottom:4px}
+.slotinfo p{margin:0;color:#D9CBB8;max-width:70ch}
+
+/* ---------- why ---------- */
+.why{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:40px}
+.why article{border-top:3px solid var(--red);padding-top:18px}
+.why h3{font:400 28px/1.05 var(--display);letter-spacing:.02em;margin:0 0 10px;text-wrap:balance}
+.why p{margin:0;color:#D9CBB8;font-size:16px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:48px}
+.col{background:var(--ink3);border:1px solid var(--line);border-radius:16px;padding:26px 28px}
+.col h3{font:400 30px var(--display);letter-spacing:.02em;margin:0 0 12px}
+.col ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.col li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px}
+.col li::before{content:"✦";color:var(--mustard)}
+.col.you li::before{content:"●";color:var(--red);font-size:12px;padding-top:4px}
+
+/* ---------- gallery ---------- */
+.gal{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;margin-top:40px;align-items:end}
+.gal figure{margin:0}
+.gal .phone{width:100%;border-radius:24px;padding:7px}
+.gal .phone video{border-radius:18px}
+.gal img{width:100%;display:block;border-radius:8px;box-shadow:0 20px 40px rgba(0,0,0,.5);transition:transform .25s}
+.gal img:hover{transform:rotate(-1.5deg) scale(1.03)}
+.gal figcaption{font-size:14px;color:var(--muted);margin-top:10px}
+.tap{position:absolute;inset:7px;border-radius:18px;border:0;background:linear-gradient(0deg,rgba(0,0,0,.55),transparent 40%);color:#fff;font:700 14px var(--body);display:flex;align-items:flex-end;justify-content:center;padding-bottom:16px;cursor:pointer}
+.tap[hidden]{display:none}
+
+/* ---------- planner ---------- */
+.planner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:48px;align-items:center}
+.days{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.day{font:400 26px var(--display);letter-spacing:.03em;padding:14px 22px;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--cream);cursor:pointer;min-width:96px}
+.day small{display:block;font:700 12px var(--mono);letter-spacing:.1em;color:var(--muted)}
+.day[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard);color:var(--mustard-ink)}
+.day[aria-pressed="true"] small{color:var(--mustard-ink)}
+.mini{position:relative;aspect-ratio:4/5;max-width:420px;width:100%;margin-inline:auto;background:#7A0F12;border-radius:6px;padding:22px;box-shadow:0 30px 60px rgba(0,0,0,.55);overflow:hidden}
+.mini::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 12px,rgba(255,255,255,.05) 26px,rgba(0,0,0,.28) 48px)}
+.ticket{position:relative;height:100%;background:#F4ECD9;color:#141414;border-radius:6px;padding:20px;display:flex;flex-direction:column;transform:rotate(-1.2deg)}
+.ticket::after{content:"";position:absolute;inset:8px;border:2px solid #B3201A;border-radius:4px;pointer-events:none}
+.ticket .k{font:700 11px var(--mono);letter-spacing:.18em;color:#B3201A}
+.ticket .t1{font:400 clamp(40px,8vw,58px)/.9 var(--display);margin-top:8px}
+.ticket .t2{font:400 clamp(26px,5vw,34px)/1 var(--display);color:#B3201A}
+.ticket .at{margin-top:10px;font:700 15px var(--body)}
+.ticket .stamp{position:absolute;right:22px;top:46%;transform:rotate(9deg);border:3px solid #B3201A;color:#B3201A;border-radius:6px;padding:4px 10px;text-align:center;font:400 18px var(--display);letter-spacing:.04em;background:rgba(244,236,217,.9)}
+.ticket .stamp .mal{display:block;font-size:14px}
+.ticket .ph{flex:1;min-height:0;margin-top:10px;background:url(/orb/media/still.jpg) center 35%/cover;border:3px solid #141414}
+.ticket .when{margin-top:10px;border-top:3px dashed rgba(20,20,20,.5);padding-top:14px}
+.ticket .when .d{font:400 clamp(38px,7vw,52px)/.95 var(--display);transition:opacity .2s}
+.ticket .when .tm{font:400 26px var(--display);color:#B3201A}
+.ticket .when .v{font:700 14px var(--body);margin-top:6px}
+.ticket .brand{font-size:18px;margin-top:8px;color:#5b4a36}
+
+/* ---------- deal ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:40px;counter-reset:s}
+.step{background:var(--ink3);border:1px solid var(--line);border-radius:16px;padding:24px;counter-increment:s}
+.step::before{content:counter(s,decimal-leading-zero);font:400 46px var(--display);color:var(--red);display:block;line-height:1}
+.step h3{font:700 20px var(--body);margin:12px 0 6px}
+.step p{margin:0;color:#D9CBB8;font-size:16px}
+.final{text-align:center;padding-block:96px 72px}
+.final h2{font-size:clamp(48px,9vw,112px)}
+.final .cta{justify-content:center}
+.sign{margin-top:44px;color:var(--muted)}
+.sign .brand{font-size:30px;color:var(--cream);display:block}
+
+
+/* ---------- answer sheet ---------- */
+:root{--pen:#1F3FA0;--paper-ink:#6b5a48}
+.sheetwrap{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:48px;align-items:start;margin-top:40px}
+.rules{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:10px}
+.rules li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:10px}
+.rules li b.n{font:400 24px/1 var(--display);color:var(--red)}
+.rules li span{color:#D9CBB8;font-size:16px}.rules li span strong{display:block;color:var(--cream);font-size:17px}
+.maxscore{margin-top:26px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.maxscore .big{font:400 64px/1 var(--display);color:var(--mustard)}
+.maxscore span:last-child{color:var(--muted);max-width:26ch}
+.rtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.rtab{font:700 14px var(--mono);min-height:44px;padding:8px 14px;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--cream);cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px}
+.rtab small{font:600 11px var(--body);color:var(--muted);letter-spacing:.04em}
+.rtab[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard);color:var(--mustard-ink)}
+.rtab[aria-pressed="true"] small{color:var(--mustard-ink)}
+.paper{position:relative;background:var(--cream);color:var(--ink);border-radius:6px;padding:28px 30px 22px;box-shadow:0 30px 60px rgba(0,0,0,.5)}
+.paper::before{content:"";position:absolute;inset:8px;border:2px solid rgba(210,54,42,.55);border-radius:3px;pointer-events:none}
+.paper>*{position:relative}
+.sh-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sh-head .brand{font-size:24px;color:var(--ink)}
+.sh-head .kind{font:700 12px var(--mono);letter-spacing:.2em;color:var(--red)}
+.sh-fields{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:16px;margin-top:16px}
+.sh-fields label{font:700 11px var(--mono);letter-spacing:.16em;color:var(--paper-ink);display:block}
+.hand{font:400 22px var(--brand);color:var(--pen);background:transparent;border:0;border-bottom:1.5px solid rgba(18,14,16,.35);width:100%;padding:2px 2px;border-radius:0;min-width:0}
+.hand::placeholder{color:rgba(18,14,16,.32)}
+.hand:focus{outline:none;border-bottom-color:var(--red)}
+.sh-round{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-top:22px;padding-top:14px;border-top:3px double rgba(18,14,16,.4)}
+.sh-round b{font:400 28px var(--display);letter-spacing:.02em}
+.sh-round span{font:700 13px var(--mono);color:var(--red)}
+.sh-lines{display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--rows,8),auto);grid-template-columns:1fr 1fr;gap:0 28px;margin-top:6px}
+.sh-line{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:end;min-height:44px}
+.sh-line span{font:700 14px var(--mono);color:var(--paper-ink);padding-bottom:6px}
+.sh-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;font:700 12px var(--mono);letter-spacing:.08em;color:var(--paper-ink)}
+.note{color:var(--muted);font-size:14px;margin:14px 0 0}
+
+/* ---------- crossword ---------- */
+.cw{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;margin-top:40px;align-items:start}
+.cw-main{--cell:clamp(18px,calc((100vw - 36px - 2px*(var(--cols) - 1))/var(--cols)),34px);min-width:0;max-width:100%}
+.cw-bar{background:var(--ink3);border-left:4px solid var(--mustard);border-radius:8px;padding:12px 16px;min-height:64px;margin-bottom:14px;font-size:15px;line-height:1.4;color:#D9CBB8}
+.cw-bar b{color:var(--mustard);font:700 13px var(--mono);letter-spacing:.1em;display:block;margin-bottom:2px}
+.cw-scroll{overflow-x:auto;max-width:100%;padding:2px}
+.cw-grid{display:grid;grid-template-columns:repeat(var(--cols),var(--cell));grid-auto-rows:var(--cell);gap:2px;width:max-content}
+.cw-c{position:relative;background:var(--cream);border-radius:3px}
+.cw-x{background:transparent}
+.cw-c input{width:100%;height:100%;border:0;background:transparent;text-align:center;font:400 calc(var(--cell)*.66) var(--display);text-transform:uppercase;color:var(--ink);padding:0;margin:0;caret-color:transparent;border-radius:3px;cursor:pointer}
+.cw-c input:focus{outline:none}
+.cw-c input:focus-visible{outline:3px solid var(--red);outline-offset:-2px}
+.cw-c.hl{background:#F6DFA8}
+.cw-c.act{background:var(--mustard)}
+.cw-n{position:absolute;left:2px;top:0;font:700 calc(var(--cell)*.3)/1.1 var(--body);color:#5b4a36;pointer-events:none}
+.cw-c.bad input{color:var(--red)}
+.cw-c.rev input{color:#8a5a00}
+.cw-grid.done .cw-c{background:var(--good)}
+.cw-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.cw-tools .btn{font-size:14px;padding:10px 16px;min-height:44px}
+.cw-msg{margin:12px 0 0;min-height:24px;color:var(--muted);font-size:15px}
+.cw-clues{display:grid;grid-template-columns:1fr 1fr;gap:24px;min-width:0}
+.cw-clues h3{font:400 28px var(--display);letter-spacing:.02em;margin:0 0 10px;color:var(--mustard)}
+.cw-clues ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cw-clues button{width:100%;text-align:left;min-height:44px;padding:8px 10px;border:0;border-left:3px solid transparent;border-radius:6px;background:transparent;color:#D9CBB8;font:15px/1.4 var(--body);cursor:pointer}
+.cw-clues button b{color:var(--mustard);font-family:var(--mono);margin-right:6px}
+.cw-clues button i{font-style:normal;color:var(--muted);white-space:nowrap}
+.cw-clues button:hover{background:var(--ink3)}
+.cw-clues button[aria-current="true"]{background:var(--ink3);border-left-color:var(--mustard);color:var(--cream)}
+@media (max-width:900px){
+  .sheetwrap,.cw{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  .sh-lines{grid-auto-flow:row;grid-template-rows:none;grid-template-columns:1fr}
+  .cw-clues{grid-template-columns:1fr}
+  .paper{padding:24px 20px 20px}
+}
+
+
+/* ---------- good to know ---------- */
+.faq{display:grid;gap:10px;margin-top:36px;max-width:860px}
+.faq details{background:var(--ink3);border:1px solid var(--line);border-radius:12px}
+.faq summary{list-style:none;cursor:pointer;padding:14px 20px;font:700 18px var(--body);display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:52px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font:400 30px/1 var(--display);color:var(--mustard);flex:none}
+.faq details[open] summary::after{content:"\2212"}
+.faq details p{margin:0;padding:0 20px 18px;color:#D9CBB8;max-width:68ch}
+.reach{margin-top:26px;display:grid;gap:6px;justify-items:center;color:var(--muted);font-size:16px}
+.reach a{color:var(--cream)}
+
+.rv{opacity:1;transform:none;transition:opacity .7s,transform .7s}
+.js .rv.pre{opacity:0;transform:translateY(26px)}
+
+.fs{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:50;font:700 14px var(--body);padding:11px 16px;border-radius:999px;border:2px solid var(--cream);background:rgba(18,14,16,.85);color:var(--cream);cursor:pointer;backdrop-filter:blur(6px)}
+.fs:hover{background:var(--mustard);border-color:var(--mustard);color:var(--mustard-ink)}
+@media (max-width:900px){
+  .hero .wrap,.proof,.quiz,.planner{grid-template-columns:1fr}
+  .hero::after{background:linear-gradient(0deg,var(--ink) 10%,rgba(18,14,16,.75))}
+  .runsheet{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .why{grid-template-columns:1fr 1fr}
+  .gal{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .split,.steps{grid-template-columns:1fr}
+  .stub{right:4px}
+  section{padding-block:64px}
+}
+@media (max-width:520px){
+  .why{grid-template-columns:1fr}
+  .opts{grid-template-columns:1fr}
+  .qtext.emoji{font-size:52px}
+  .runsheet{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv,.js .rv.pre{opacity:1;transform:none;transition:none}
+  .phone .live i{animation:none}
+  .timer i{transition:none!important}
+}
+</style>
+</head>
+<body>
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div style="grid-column:1/-1" class="top">
+      <span class="brand">It's ഓളം Company</span>
+      <span class="for">A PITCH FOR THE ORB RESTOBAR · IRUMPANAM</span>
+    </div>
+    <div>
+      <span class="eyebrow">Weeknights, sorted</span>
+      <h1>MOLLYWOOD<span class="l2">QUIZ NIGHT</span><span class="l3">LIVE AT <b>THE ORB</b></span></h1>
+      <span class="tag-ml">ക്വിസ് നൈറ്റ്</span>
+      <p class="lede">A pub quiz on Malayalam cinema. Teams of up to 6, five rounds, one winning table, about two hours of noise. We bring the whole show. Your bar does what it does best.</p>
+      <div class="cta">
+        <a class="btn fill" href="#play">▶ Play a round</a>
+        <a class="btn" href="#watch">Watch a real night</a>
+      </div>
+    </div>
+    <div style="position:relative">
+      <div class="phone">
+        <video id="heroVid" src="/orb/media/hero.mp4" poster="/orb/media/hero.jpg" autoplay muted loop playsinline preload="auto"></video>
+        <span class="live"><i></i>LIVE · ECLIPSE</span>
+        <span class="chip" id="chip">PENS DOWN 📝</span>
+      </div>
+      <div class="stub">ADMIT ONE TEAM<b>THE ORB</b>TRIAL NIGHT</div>
+    </div>
+  </div>
+</header>
+
+<!-- PROOF -->
+<section id="watch" class="band">
+  <div class="wrap proof">
+    <div class="vidbox">
+      <div class="phone">
+        <video id="nightVid" src="/orb/media/night.mp4" poster="/orb/media/night.jpg" playsinline loop muted preload="metadata"></video>
+      </div>
+      <button class="btn gold sound" type="button" data-sound="nightVid">🔊 Play with sound</button>
+    </div>
+    <div class="rv">
+      <span class="eyebrow">Real footage. Real crowd.</span>
+      <h2>This is a Wednesday at <em>Eclipse</em>.</h2>
+      <p class="lede">Every clip on this page is from our nights at Eclipse Restobar, Pookattupady. Phones down, pens out, tables arguing over a 1989 Sreenivasan film.</p>
+      <div class="facts">
+        <div class="fact"><span class="big">7 OCT</span><p><b>Opening night was a full house</b><span>Weekly Mollywood quiz nights at Eclipse Restobar since.</span></p></div>
+        <div class="fact"><span class="big">5</span><p><b>Rounds, built to get harder</b><span>Emojis, songs, dialogues, terribly explained plots, jackpot.</span></p></div>
+        <div class="fact"><span class="big">HYD</span><p><b>Started with Bollywood quiz nights</b><span>Hosted at Zindagi Sky Bar, Hyderabad, before coming home to Kochi.</span></p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section id="play">
+  <div class="wrap quiz">
+    <div class="rv">
+      <span class="eyebrow">Don't take our word for it</span>
+      <h2>Play a round.<br><em>Right now.</em></h2>
+      <p class="lede">Four real questions from our nights, one from each kind of round. 20 seconds each, like the real thing. Your guests get forty of these, with a mic, a screen and a scoreboard.</p>
+      <div class="scorebar" id="scorebar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <p class="lede" id="scoretxt" style="margin-top:10px;font-size:15px">Score: 0 / 4</p>
+    </div>
+    <div class="qcard" id="qcard" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- RUN OF SHOW -->
+<section class="band">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">Run of show</span>
+      <h2>How the night <em>runs</em></h2>
+      <p class="lede">Tap any slot. Doors to winners in about two and a half hours, finished before your DJ needs the room.</p>
+    </div>
+    <div class="runsheet" id="runsheet" role="group" aria-label="Run of show"></div>
+    <div class="slotinfo" id="slotinfo"></div>
+  </div>
+</section>
+
+
+<!-- ANSWER SHEET -->
+<section id="sheet">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">On every table</span>
+      <h2>One sheet <em>per team</em></h2>
+    </div>
+    <div class="sheetwrap">
+      <div class="rv">
+        <p class="lede">Five rounds, one sheet. Teams write one answer per line and hand it in at the end of every round. Our house rules fit on one slide.</p>
+        <ul class="rules">
+          <li><b class="n">01</b><span><strong>Phones face down</strong>No Googling. We will know.</span></li>
+          <li><b class="n">02</b><span><strong>One sheet per team</strong>Handed in at the end of every round.</span></li>
+          <li><b class="n">03</b><span><strong>One answer per line</strong>Two answers on one line scores zero.</span></li>
+          <li><b class="n">04</b><span><strong>Blank scores 0</strong>In the later rounds, only a written wrong answer loses points.</span></li>
+          <li><b class="n">05</b><span><strong>Spelling is fine</strong>Manglish counts if we can tell what you meant.</span></li>
+          <li><b class="n">06</b><span><strong>The quizmaster's word is final</strong>Arguments welcome.</span></li>
+        </ul>
+        <div class="maxscore"><span class="big">1,100</span><span>top score across the five rounds</span></div>
+      </div>
+      <div class="rv">
+        <div class="rtabs" id="rtabs" role="group" aria-label="Choose a round"></div>
+        <div class="paper">
+          <div class="sh-head"><span class="brand">It's ഓളം Company</span><span class="kind">ANSWER SHEET</span></div>
+          <div class="sh-fields">
+            <label for="fTeam">TEAM<input id="fTeam" class="hand" type="text" maxlength="40" placeholder="Your team name" autocomplete="off"></label>
+            <label for="fTable">TABLE<input id="fTable" class="hand" type="text" inputmode="numeric" maxlength="3" autocomplete="off"></label>
+          </div>
+          <div class="sh-round"><b id="rName"></b><span id="rScore"></span></div>
+          <div class="sh-lines" id="shLines"></div>
+          <div class="sh-foot"><span>ONE ANSWER PER LINE</span><span id="rMax"></span></div>
+        </div>
+        <p class="note">Round 1 starts with three answers filled in as an example. Tap any line to write your own.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CROSSWORD -->
+<section id="cross" class="band">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">A taste of the answers</span>
+      <h2>A Mollywood <em>crossword</em></h2>
+      <p class="lede">Every word is a real answer from our Round 1 on the Eclipse nights. Tap a square and type. Stuck? Check your squares or reveal a word.</p>
+    </div>
+    <div class="cw">
+      <div class="cw-main" id="cwMain">
+        <div class="cw-bar" id="cwBar" aria-live="polite"></div>
+        <div class="cw-scroll"><div class="cw-grid" id="cwGrid"></div></div>
+        <div class="cw-tools">
+          <button class="btn gold" type="button" id="cwCheck">Check</button>
+          <button class="btn" type="button" id="cwWord">Reveal word</button>
+          <button class="btn" type="button" id="cwAll">Reveal all</button>
+          <button class="btn" type="button" id="cwClear">Clear</button>
+        </div>
+        <p class="cw-msg" id="cwMsg" role="status"></p>
+      </div>
+      <div class="cw-clues">
+        <div><h3>Across</h3><ul id="cwAcross"></ul></div>
+        <div><h3>Down</h3><ul id="cwDown"></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section>
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">Why The Orb</span>
+      <h2>Your slow nights, <em>full of teams</em></h2>
+    </div>
+    <div class="why">
+      <article class="rv"><h3>Fills Monday to Wednesday</h3><p>Groups of friends need a reason to go out on a weeknight. A quiz with a winner is a reason.</p></article>
+      <article class="rv"><h3>Hands the room to your DJ</h3><p>We finish by about 10. Your DJ starts with a room that is already full and already loud.</p></article>
+    </div>
+    <div class="split">
+      <div class="col rv"><h3>We bring</h3><ul>
+        <li>Questions, slides, answer sheets and scoring</li>
+        <li>A live quizmaster on the mic, start to finish</li>
+        <li>Posters we design, and ads and reels we edit, to promote the night</li>
+        <li>Online listing and bookings</li>
+        <li>Setup and pack-down, no staff needed from you</li>
+      </ul></div>
+      <div class="col you rv"><h3>The Orb brings</h3><ul>
+        <li>A screen or TV for the questions</li>
+        <li>A mic and speaker</li>
+        <li>Tables for the teams</li>
+        <li>A prize for the winners, if you like (a pitcher, a cocktail round)</li>
+        <li>Help spreading the word: share our posters and reels on your pages, and send us clips and photos from your venue</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="band">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">Promotion, included</span>
+      <h2>We make the <em>noise</em> too</h2>
+      <p class="lede">Posters we designed and videos we edited for our nights at Eclipse. Yours would say The Orb.</p>
+    </div>
+    <div class="gal">
+      <figure class="rv"><div class="phone" style="position:relative"><video id="g1" src="/orb/media/reel.mp4" poster="/orb/media/reel.jpg" playsinline preload="none"></video><button class="tap" type="button" data-play="g1">▶ Tap to play</button></div><figcaption>Promo reel, edited by us</figcaption></figure>
+      <figure class="rv"><div class="phone" style="position:relative"><video id="g2" src="/orb/media/ad.mp4" poster="/orb/media/ad.jpg" playsinline preload="none"></video><button class="tap" type="button" data-play="g2">▶ Tap to play</button></div><figcaption>Event ad, edited by us</figcaption></figure>
+      <figure class="rv"><img src="/orb/media/p1.jpg" alt="Friday Release cinema-ticket poster" loading="lazy"><figcaption>"Friday Release" poster, designed by us</figcaption></figure>
+      <figure class="rv"><img src="/orb/media/p2.jpg" alt="VHS-style poster" loading="lazy"><figcaption>VHS edition poster, designed by us</figcaption></figure>
+      <figure class="rv"><img src="/orb/media/p3.jpg" alt="Week 3 success poster" loading="lazy"><figcaption>"Week 3" poster, designed by us</figcaption></figure>
+    </div>
+    <p class="lede rv" style="margin-top:32px">No film crew needed. We design the posters and edit the videos. Send us clips from your venue and we'll cut them into ads and reels for your night. We're just starting out, so your help sharing them matters.</p>
+  </div>
+</section>
+
+<!-- PLANNER -->
+<section id="night">
+  <div class="wrap planner">
+    <div class="rv">
+      <span class="eyebrow">Pick a night</span>
+      <h2>Your poster, <em>ready to go</em></h2>
+      <p class="lede">Choose a weeknight and see the poster for your first quiz at The Orb.</p>
+      <div class="days" id="days" role="group" aria-label="Choose a night"></div>
+    </div>
+    <div class="mini" aria-label="Poster preview">
+      <div class="ticket">
+        <span class="k">QUIZ TALKIES · KOCHI</span>
+        <div class="t1">MOLLYWOOD</div>
+        <div class="t2">QUIZ NIGHT</div>
+        <div class="at">at The Orb Restobar, Irumpanam</div>
+        <div class="ph" role="img" aria-label="Teams at a quiz night"></div>
+        <div class="stamp"><span class="mal">ആദ്യ രാത്രി</span>PREMIERE</div>
+        <div class="when">
+          <span class="k">ADMIT ONE TEAM</span>
+          <div class="d" id="pDate">TUE 3 NOV</div>
+          <div class="tm">7:30 PM</div>
+          <div class="v">Teams of up to 6 · 5 rounds · 1 winning team</div>
+          <div class="brand">It's ഓളം Company</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GOOD TO KNOW -->
+<section id="know" class="band">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">Good to know</span>
+      <h2>The <em>practical</em> bits</h2>
+      <p class="lede">Everything a manager usually asks, in one place.</p>
+    </div>
+    <div class="faq rv">
+      <details open><summary>How long is a night?</summary><p>About two and a half hours. Doors at 7:00 PM, the first round at 7:30, winners at about 9:45. After that the room is yours and your DJ's.</p></details>
+      <details><summary>Which nights?</summary><p>Weeknights, Monday to Wednesday. We start with one trial night. If it works, we lock a regular slot.</p></details>
+      <details><summary>How does the quiz work?</summary><p>Teams of up to 6, five rounds and 65 questions: Emoji Pictionary (15), Name the Movie (15), Dialogue Decoder (10), Terribly Explained Plots (15) and the Jackpot Round (10). Each team gets one answer sheet and hands it in at the end of every round. The top score is 1,100.</p></details>
+      <details><summary>Do guests need to know Malayalam?</summary><p>They need to love Malayalam films. It's all Malayalam cinema, from old classics to recent releases. Spelling doesn't matter and Manglish counts, so nobody has to write in Malayalam script.</p></details>
+      <details><summary>What do you need from The Orb?</summary><p>A screen or TV for the questions, a mic and a speaker, and tables for the teams. A prize for the winners is a nice extra. We'll check the screen, mic and seating with you before the first night.</p></details>
+      <details><summary>What do you take care of?</summary><p>Everything else: the questions, slides, answer sheets and scoring, a live quizmaster on the mic, the posters and edited videos, the online listing and bookings, and setup and pack-down. You don't need to put any staff on it.</p></details>
+      <details><summary>How do guests book?</summary><p>We list the night online and handle the bookings. You don't take reservations for it.</p></details>
+      <details><summary>Can The Orb help with promotion?</summary><p>Yes, and it would help a lot, because we're just starting out. Share our posters and reels on your pages and screens, and send us clips and photos from your venue. We'll edit them into ads and reels for your night.</p></details>
+      <details><summary>What happens after the trial night?</summary><p>You see the crowd for yourself. If it works for The Orb, we lock a regular slot and agree on a simple revenue share.</p></details>
+      <details><summary>Who do I talk to?</summary><p>James J K, founder and quizmaster. Call or message +91 70853 88330, email itsolamco@gmail.com, or find us on Instagram at @itsolamco.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- DEAL -->
+<section>
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">Next steps</span>
+      <h2>Start with <em>one night</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step rv"><h3>Pick the night</h3><p>Monday, Tuesday or Wednesday. We'll check your screen, mic and seating ahead of time.</p></div>
+      <div class="step rv"><h3>Run a trial night</h3><p>We promote it, list it, host it and run the scoring. You see the crowd for yourself.</p></div>
+      <div class="step rv"><h3>Make it weekly</h3><p>If it works for The Orb, we lock a regular slot and agree on a simple revenue share.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <span class="eyebrow">Deepu, the mic is yours to hand over</span>
+    <h2>Let's fill <em>The Orb</em>.</h2>
+    <div class="cta">
+      <a class="btn fill" href="https://instagram.com/itsolamco" target="_blank" rel="noopener">📸 @itsolamco</a>
+      <a class="btn" href="https://itsolamco.in" target="_blank" rel="noopener">🌐 itsolamco.in</a>
+    </div>
+    <div class="sign"><span class="brand">It's ഓളം Company</span>James J K · Founder &amp; Quizmaster</div>
+    <p class="reach"><a href="tel:+917085388330">+91 70853 88330</a><a href="mailto:itsolamco@gmail.com">itsolamco@gmail.com</a></p>
+  </div>
+</section>
+
+<p class="reach" style="padding-block:8px 48px;font-size:14px">This is a private link for The Orb. It stays open until 12 November 2026.</p>
+<button class="fs" id="fsBtn" type="button" hidden>⛶ Present full screen</button>
+<script>
+document.documentElement.classList.add('js');
+(()=>{const b=document.getElementById('fsBtn'),de=document.documentElement;
+ if(!(de.requestFullscreen||de.webkitRequestFullscreen))return;b.hidden=false;
+ const isFs=()=>document.fullscreenElement||document.webkitFullscreenElement;
+ const upd=()=>{b.textContent=isFs()?'✕ Exit full screen':'⛶ Present full screen'};
+ b.onclick=()=>{try{if(isFs()){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{const p=(de.requestFullscreen||de.webkitRequestFullscreen).call(de);if(p&&p.catch)p.catch(()=>{b.textContent='Use your browser\'s full screen (F11)'})}}catch(e){b.textContent='Use your browser\'s full screen (F11)'}};
+ document.addEventListener('fullscreenchange',upd);document.addEventListener('webkitfullscreenchange',upd);})();
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* hero chips */
+const chips=['PENS DOWN 📝','NO GOOGLING 👀','JACKPOT ROUND 🎯','TEAM HUDDLE 🤝','WINNERS 🏆'];
+let ci=0;setInterval(()=>{const c=$('chip');c.style.opacity=0;setTimeout(()=>{ci=(ci+1)%chips.length;c.textContent=chips[ci];c.style.opacity=1},300)},2200);
+const hv=$('heroVid');hv.play&&hv.play().catch(()=>{});
+
+/* sound + gallery play */
+document.querySelectorAll('[data-sound]').forEach(b=>b.addEventListener('click',()=>{
+  const v=$(b.dataset.sound);
+  if(v.paused||v.muted){v.muted=false;v.currentTime=v.paused?0:v.currentTime;v.play().catch(()=>{});b.textContent='🔇 Mute'}
+  else{v.muted=true;b.textContent='🔊 Play with sound'}
+}));
+document.querySelectorAll('[data-play]').forEach(b=>b.addEventListener('click',()=>{
+  const v=$(b.dataset.play);document.querySelectorAll('.gal video').forEach(o=>{if(o!==v)o.pause()});
+  v.controls=true;v.play().catch(()=>{});b.hidden=true;
+}));
+/* autoplay the proof video muted when visible */
+const nv=$('nightVid');
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){nv.play().catch(()=>{})}else nv.pause()}),{threshold:.4}).observe(nv);
+
+/* reveal */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('pre');io.unobserve(e.target)}}),{threshold:.12});
+if(!reduce)document.querySelectorAll('.rv').forEach(el=>{const r=el.getBoundingClientRect();if(r.top>innerHeight){el.classList.add('pre');io.observe(el)}});
+
+/* quiz */
+const Q=[
+ {r:'ROUND 1 · EMOJI PICTIONARY',type:'emoji',q:'⬆️🧭',o:['Kilukkam','Vadakkunokkiyantram','Sandesham','Thalayanamanthram'],a:1,ex:'Vadakku = north, nokki = looking, yantram = machine. A compass. Sreenivasan as Thalathil Dinesan (1989).'},
+ {r:'ROUND 3 · DIALOGUE DECODER',type:'dialog',q:'“Purappettu, purappettu… purappettittu ara manikkooraayi.”',o:['Ramji Rao Speaking','In Harihar Nagar','Mannar Mathai Speaking','Kabooliwala'],a:2,ex:'Mannar Mathai Speaking (1995), the sequel to Ramji Rao Speaking.'},
+ {r:'ROUND 4 · TERRIBLY EXPLAINED PLOTS',type:'plot',q:'Randu chunk bros, Dubai dream-il oru boat kayari. Gulf aanennu paranju irakkiyathu Madras beach-il. Next career: CID. Training? Zero.',o:['Pattanapravesham','Gandhinagar 2nd Street','Akkare Akkare Akkare','Nadodikkattu'],a:3,ex:'Nadodikkattu (1987). Dasan and Vijayan, still waiting for their Gulf.'},
+ {r:'ROUND 5 · JACKPOT',type:'plot',q:'Which 1982 Navodaya film was the first Malayalam film shot in 70mm?',o:['My Dear Kuttichathan','Padayottam','Thacholi Ambu','Chemmeen'],a:1,ex:'Padayottam (1982). Kuttichathan came two years later, as India’s first 3D film.'}
+];
+let qi=0,score=0,res=[],tmr=null;
+function bars(){[...$('scorebar').children].forEach((s,i)=>{s.className=res[i]===true?'ok':res[i]===false?'no':i===qi?'now':''});$('scoretxt').textContent=`Score: ${score} / 4`}
+function renderQ(){
+  clearTimeout(tmr);const c=$('qcard');bars();
+  if(qi>=Q.length){
+    const msg=score===4?'Full marks. That table is drinking free cocktails.':score>=2?'Respectable. Your team would be in the top half.':'Tough crowd. That’s exactly why people come back next week.';
+    c.innerHTML=`<div class="result"><div class="qhead" style="justify-content:center">FINAL SCORE</div><div class="s">${score}/4</div><p>${msg}</p><button class="btn fill" type="button" id="again">Play again</button></div>`;
+    $('again').onclick=()=>{qi=0;score=0;res=[];renderQ()};return}
+  const q=Q[qi];
+  c.innerHTML=`<div class="qhead"><span>${q.r}</span><span>Q${qi+1}/4</span></div><div class="timer"><i id="tbar"></i></div>
+  <p class="qtext ${q.type}">${q.q}</p><div class="opts">${q.o.map((o,i)=>`<button class="opt" type="button" data-i="${i}">${o}</button>`).join('')}</div>
+  <div class="reveal" id="rev"></div><button class="btn fill next" type="button" id="nx" hidden>${qi<3?'Next question →':'See score →'}</button>`;
+  const tb=$('tbar');
+  if(!reduce){tb.style.transition='none';tb.style.transform='scaleX(1)';requestAnimationFrame(()=>requestAnimationFrame(()=>{tb.style.transition='transform 20s linear';tb.style.transform='scaleX(0)'}))}
+  tmr=setTimeout(()=>answer(-1),20000);
+  c.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(+b.dataset.i));
+}
+function answer(i){
+  clearTimeout(tmr);const q=Q[qi],c=$('qcard');
+  const tb=$('tbar');if(tb){const m=getComputedStyle(tb).transform;tb.style.transition='none';tb.style.transform=m}
+  c.querySelectorAll('.opt').forEach((b,k)=>{b.disabled=true;if(k===q.a)b.classList.add('right');else if(k===i)b.classList.add('wrong')});
+  const ok=i===q.a;if(ok)score++;res[qi]=ok;
+  $('rev').innerHTML=(i===-1?'<b>Time’s up!</b> ':ok?'<b>Correct!</b> ':'<b>Not quite.</b> ')+q.ex;
+  const nx=$('nx');nx.hidden=false;nx.onclick=()=>{qi++;renderQ()};nx.focus({preventScroll:true});
+  bars();
+}
+/* start quiz only when visible, so the timer isn't running off-screen */
+let started=false;
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting&&!started){started=true;renderQ()}}),{threshold:.35}).observe($('qcard'));
+$('qcard').innerHTML='<div class="result"><p>Scroll here to start.</p></div>';
+
+/* run of show */
+const RS=[
+ ['7:00','Doors','Teams check in, find their tables and order their first round. Answer sheets on every table.'],
+ ['7:30','Emojis','Round 1: Emoji Pictionary. Fifteen film titles spelled out in emojis. Easy start, brutal finish.'],
+ ['7:55','Songs','Round 2: Name the Movie. Fifteen song clips on the speakers. Whole tables singing along.'],
+ ['8:25','Dialogues','Round 3: Dialogue Decoder. Iconic lines from Mohanlal to Basil Joseph. Name the film.'],
+ ['8:50','Plots','Round 4: Terribly Explained Plots. Famous films described as badly as possible, in Manglish.'],
+ ['9:20','Jackpot','Round 5: The Jackpot. Deep trivia, big points, and negative marks for wrong answers.'],
+ ['9:45','Winners','Scores, the winning table, photos for Instagram. Then the room is yours and your DJ’s.']
+];
+let rsI=0;
+function renderRS(){
+  $('runsheet').innerHTML=RS.map((s,i)=>`<button type="button" class="slot" aria-pressed="${i===rsI}" data-i="${i}"><span class="t">${s[0]} PM</span><span class="n">${s[1]}</span></button>`).join('');
+  $('slotinfo').innerHTML=`<b>${RS[rsI][0]} PM · ${RS[rsI][1]}</b><p>${RS[rsI][2]}</p>`;
+  $('runsheet').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{rsI=+b.dataset.i;renderRS()});
+}
+renderRS();
+
+/* planner */
+const MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function nextDay(dow){const d=new Date();d.setHours(12,0,0,0);let add=(dow-d.getDay()+7)%7;if(add===0)add=7;d.setDate(d.getDate()+add);return d}
+const DAYS=[['MON',1],['TUE',2],['WED',3]];let dSel=1;
+function renderDays(){
+  $('days').innerHTML=DAYS.map(([n,w],i)=>{const d=nextDay(w);return `<button type="button" class="day" aria-pressed="${i===dSel}" data-i="${i}">${n}<small>${d.getDate()} ${MON[d.getMonth()]}</small></button>`}).join('');
+  const [n,w]=DAYS[dSel],d=nextDay(w),pd=$('pDate');pd.style.opacity=0;
+  setTimeout(()=>{pd.textContent=`${n} ${d.getDate()} ${MON[d.getMonth()]}`;pd.style.opacity=1},150);
+  $('days').querySelectorAll('.day').forEach(b=>b.onclick=()=>{dSel=+b.dataset.i;renderDays()});
+}
+renderDays();
+
+/* answer sheet */
+(()=>{
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ROUNDS=[
+ {name:'Emoji Pictionary',lines:15,right:10,wrong:0},
+ {name:'Name the Movie',lines:15,right:10,wrong:0},
+ {name:'Dialogue Decoder',lines:10,right:20,wrong:-5},
+ {name:'Terribly Explained Plots',lines:15,right:20,wrong:-5},
+ {name:'The Jackpot Round',lines:10,right:30,wrong:-10}
+];
+const vals=ROUNDS.map(()=>({}));
+vals[0]={1:'Vaazha',2:'Aadujeevitham',3:'Forensic'};
+let cur=0;
+function renderSheet(){
+  $('rtabs').innerHTML=ROUNDS.map((r,i)=>`<button type="button" class="rtab" aria-pressed="${i===cur}" data-i="${i}">R${i+1}<small>${r.name}</small></button>`).join('');
+  $('rtabs').querySelectorAll('.rtab').forEach(b=>b.onclick=()=>{cur=+b.dataset.i;renderSheet()});
+  const R=ROUNDS[cur];
+  $('rName').textContent=`Round ${cur+1} · ${R.name}`;
+  $('rScore').textContent=R.wrong<0?`+${R.right} RIGHT · \u2212${-R.wrong} WRONG`:`+${R.right} RIGHT · 0 WRONG`;
+  $('rMax').textContent=`UP TO ${R.lines*R.right} POINTS`;
+  const box=$('shLines');box.style.setProperty('--rows',Math.ceil(R.lines/2));
+  box.innerHTML=Array.from({length:R.lines},(_,k)=>{const n=k+1;return `<label class="sh-line"><span>${n}</span><input class="hand" type="text" data-n="${n}" maxlength="60" autocomplete="off" spellcheck="false" value="${esc(vals[cur][n]||'')}" aria-label="Round ${cur+1}, answer ${n}"></label>`}).join('');
+  const ins=[...box.querySelectorAll('input')];
+  ins.forEach((inp,i)=>{
+    inp.addEventListener('input',()=>{vals[cur][inp.dataset.n]=inp.value});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();(ins[i+1]||inp).focus()}});
+  });
+}
+renderSheet();
+})();
+
+/* crossword */
+(()=>{
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CW={"rows": 16, "cols": 15, "entries": [{"word": "MAZHAVIL", "r": 1, "c": 3, "d": 0, "clue": "Rainbow. First word of Sathyan Anthikad and Jayaram's 1989 'Mazhavil Kavadi'.", "n": 2}, {"word": "THOOVALSPARSHAM", "r": 8, "c": 0, "d": 0, "clue": "Feather touch. Jayaram, Mukesh, Suresh Gopi and a baby, 1990.", "n": 8}, {"word": "VAAZHA", "r": 11, "c": 0, "d": 0, "clue": "Plantain, what parents call a useless son. Vipin Das's 2024 film is 'Biopic of a Billion Boys'.", "n": 9}, {"word": "AMMAKILIKOODU", "r": 13, "c": 2, "d": 0, "clue": "Mother, bird, nest. Prithviraj and Navya Nair, 2003.", "n": 10}, {"word": "FORENSIC", "r": 15, "c": 4, "d": 0, "clue": "Tovino Thomas's 2020 crime thriller, with Mamta Mohandas.", "n": 11}, {"word": "KISHKINDHA", "r": 0, "c": 12, "d": 1, "clue": "The monkey kingdom of the Ramayana. First word of a 2024 Asif Ali film.", "n": 1}, {"word": "AADUJEEVITHAM", "r": 1, "c": 4, "d": 1, "clue": "The Goat Life (2024). Prithviraj plays Najeeb, stranded in the Saudi desert.", "n": 3}, {"word": "BHOOTHAM", "r": 1, "c": 14, "d": 1, "clue": "Ghost. Mammootty's 2009 film about one in the city: 'Pattanathil ____'.", "n": 4}, {"word": "CHANDROLSAVAM", "r": 2, "c": 2, "d": 1, "clue": "'A moon festival'. Mohanlal and Ranjith, 2005.", "n": 5}, {"word": "MOOKILLA", "r": 3, "c": 6, "d": 1, "clue": "Noseless. First word of a 1991 film set in the country of the noseless.", "n": 6}, {"word": "THURUPPUGULAN", "r": 3, "c": 8, "d": 1, "clue": "The trump jack in a card game. Mammootty, 2006.", "n": 7}]};
+const grid=$('cwGrid');
+$('cwMain').style.setProperty('--cols',CW.cols);
+const cells=new Map();
+CW.entries.forEach((e,id)=>{
+  for(let i=0;i<e.word.length;i++){
+    const r=e.r+(e.d?i:0),c=e.c+(e.d?0:i),k=r+','+c;
+    const cell=cells.get(k)||{r,c,ch:e.word[i],num:0,ent:[-1,-1]};
+    cell.ent[e.d]=id;if(i===0)cell.num=e.n;cells.set(k,cell);
+  }
+});
+let html='';
+for(let r=0;r<CW.rows;r++)for(let c=0;c<CW.cols;c++){
+  const cell=cells.get(r+','+c);
+  if(!cell){html+='<div class="cw-x" aria-hidden="true"></div>';continue}
+  html+=`<div class="cw-c" data-k="${r},${c}">${cell.num?`<span class="cw-n">${cell.num}</span>`:''}<input type="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Row ${r+1}, column ${c+1}"></div>`;
+}
+grid.innerHTML=html;
+cells.forEach((cell,k)=>{cell.el=grid.querySelector(`[data-k="${k}"]`);cell.inp=cell.el.querySelector('input')});
+
+const entCells=id=>{const e=CW.entries[id];return Array.from({length:e.word.length},(_,i)=>cells.get((e.r+(e.d?i:0))+','+(e.c+(e.d?0:i))))};
+let aEnt=0,aCell=null,pref=null;
+const dirName=d=>d?'Down':'Across';
+
+function paint(){
+  cells.forEach(c=>c.el.classList.remove('hl','act'));
+  entCells(aEnt).forEach(c=>c.el.classList.add('hl'));
+  if(aCell)aCell.el.classList.add('act');
+  const e=CW.entries[aEnt];
+  $('cwBar').innerHTML=`<b>${e.n} ${dirName(e.d).toUpperCase()} · ${e.word.length} LETTERS</b>${esc(e.clue)}`;
+  document.querySelectorAll('.cw-clues button').forEach(b=>b.setAttribute('aria-current',String(+b.dataset.id===aEnt)));
+}
+function activate(cell){
+  const want=pref!==null?pref:CW.entries[aEnt].d;
+  aEnt=cell.ent[want]>=0?cell.ent[want]:(cell.ent[0]>=0?cell.ent[0]:cell.ent[1]);
+  aCell=cell;pref=null;paint();
+}
+function focusCell(cell,d){pref=d===undefined?null:d;cell.inp.focus();cell.inp.select()}
+function firstOpen(id){const l=entCells(id);return l.find(c=>!c.inp.value)||l[0]}
+
+cells.forEach(cell=>{
+  const inp=cell.inp;
+  inp.addEventListener('focus',()=>{activate(cell);setTimeout(()=>{try{inp.select()}catch(e){}},0)});
+  cell.el.addEventListener('click',()=>{
+    if(aCell===cell&&cell.ent[0]>=0&&cell.ent[1]>=0){pref=CW.entries[aEnt].d?0:1;activate(cell)}
+  });
+  inp.addEventListener('input',()=>{
+    const raw=inp.value.toUpperCase().replace(/[^A-Z]/g,'');
+    cell.el.classList.remove('bad','rev');
+    if(raw.length>2){
+      /* several letters at once (a paste or a keyboard suggestion): spread them along the word */
+      const l=entCells(aEnt);let i=l.indexOf(cell),last=cell;
+      inp.value='';
+      for(const ch of raw){if(!l[i])break;l[i].inp.value=ch;l[i].el.classList.remove('bad','rev');last=l[i];i++}
+      focusCell(l[i]||last);solved();return;
+    }
+    const v=raw.slice(-1);
+    inp.value=v;
+    if(v){const l=entCells(aEnt),i=l.indexOf(cell);if(l[i+1])focusCell(l[i+1])}
+    solved();
+  });
+  inp.addEventListener('keydown',e=>{
+    const k=e.key;
+    if(k==='Backspace'&&!inp.value){
+      const l=entCells(aEnt),i=l.indexOf(cell);
+      if(i>0){e.preventDefault();l[i-1].inp.value='';l[i-1].el.classList.remove('bad','rev');focusCell(l[i-1])}
+    }else if(k.startsWith('Arrow')){
+      e.preventDefault();
+      const dr=k==='ArrowDown'?1:k==='ArrowUp'?-1:0,dc=k==='ArrowRight'?1:k==='ArrowLeft'?-1:0;
+      const nx=cells.get((cell.r+dr)+','+(cell.c+dc));
+      if(nx)focusCell(nx,dr?1:0);
+    }else if(k==='Tab'){
+      const n=CW.entries.length,id=(aEnt+(e.shiftKey?-1:1)+n)%n;
+      if(!(e.shiftKey&&aEnt===0)&&!(!e.shiftKey&&aEnt===n-1)){e.preventDefault();focusCell(firstOpen(id),CW.entries[id].d)}
+    }
+  });
+});
+
+function clueList(d){
+  $(d?'cwDown':'cwAcross').innerHTML=CW.entries.map((e,id)=>e.d===d?`<li><button type="button" data-id="${id}"><b>${e.n}</b>${esc(e.clue)} <i>(${e.word.length})</i></button></li>`:'').join('');
+}
+clueList(0);clueList(1);
+document.querySelectorAll('.cw-clues button').forEach(b=>b.onclick=()=>{const id=+b.dataset.id;focusCell(firstOpen(id),CW.entries[id].d)});
+
+function msg(t){$('cwMsg').textContent=t}
+function solved(){
+  let all=true,any=false;
+  cells.forEach(c=>{if(c.inp.value)any=true;if(c.inp.value!==c.ch)all=false});
+  grid.classList.toggle('done',all);
+  if(all)msg(`Solved. All ${CW.entries.length} words, every one a real answer from our nights.`);
+  return all;
+}
+$('cwCheck').onclick=()=>{
+  let bad=0,filled=0;
+  cells.forEach(c=>{c.el.classList.remove('bad');if(c.inp.value){filled++;if(c.inp.value!==c.ch){c.el.classList.add('bad');bad++}}});
+  msg(!filled?'Type a few letters first.':bad?`${bad} ${bad===1?'square is':'squares are'} wrong. They're in red.`:'Every square you filled is right so far.');
+};
+$('cwWord').onclick=()=>{entCells(aEnt).forEach(c=>{c.inp.value=c.ch;c.el.classList.remove('bad');c.el.classList.add('rev')});msg(`${CW.entries[aEnt].word[0]}${CW.entries[aEnt].word.slice(1).toLowerCase()} revealed.`);solved()};
+$('cwAll').onclick=()=>{cells.forEach(c=>{c.inp.value=c.ch;c.el.classList.remove('bad');c.el.classList.add('rev')});solved();msg('All words revealed.')};
+$('cwClear').onclick=()=>{cells.forEach(c=>{c.inp.value='';c.el.classList.remove('bad','rev')});grid.classList.remove('done');msg('Cleared. Fresh grid.')};
+paint();
+})();
+
+</script>
+</body>
+</html>
