@@ -157,3 +157,124 @@ model NightInvite {
 
   @@unique([eventId, email])
 }
+
+// ---------------------------------------------------------------------------
+// Live quiz: questions built on the site, run on the projector, buzzed on phones.
+// ---------------------------------------------------------------------------
+
+model LiveQuiz {
+  id             String        @id @default(cuid())
+  title          String
+  tiebreakPrompt String?
+  tiebreakAnswer String? // a number (for example a year): the closest guess wins
+  createdAt      DateTime      @default(now())
+  rounds         LiveRound[]
+  sessions       LiveSession[]
+}
+
+model LiveRound {
+  id           String         @id @default(cuid())
+  quizId       String
+  quiz         LiveQuiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  order        Int
+  name         String
+  blurb        String         @default("")
+  rightPoints  Int
+  wrongPenalty Int            @default(0) // points lost for a wrong answer or a skip; 0 means no negatives
+  placeDecay   Boolean        @default(false) // later places score less (only used when there is no penalty)
+  questions    LiveQuestion[]
+
+  @@unique([quizId, order])
+}
+
+model LiveQuestion {
+  id       String    @id @default(cuid())
+  roundId  String
+  round    LiveRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  order    Int
+  kind     String    @default("text") // text | emoji | audio
+  prompt   String
+  hint     String?
+  answer   String
+  note     String?
+  audioUrl String?
+
+  @@unique([roundId, order])
+}
+
+// One run of a quiz night.
+model LiveSession {
+  id               String           @id @default(cuid())
+  quizId           String
+  quiz             LiveQuiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  code             String           @unique
+  phase            String           @default("lobby") // lobby | roundIntro | question | reveal | celebrate | roundResults | tiebreak | tiebreakReveal | winners
+  roundIdx         Int              @default(0)
+  pos              Int              @default(0)
+  version          Int              @default(0) // goes up on every change, so screens only fetch when something happened
+  questionOpenedAt DateTime?
+  phaseUntil       DateTime? // when a timed phase (the celebration, the answer) moves on by itself
+  hideFromRound    Int              @default(4) // results from this round number onwards stay hidden until the winners slide
+  lastTeamId       String? // the team shown in the celebration
+  lastPoints       Int?
+  tiedTeamIds      String? // comma separated, for the tie-breaker
+  status           String           @default("active") // active | finished
+  createdAt        DateTime         @default(now())
+  teams            LiveTeam[]
+  buzzes           LiveBuzz[]
+  events           LiveScoreEvent[]
+  guesses          LiveGuess[]
+}
+
+model LiveTeam {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name      String
+  tokenHash String // the one phone that holds this team's buzzer
+  joinedAt  DateTime    @default(now())
+
+  @@unique([sessionId, name])
+  @@unique([sessionId, tokenHash])
+}
+
+model LiveBuzz {
+  id         Int         @id @default(autoincrement())
+  sessionId  String
+  session    LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId String
+  teamId     String
+  buzzedAt   DateTime    @default(now())
+  outcome    String      @default("pending") // pending | correct | wrong | skipped
+
+  @@unique([sessionId, questionId, teamId]) // one team, one buzz per question
+  @@index([sessionId, questionId])
+}
+
+// Every change to a team's score. The leaderboard is the sum of these.
+model LiveScoreEvent {
+  id         Int         @id @default(autoincrement())
+  sessionId  String
+  session    LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  teamId     String
+  questionId String?
+  roundIdx   Int
+  buzzId     Int?
+  points     Int
+  kind       String // correct | wrong | skipped | tiebreak
+  createdAt  DateTime    @default(now())
+  undoneAt   DateTime?
+
+  @@index([sessionId])
+}
+
+model LiveGuess {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  teamId    String
+  value     Int
+  createdAt DateTime    @default(now())
+
+  @@unique([sessionId, teamId])
+}

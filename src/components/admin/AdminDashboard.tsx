@@ -1278,6 +1278,12 @@ export default function AdminDashboard({
         }}
       />
       <div className="flex gap-2 mb-8 border-b-2 border-[#1C1712] flex-wrap">
+        <a
+          href="/admin/live"
+          className="font-mono text-[11px] tracking-[0.15em] uppercase px-4 py-3 border-b-2 -mb-[2px] border-transparent text-[#B8451D] hover:underline flex items-center"
+        >
+          Live quiz →
+        </a>
         {tabs.map((t) => (
           <button
             key={t.key}

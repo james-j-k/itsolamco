@@ -1,0 +1,574 @@
+{
+ "title": "Mollywood Quiz Night: Oct 14",
+ "rounds": [
+  {
+   "name": "Emoji Pictionary",
+   "blurb": "15 sets of emojis, each spelling out a Malayalam film title. Read it, decode it, name the film. Starts easy. Ends brutal.",
+   "rightPoints": 10,
+   "wrongPenalty": 0,
+   "placeDecay": true,
+   "questions": [
+    {
+     "kind": "emoji",
+     "prompt": "🍌🌱👦👦👦",
+     "hint": null,
+     "answer": "Vaazha",
+     "note": "Vaazha = plantain: parents' word for useless sons. Vaazha: Biopic of a Billion Boys, written by Vipin Das (2024).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🐐🏜️",
+     "hint": null,
+     "answer": "Aadujeevitham",
+     "note": "The Goat Life. Prithviraj as Najeeb, stranded in the Saudi desert (2024).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🧑‍🔬🧫🧪🧬🔬",
+     "hint": null,
+     "answer": "Forensic",
+     "note": "Tovino Thomas's Malayalam crime thriller, with Mamta Mohandas (2020).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🏙️👻",
+     "hint": null,
+     "answer": "Pattanathil Bhootham",
+     "note": "A ghost in the city. Mammootty (2009).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🐒📜",
+     "hint": null,
+     "answer": "Kishkindha Kaandam",
+     "note": "Kishkindha, the monkey kingdom of the Ramayana. Asif Ali, Vijayaraghavan (2024).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🌙🎉",
+     "hint": null,
+     "answer": "Chandrolsavam",
+     "note": "Chandran + utsavam = a moon festival. Mohanlal, Ranjith (2005).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🔵💡",
+     "hint": null,
+     "answer": "Neelavelicham",
+     "note": "Neela = blue, velicham = light. Aashiq Abu's remake of Basheer's Bhargavi Nilayam; Tovino Thomas, Rima Kallingal (2023).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "⬆️🧭",
+     "hint": null,
+     "answer": "Vadakkunokkiyantram",
+     "note": "Vadakku = north, nokki = looking, yantram = machine: a compass. Sreenivasan as Thalathil Dinesan (1989).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🃏♠️🤴",
+     "hint": null,
+     "answer": "Thuruppugulan",
+     "note": "Thuruppu = trump, gulan = jack: the trump jack in a card game. Mammootty (2006).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "👩🐦🪺",
+     "hint": null,
+     "answer": "Ammakilikoodu",
+     "note": "Amma = mother, kili = bird, koodu = nest. Prithviraj, Navya Nair (2003).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🌧️🥁",
+     "hint": null,
+     "answer": "Mazha Peyyunnu Maddalam Kottunnu",
+     "note": "It rains, the maddalam drums. Priyadarshan, Mohanlal and Sreenivasan (1986).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🌈🦚",
+     "hint": null,
+     "answer": "Mazhavil Kavadi",
+     "note": "Mazhavil = rainbow; the kavadi is the peacock-feather offering carried at Palani. Sathyan Anthikad, Jayaram (1989).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "👁️✏️🔴",
+     "hint": null,
+     "answer": "Kannezhuthi Pottum Thottu",
+     "note": "Lined eyes and a pottu on the forehead. Manju Warrier (1999).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🪶✋",
+     "hint": null,
+     "answer": "Thoovalsparsham",
+     "note": "Thooval = feather, sparsham = touch. Jayaram, Mukesh, Suresh Gopi and a baby (1990).",
+     "audioUrl": null
+    },
+    {
+     "kind": "emoji",
+     "prompt": "🚫👃👑",
+     "hint": null,
+     "answer": "Mookilla Rajyathu",
+     "note": "Mookilla = noseless, rajyam = kingdom: in the country of the noseless. Four asylum escapees; Thilakan, Mukesh, Jagathy (1991).",
+     "audioUrl": null
+    }
+   ]
+  },
+  {
+   "name": "Name the Movie",
+   "blurb": "15 songs, and they get harder. We play a clip, you name the film it's from. Movie name, not the song name.",
+   "rightPoints": 10,
+   "wrongPenalty": 0,
+   "placeDecay": true,
+   "questions": [
+    {
+     "kind": "audio",
+     "prompt": "SONG 01",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Christian Brothers",
+     "note": "Song: “Mizhikalil Naanam”. Released 2011.",
+     "audioUrl": "/quiz-audio/oct14/q01.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 02",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Casanovva",
+     "note": "Song: “Hey Manohara”. Released 2012.",
+     "audioUrl": "/quiz-audio/oct14/q02.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 03",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Ben Johnson",
+     "note": "Song: “Sona Sona”. Released 2005.",
+     "audioUrl": "/quiz-audio/oct14/q03.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 04",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Kakkakuyil",
+     "note": "Song: “Alare Govinda”. Released 2001.",
+     "audioUrl": "/quiz-audio/oct14/q04.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 05",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Tournament",
+     "note": "Song: “Manassin Muriyude”. Released 2010.",
+     "audioUrl": "/quiz-audio/oct14/q05.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 06",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Black",
+     "note": "Song: “Ambalakkara”. Released 2004.",
+     "audioUrl": "/quiz-audio/oct14/q06.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 07",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Niram",
+     "note": "Song: “Prayam Nammil”. Released 1999.",
+     "audioUrl": "/quiz-audio/oct14/q07.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 08",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Sahasam",
+     "note": "Song: “Onam Mood”. Released 2025.",
+     "audioUrl": "/quiz-audio/oct14/q08.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 09",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Aanandam",
+     "note": "Song: “Rathivilasam”. Released 2016.",
+     "audioUrl": "/quiz-audio/oct14/q09.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 10",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Adi Kapyaare Kootamani",
+     "note": "Song: “Ullasa Gaayike”. Released 2015.",
+     "audioUrl": "/quiz-audio/oct14/q10.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 11",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Pokkiri Raja",
+     "note": "Song: “Kettille Kettille”. Released 2010.",
+     "audioUrl": "/quiz-audio/oct14/q11.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 12",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Aadu 2",
+     "note": "Song: “Changaathi Nannayaal”. Released 2017.",
+     "audioUrl": "/quiz-audio/oct14/q12.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 13",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Seniors",
+     "note": "Song: “Ithiri Chakkara Nulli ”. Released 2011.",
+     "audioUrl": "/quiz-audio/oct14/q13.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 14",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Mallu Singh",
+     "note": "Song: “Rab Rab Rab”. Released 2012.",
+     "audioUrl": "/quiz-audio/oct14/q14.mp3"
+    },
+    {
+     "kind": "audio",
+     "prompt": "SONG 15",
+     "hint": "Listen. Which movie is this from?",
+     "answer": "Kayamkulam Kochunni",
+     "note": "Song: “Nrithageethikal”. Released 2018.",
+     "audioUrl": "/quiz-audio/oct14/q15.mp3"
+    }
+   ]
+  },
+  {
+   "name": "Dialogue Decoder",
+   "blurb": "We show you a legendary dialogue. You tell us which film it's from. A wrong answer costs you 5.",
+   "rightPoints": 20,
+   "wrongPenalty": 5,
+   "placeDecay": false,
+   "questions": [
+    {
+     "kind": "text",
+     "prompt": "“Velakkaari aayirunnaalum neeyen mohavalli.”",
+     "hint": null,
+     "answer": "Meleparambil Aanveedu",
+     "note": "1993 · Jagathy Sreekumar as Jayakrishnan",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Maybe we are poor, coolies, trolley-pullers… but we are not beggars!”",
+     "hint": null,
+     "answer": "Angadi",
+     "note": "1980 · Jayan as Babu",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Purappettu, purappettu… purappettittu ara manikkooraayi. Kurachu koode nerathe purappedaarunnille?”",
+     "hint": null,
+     "answer": "Mannar Mathai Speaking",
+     "note": "1995 · Innocent as Mannar Mathai, asking after his drama troupe",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Amme poomukhathekk one black tea.”",
+     "hint": null,
+     "answer": "Thanthonni",
+     "note": "2010 · Suraj Venjaramoodu as Achu",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Ithalla, ithinappuram chaadikkadannavanaanee K.K. Joseph!”",
+     "hint": null,
+     "answer": "Vietnam Colony",
+     "note": "1992 · Innocent as K.K. Joseph",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Chetta, kurachu choridatte?”",
+     "hint": null,
+     "answer": "Kalyanaraman",
+     "note": "2002 · Innocent as Ponjikkara Keshavan",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Ippo sariyaakki tharaam.”",
+     "hint": null,
+     "answer": "Vellanakalude Nadu",
+     "note": "1988 · Kuthiravattam Pappu as Sulaiman",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Ente Nabeesoonte kalyanam nadannillenkil njan ivide mayyathaakum!”",
+     "hint": null,
+     "answer": "Ramji Rao Speaking",
+     "note": "1989 · Mamukkoya as Hamsakoya",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“It's not a konacha plan.”",
+     "hint": null,
+     "answer": "Sookshmadarshini",
+     "note": "2024 · Basil Joseph and Siddharth Bharathan",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "“Enikkariyaan paadilla saare… 'Kurachu choru tharuvo chechi' ennu paranju ivide vannirunnathaa.”",
+     "hint": null,
+     "answer": "Action Hero Biju",
+     "note": "2016 · Suraj Venjaramoodu as Pavithran, in the police station scene",
+     "audioUrl": null
+    }
+   ]
+  },
+  {
+   "name": "Terribly Explained Plots",
+   "blurb": "We explain a Malayalam film's plot. Badly. In English and Manglish, mixed. You name the film. A wrong answer costs you 5.",
+   "rightPoints": 20,
+   "wrongPenalty": 5,
+   "placeDecay": false,
+   "questions": [
+    {
+     "kind": "text",
+     "prompt": "Seven unemployed boys, oru Bengaluru veedu. Decisions ellam edukkunnathu a board game aanu. The board has opinions, chilappo attitude-um.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Romancham",
+     "note": "2023 · The Ouija board comedy-horror. Jithu Madhavan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Abroad pokaan plan cheythu, visa kittiyilla. So he 'studies' in another city. Syllabus: oru IT company-ile penkutty. Result: pending.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Premalu",
+     "note": "2024 · Naslen as Sachin, Mamitha Baiju as Reenu.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "New bride, old tharavadu. Ellaarum paranju 'that room thurakkaruthu.' She did. Ippo raathri dance practice-um, oru foreign-returned doctor-inu overtime-um.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Manichitrathazhu",
+     "note": "1993 · Shobana as Ganga, Mohanlal as Dr. Sunny.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Randu chunk bros, Dubai dream-il oru boat kayari. Gulf aanennu paranju irakkiyathu Madras beach-il. Next career: CID. Training? Zero. Confidence? Full.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Nadodikkattu",
+     "note": "1987 · Dasan and Vijayan, dropped in Madras by Gafoorka.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Oru veedu, randu party office. Makkal randum full-time neta, part-time useless. Dinner table daily oru assembly session. Achan: 'Njan ini evide poyi irikkum?'",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Sandesham",
+     "note": "1991 · Prabhakaran and Prakashan, rival parties. Sreenivasan, Jayaram, Thilakan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Tharavaattil oru rule: pennungal NO ENTRY. Pakshe oru makan already secret aayi family set aakki. Opposite veettukaarumaayi decades-old feud. Grandpa-kku BP, audience-inu chiri.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Godfather",
+     "note": "1991 · Anjooran vs Aanappara Achamma; Swaminathan's secret wife. Siddique–Lal.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Colony-il pudhiya penkutty vannu. Naalu velayilla payyanmar instantly line-il. Avarkku kittiyathu: penkutty alla, oru briefcase full cash, free gift aayi oru killer-um.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "In Harihar Nagar",
+     "note": "1990 · Mahadevan, Govindan Kutty, Appukuttan, Thomas Kutty, and John Honai.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Bus yathra. Oru thaali maala kaanaathaayi, suspect athu breakfast aakki. Ippo full police station toilet-inte munnil waiting, X-ray-yum ready. Bonus twist: kallanum bharthaavinum same peru.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Thondimuthalum Driksakshiyum",
+     "note": "2017 · Fahadh Faasil as the thief who calls himself Prasad. Dileesh Pothan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Thrissur-ile oru chettan: naattil full decent, town-il full 'ishtaa'. Oruthi-ye kalyanam kazhikkanam, mattoruthi-ye marakkaan pattunnilla. Aval varunnathu letter-ilum, pinne mazhayude koode. Weather app venda, aval undallo.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Thoovanathumbikal",
+     "note": "1987 · Jayakrishnan, Radha and Clara. Padmarajan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Kalyanam kazhinju. Venam: kurachu privacy, oru biscuit business. Kittiyathu: government office-il file move aakunnilla, veettil aalkaarude count kurayunnilla. Honeymoon? Next year nokkaam.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Mithunam",
+     "note": "1993 · Sethumadhavan and Dakshayani Biscuits. Priyadarshan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Malayalam sir. Mudi already retirement eduthu. Pennukaanal series: full flop. Finally oru set aayi, appo comment box-il naattukaar full review ezhuthi.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Thamaasha",
+     "note": "2019 · Vinay Forrt as Srinivasan, the balding Malayalam professor. Chinnu Chandni as Chinnu.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Ex-kallan, ippo full decent. Oru auto-ne dodge cheyyan mathil chaadi, landed straight into MLA-yude 2 patti-kalude mouth-il. Police: 'kallan thanne.' Avan: 'Real prathi road-ile kuzhi aanu, your honour.'",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Nna Thaan Case Kodu",
+     "note": "2022 · Kunchacko Boban as Kozhummal Rajeevan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Achan: 'Ente makan naattil thanne venam.' Makan: 'Sheri, ente replacement ayakkaam.' Replacement-inu charging venam, choru venda, pakshe achanu ippo athaanu favourite son.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Android Kunjappan Version 5.25",
+     "note": "2019 · Suraj Venjaramoodu as Bhaskaran Poduval, Soubin Shahir as his son Chuppan.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Ezhu kollam Gulf-il pani. Naattil vannu oru 'safe investment' vaangi, on wheels. Driver accident, conductor kattu, union strike. Investment-um poyi, avanum thirichu Gulf-ilekku. Moral: paisa bank-il ittaal mathi.",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Varavelpu",
+     "note": "1989 · Mohanlal as Murali. Sathyan Anthikad.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Club manager oru foreign player-ine import cheythu. Player-inte kaalu poyi. Refund illa, so veettil kondu poyi. Umma avane second son aakki, choru-um koduthu. Passport chodichappo: 'athu… oru kadha aanu.'",
+     "hint": "THE PLOT, BADLY EXPLAINED",
+     "answer": "Sudani from Nigeria",
+     "note": "2018 · Zakariya Mohammed. Soubin Shahir as Majeed, sevens football manager; Samuel Abiola Robinson as Samuel.",
+     "audioUrl": null
+    }
+   ]
+  },
+  {
+   "name": "The Jackpot Round",
+   "blurb": "Ten questions on everything Mollywood. The biggest points of the night, and the biggest risk.",
+   "rightPoints": 30,
+   "wrongPenalty": 10,
+   "placeDecay": false,
+   "questions": [
+    {
+     "kind": "text",
+     "prompt": "Mohanlal's first film on screen: he played the villain, Narendran. Name the film.",
+     "hint": null,
+     "answer": "Manjil Virinja Pookkal",
+     "note": "1980, directed by Fazil.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Priyadarshan's Hindi film Hungama (2003) is a remake of which of his own Malayalam films?",
+     "hint": null,
+     "answer": "Poochakkoru Mookkuthi",
+     "note": "1984.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Fahadh Faasil debuted in 2002 in a film directed by his father, Fazil. Name it.",
+     "hint": null,
+     "answer": "Kaiyethum Doorath",
+     "note": "He was credited as Shanu, and returned to films in 2009.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Composer Sushin Shyam is a founding member of which Kerala folk-metal band?",
+     "hint": null,
+     "answer": "The Down Troddence",
+     "note": "He scored Kumbalangi Nights, Varathan, Aavesham and Manjummel Boys.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Which 1965 film was the first South Indian film to win the National Award for Best Feature Film?",
+     "hint": null,
+     "answer": "Chemmeen",
+     "note": "Directed by Ramu Kariat, from Thakazhi's novel.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Who wrote the screenplays of Thaniyavarthanam, Kireedam and Bharatham?",
+     "hint": null,
+     "answer": "A.K. Lohithadas",
+     "note": "Thaniyavarthanam (1987) was his first screenplay.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Who directed Elippathayam (1981)?",
+     "hint": null,
+     "answer": "Adoor Gopalakrishnan",
+     "note": "It won the BFI's Sutherland Trophy.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "For which film did Meera Jasmine win the National Award for Best Actress?",
+     "hint": null,
+     "answer": "Paadam Onnu: Oru Vilapam",
+     "note": "Directed by T.V. Chandran (2003).",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Which 1982 Navodaya film was the first Malayalam film shot in 70mm?",
+     "hint": null,
+     "answer": "Padayottam",
+     "note": "Mammootty, Mohanlal and Prem Nazir.",
+     "audioUrl": null
+    },
+    {
+     "kind": "text",
+     "prompt": "Which 1961 film was the first Malayalam film shot in colour?",
+     "hint": null,
+     "answer": "Kandam Becha Kottu",
+     "note": "Directed by T.R. Sundaram.",
+     "audioUrl": null
+    }
+   ]
+  }
+ ],
+ "tiebreak": {
+  "prompt": "Neelakuyil, the first Malayalam film to win a National Award (a President's silver medal), released in which year?",
+  "answer": "1954"
+ }
+}
