@@ -23,8 +23,16 @@ const quizInclude = {
 };
 type FullQuiz = Prisma.LiveQuizGetPayload<{ include: typeof quizInclude }>;
 
-function loadQuiz(db: Tx, quizId: string): Promise<FullQuiz> {
-  return db.liveQuiz.findUniqueOrThrow({ where: { id: quizId }, include: quizInclude });
+// A quiz never changes after it is imported (a new import is a new quiz), so each server instance reads it once
+// instead of on every poll.
+const quizCache = new Map<string, FullQuiz>();
+
+async function loadQuiz(db: Tx, quizId: string): Promise<FullQuiz> {
+  const hit = quizCache.get(quizId);
+  if (hit) return hit;
+  const quiz = await db.liveQuiz.findUniqueOrThrow({ where: { id: quizId }, include: quizInclude });
+  quizCache.set(quizId, quiz);
+  return quiz;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +64,18 @@ export async function sessionIdForCode(code: string): Promise<string | null> {
 export async function currentVersion(sessionId: string): Promise<number | null> {
   const s = await prisma.liveSession.findUnique({ where: { id: sessionId }, select: { version: true } });
   return s?.version ?? null;
+}
+
+// What a poll needs to know, in ONE query: is there anything new? It also moves a timed phase on once its time is up.
+export async function pollHead(where: { id: string } | { code: string }): Promise<{ id: string; version: number } | null> {
+  const select = { id: true, version: true, phase: true, phaseUntil: true } as const;
+  const key = "code" in where ? { code: where.code.trim().toUpperCase() } : where;
+  let s = await prisma.liveSession.findUnique({ where: key, select });
+  if (s && s.phaseUntil && s.phaseUntil.getTime() <= Date.now() && (s.phase === "celebrate" || s.phase === "reveal")) {
+    await tick(s.id);
+    s = await prisma.liveSession.findUnique({ where: key, select });
+  }
+  return s ? { id: s.id, version: s.version } : null;
 }
 
 // Timed phases (the celebration, the revealed answer) move on by themselves.
@@ -145,7 +165,7 @@ async function authTeam(db: Tx, code: string, teamId: string, token: string) {
 }
 
 export async function buzz(code: string, teamId: string, token: string): Promise<Done<{ place: number }> | Fail> {
-  await tick((await sessionIdForCode(code)) ?? "");
+  await pollHead({ code });
   return prisma.$transaction(async (tx) => {
     const auth = await authTeam(tx, code, teamId, token);
     if (!auth) return fail("This phone isn't part of the quiz. Rejoin with your team name.", 403);
@@ -341,14 +361,14 @@ async function loadSnapshot(sessionId: string) {
   const s = await prisma.liveSession.findUnique({ where: { id: sessionId } });
   if (!s) return null;
   const quiz = await loadQuiz(prisma, s.quizId);
-  const teams = await prisma.liveTeam.findMany({ where: { sessionId }, select: { id: true, name: true }, orderBy: { joinedAt: "asc" } });
   const round = quiz.rounds[s.roundIdx] ?? null;
   const question = round?.questions[s.pos] ?? null;
   const showsQuestion = ["question", "reveal", "celebrate"].includes(s.phase);
-  const buzzes = question && showsQuestion
-    ? await prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: { id: "asc" } })
-    : [];
-  const totals = await totalsByTeam(prisma, sessionId);
+  const [teams, buzzes, totals] = await Promise.all([
+    prisma.liveTeam.findMany({ where: { sessionId }, select: { id: true, name: true }, orderBy: { joinedAt: "asc" } }),
+    question && showsQuestion ? prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: { id: "asc" } }) : Promise.resolve([]),
+    totalsByTeam(prisma, sessionId),
+  ]);
   return { s, quiz, teams, round, question, buzzes, totals };
 }
 
@@ -375,7 +395,6 @@ function queueOf(snap: NonNullable<Snapshot>, limit: number | null): LiveQueueIt
 }
 
 export async function getLiveState(sessionId: string, view: "host" | "screen"): Promise<LiveState | null> {
-  await tick(sessionId);
   const snap = await loadSnapshot(sessionId);
   if (!snap) return null;
   const { s, quiz, teams, round, question, buzzes, totals } = snap;
@@ -468,14 +487,18 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
 }
 
 export async function getTeamState(code: string, teamId: string, token: string): Promise<LiveTeamState | Fail> {
-  const sessionId = await sessionIdForCode(code);
-  if (!sessionId) return fail("We can't find that night.", 404);
-  await tick(sessionId);
-  const snap = await loadSnapshot(sessionId);
-  if (!snap) return fail("We can't find that night.", 404);
-  const team = await prisma.liveTeam.findFirst({ where: { id: teamId, sessionId, tokenHash: hash(token) } });
+  const s = await prisma.liveSession.findUnique({ where: { code: code.trim().toUpperCase() } });
+  if (!s) return fail("We can't find that night.", 404);
+  const sessionId = s.id;
+  const quiz = await loadQuiz(prisma, s.quizId);
+  const round = quiz.rounds[s.roundIdx] ?? null;
+  const question = round?.questions[s.pos] ?? null;
+  const showsQuestion = ["question", "reveal", "celebrate"].includes(s.phase);
+  const [team, buzzes] = await Promise.all([
+    prisma.liveTeam.findFirst({ where: { id: teamId, sessionId, tokenHash: hash(token) } }),
+    question && showsQuestion ? prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: { id: "asc" } }) : Promise.resolve([]),
+  ]);
   if (!team) return fail("This phone isn't part of the quiz.", 403);
-  const { s, quiz, round, buzzes } = snap;
 
   const idx = buzzes.findIndex((b) => b.teamId === team.id);
   const pendingIdx = buzzes.findIndex((b) => b.outcome === "pending");

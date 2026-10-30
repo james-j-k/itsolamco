@@ -21,13 +21,16 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
     if (!url) return;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let inFlight = false;
     versionRef.current = null;
 
     async function run() {
+      inFlight = true;
       try {
         const known = versionRef.current;
         const sep = url!.includes("?") ? "&" : "?";
-        const res = await fetch(known === null ? url! : `${url}${sep}v=${known}`, { cache: "no-store", headers: headersRef.current });
+        // A request that never answers (weak signal, a phone that slept) must not freeze the screen: give up and ask again.
+        const res = await fetch(known === null ? url! : `${url}${sep}v=${known}`, { cache: "no-store", headers: headersRef.current, signal: AbortSignal.timeout(8000) });
         const data = await res.json().catch(() => ({}));
         if (stopped) return;
         if (!res.ok) {
@@ -47,12 +50,24 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
       } catch {
         if (!stopped) setError({ status: 0, message: "Connection lost. Trying again..." });
       }
+      inFlight = false;
       if (!stopped) timer = setTimeout(run, intervalMs);
     }
     run();
+    // Phones throttle timers when the screen is off or the tab is in the background. Catch up the moment it is back.
+    const wake = () => {
+      if (document.visibilityState === "visible" && !stopped && !inFlight) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(run, 0);
+      }
+    };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
     };
   }, [url, intervalMs, nonce]);
 
