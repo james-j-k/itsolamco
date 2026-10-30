@@ -242,10 +242,10 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
   }, [send]);
 
   // The song plays by itself the moment its question appears, and stops when the question ends.
-  // It pauses while a team is answering (so the room can hear them) and carries on if nobody gets it.
+  // Once a team has buzzed the song carries on, but quietly, so the room can hear the answers.
   const wantAudio = s?.phase === "question" ? (s.question?.audioUrl ?? null) : null;
   const questionId = s?.question?.id ?? null;
-  const someoneAnswering = !!s?.queue.some((q) => q.answering);
+  const ducked = (s?.queue.length ?? 0) > 0;
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -255,13 +255,16 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
         a.src = wantAudio;
         a.currentTime = 0;
       }
-      if (armed && !someoneAnswering) a.play().catch(() => {});
-      else a.pause();
+      if (armed) a.play().catch(() => {});
     } else {
       a.pause();
       delete a.dataset.url;
     }
-  }, [wantAudio, questionId, armed, someoneAnswering]);
+  }, [wantAudio, questionId, armed]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = ducked ? 0.15 : 1;
+  }, [ducked, questionId]);
 
   // Sound effects for what just changed. The first picture after loading is only a starting point.
   const seen = useRef<{ key: string; phase: string; maxBuzz: number; outcomes: Map<number, string>; teams: number } | null>(null);
