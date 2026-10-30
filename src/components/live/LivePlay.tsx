@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { LiveTeamState } from "@/lib/liveTypes";
 import { useLivePoll } from "./liveClient";
+import { sfx, unlockSounds } from "./liveSounds";
 
 // A team's phone: join once, then one big buzzer. The phone remembers its team, so a refresh
 // or a dropped connection puts it straight back. One phone belongs to one team.
@@ -44,6 +45,12 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   const [guess, setGuess] = useState("");
   const [msg, setMsg] = useState("");
   const [pressedOn, setPressedOn] = useState<string | null>(null); // the question this phone has just buzzed on, shown at once
+
+  const myTurn = !!s?.myBuzz?.answering;
+  useEffect(() => {
+    // The phone buzzes in the hand when it is this team's turn to answer.
+    if (myTurn) navigator.vibrate?.([140, 70, 140]);
+  }, [myTurn]);
 
   useEffect(() => {
     // The quizmaster released this phone, or the night is gone: go back to the join form.
@@ -187,6 +194,9 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
             disabled={!enabled || busy}
             onClick={async () => {
               const key = `${s.roundNo}-${s.questionNo}`;
+              unlockSounds();
+              sfx.tap();
+              navigator.vibrate?.(50);
               setPressedOn(key);
               if (!(await post("buzz", { teamId: saved.teamId }))) setPressedOn(null);
             }}

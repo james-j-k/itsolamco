@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import type { LiveQueueItem, LiveState } from "@/lib/liveTypes";
 import { clock, seconds, useLivePoll, useNow } from "./liveClient";
+import { isMuted, setMuted, sfx, unlockSounds } from "./liveSounds";
 
 // The projector page. Drawn on a fixed 1920 x 1080 stage and scaled to fit whatever screen it is shown on,
 // so it looks the same on any projector. Press Space / Enter / the right arrow to move on from a round
@@ -182,6 +183,7 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
   const [armed, setArmed] = useState(false); // a click is needed once, so the browser will let the songs play
   const [scale, setScale] = useState(1);
   const [qr, setQr] = useState("");
+  const [mutedShown, setMutedShown] = useState(false);
   const [joinUrl, setJoinUrl] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const latest = useRef<LiveState | null>(null);
@@ -221,9 +223,15 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "m" || e.key === "M") {
+        setMuted(!isMuted());
+        setMutedShown(isMuted());
+        return;
+      }
       if (![" ", "Enter", "ArrowRight", "PageDown"].includes(e.key)) return;
       e.preventDefault();
       if (!armedRef.current) {
+        unlockSounds();
         setArmed(true);
         return;
       }
@@ -234,8 +242,10 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
   }, [send]);
 
   // The song plays by itself the moment its question appears, and stops when the question ends.
+  // It pauses while a team is answering (so the room can hear them) and carries on if nobody gets it.
   const wantAudio = s?.phase === "question" ? (s.question?.audioUrl ?? null) : null;
   const questionId = s?.question?.id ?? null;
+  const someoneAnswering = !!s?.queue.some((q) => q.answering);
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -245,12 +255,48 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
         a.src = wantAudio;
         a.currentTime = 0;
       }
-      if (armed) a.play().catch(() => {});
+      if (armed && !someoneAnswering) a.play().catch(() => {});
+      else a.pause();
     } else {
       a.pause();
       delete a.dataset.url;
     }
-  }, [wantAudio, questionId, armed]);
+  }, [wantAudio, questionId, armed, someoneAnswering]);
+
+  // Sound effects for what just changed. The first picture after loading is only a starting point.
+  const seen = useRef<{ key: string; phase: string; maxBuzz: number; outcomes: Map<number, string>; teams: number } | null>(null);
+  useEffect(() => {
+    if (!s) return;
+    const key = `${s.roundNo}-${s.questionNo}`;
+    const maxBuzz = s.queue.reduce((m, q) => Math.max(m, q.buzzId), 0);
+    const prev = seen.current;
+    seen.current = { key, phase: s.phase, maxBuzz, outcomes: new Map(s.queue.map((q) => [q.buzzId, q.outcome])), teams: s.teams.length };
+    if (!prev || !armedRef.current) return;
+
+    if (prev.phase !== s.phase) {
+      if (s.phase === "celebrate") sfx.correct();
+      else if (s.phase === "reveal") sfx.nobody();
+      else if (s.phase === "question") {
+        if (s.question?.kind !== "audio") sfx.question();
+      } else if (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal") sfx.whoosh();
+      else if (s.phase === "roundResults") sfx.results();
+      else if (s.phase === "winners") sfx.winners();
+      return;
+    }
+    if (s.phase === "question" && prev.key === key) {
+      if (maxBuzz > prev.maxBuzz) {
+        if (prev.maxBuzz === 0) sfx.buzzFirst();
+        else sfx.buzzOther();
+        return;
+      }
+      for (const q of s.queue) {
+        const before = prev.outcomes.get(q.buzzId);
+        if (before === "pending" && q.outcome === "wrong") return sfx.wrong();
+        if (before === "pending" && q.outcome === "skipped") return sfx.skip();
+      }
+    }
+    if (s.phase === "lobby" && s.teams.length > prev.teams) sfx.join();
+  }, [s]);
 
   const serverNow = now + offset;
   const elapsed = s?.openedAt ? serverNow - s.openedAt : 0;
@@ -451,7 +497,10 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
         {!armed && (
           <button
             type="button"
-            onClick={() => setArmed(true)}
+            onClick={() => {
+              unlockSounds();
+              setArmed(true);
+            }}
             style={{ position: "absolute", inset: 0, border: 0, cursor: "pointer", background: "#120E10", color: C.cream, fontFamily: DISPLAY, fontSize: 120, zIndex: 20 }}
           >
             CLICK TO START
@@ -462,6 +511,11 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
           <div style={{ position: "absolute", left: 104, top: 8, fontFamily: BODY, fontSize: 24, color: C.red, background: C.cream, padding: "4px 16px", borderRadius: 8, zIndex: 15 }}>{error.message}</div>
         )}
       </div>
+      {mutedShown && (
+        <div style={{ position: "absolute", right: 16, bottom: 12, fontFamily: BODY, fontSize: 18, color: C.cream, background: "rgba(0,0,0,.6)", padding: "4px 12px", borderRadius: 8, zIndex: 25 }}>
+          Sound effects off (press M)
+        </div>
+      )}
       <audio ref={audioRef} preload="auto" />
     </div>
   );

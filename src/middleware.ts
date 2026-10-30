@@ -31,6 +31,7 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = pathname === "/admin/login";
   const isAdminApi = pathname.startsWith("/api/admin");
+  const isQuizAudio = pathname.startsWith("/quiz-audio/"); // the song clips: only the logged-in quizmaster's projector can fetch them
   const isLoginApi = pathname === "/api/admin/login";
 
   if (isLoginPage || (isAdminApi && isLoginApi)) {
@@ -41,7 +42,7 @@ export async function middleware(request: NextRequest) {
   const session = token ? await verifySessionToken(token) : null;
 
   if (!session) {
-    if (isAdminApi) {
+    if (isAdminApi || isQuizAudio) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const loginUrl = new URL("/admin/login", request.url);
@@ -52,5 +53,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/orb", "/orb/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/quiz-audio/:path*", "/orb", "/orb/:path*"],
 };
