@@ -34,6 +34,26 @@ export default function LiveAdmin({ quizzes, sessions }: { quizzes: Quiz[]; sess
     }
   }
 
+  async function endNight(id: string) {
+    if (!window.confirm("End this quiz night? The projector goes to the winners screen and no one can buzz any more.")) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch(`/api/admin/live/sessions/${id}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "finish" }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(data.error ?? "Couldn't end the night.");
+        return;
+      }
+      setMsg("Night ended.");
+      router.refresh();
+    } catch {
+      setMsg("Connection lost. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function importQuiz() {
     setBusy(true);
     setMsg("");
@@ -100,6 +120,11 @@ export default function LiveAdmin({ quizzes, sessions }: { quizzes: Quiz[]; sess
             <a className={link} href={`/admin/live/${s.id}/host`} target="_blank" rel="noreferrer">
               Open host pad (phone)
             </a>
+            {s.status !== "finished" && (
+              <button type="button" className="ml-auto text-[#B8451D] font-semibold underline underline-offset-2 disabled:opacity-40" disabled={busy} onClick={() => endNight(s.id)}>
+                End night
+              </button>
+            )}
           </div>
         </div>
       ))}

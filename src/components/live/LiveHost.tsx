@@ -306,6 +306,25 @@ function HostPad({ sessionId }: { sessionId: string }) {
           )}
         </section>
       )}
+
+      {/* Always within reach: stop the night at any point (it goes to the winners screen with the scores so far). */}
+      {s.phase !== "winners" && s.status !== "finished" && (
+        <section style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${C.panel}` }}>
+          {!confirmFinish ? (
+            <Btn disabled={busy} onClick={() => setConfirmFinish(true)}>
+              End the quiz night
+            </Btn>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ color: C.muted, fontSize: 14 }}>This stops the quiz and shows the winners screen with the scores so far.</div>
+              <Btn color={C.red} disabled={busy} onClick={() => act({ type: "finish" })}>
+                Yes, end it now
+              </Btn>
+              <Btn onClick={() => setConfirmFinish(false)}>Cancel</Btn>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
