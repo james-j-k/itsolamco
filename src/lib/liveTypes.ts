@@ -23,6 +23,7 @@ export type LiveState = {
   sessionId: string;
   code: string;
   status: "active" | "finished";
+  slide: "winners" | "ending" | null; // the host has the winners or thank-you slide up: the quiz is paused where it was
   phase: LivePhase;
   quizTitle: string;
   roundNo: number; // 1-based
@@ -86,6 +87,7 @@ export type HostAction =
   | { type: "setCarry"; teamId: string; points: number } // a team's score from rounds played off the system; counts toward the total only
   | { type: "finish" }
   | { type: "reopen" }
+  | { type: "showWinners" }
   | { type: "showEnding" }; // carry on with a night that was ended
 
 export const ANSWER_MS = 15_000; // how long a team has to answer once it is up

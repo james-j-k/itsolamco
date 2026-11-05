@@ -109,7 +109,7 @@ export default function LiveAdmin({ quizzes, sessions }: { quizzes: Quiz[]; sess
             <div>
               <div className="font-bold">{s.quizTitle}</div>
               <div className="text-sm text-[#8C8477]">
-                Code <b className="tracking-widest text-[#1C1712]">{s.code}</b> · {s.teams} teams · {s.status} · {new Date(s.createdAt).toLocaleString("en-IN")}
+                Code <b className="tracking-widest text-[#1C1712]">{s.code}</b> · {s.teams} teams · {s.status.startsWith("finished") ? "finished" : s.status === "active" ? "active" : "on a slide"} · {new Date(s.createdAt).toLocaleString("en-IN")}
               </div>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function LiveAdmin({ quizzes, sessions }: { quizzes: Quiz[]; sess
             <a className={link} href={`/admin/live/${s.id}/host`} target="_blank" rel="noreferrer">
               Open host pad (phone)
             </a>
-            {s.status !== "finished" && (
+            {!s.status.startsWith("finished") && (
               <button type="button" className="ml-auto text-[#B8451D] font-semibold underline underline-offset-2 disabled:opacity-40" disabled={busy} onClick={() => endNight(s.id)}>
                 End night
               </button>

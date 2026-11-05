@@ -123,6 +123,28 @@ function HostPad({ sessionId }: { sessionId: string }) {
       {error && <div style={{ background: C.red, borderRadius: 10, padding: "6px 12px", fontSize: 13, marginBottom: 8 }}>{error.message}</div>}
       {msg && <div style={{ background: C.red, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{msg}</div>}
 
+      {s.phase !== "lobby" && (
+        <section style={{ marginBottom: 12 }}>
+          {s.slide && s.status !== "finished" && (
+            <div style={{ background: C.panel, borderRadius: 12, padding: 12, marginBottom: 8 }}>
+              <div style={{ color: C.amber, fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>{s.slide === "ending" ? "THANK-YOU SLIDE ON SCREEN" : "WINNERS SLIDE ON SCREEN"}</div>
+              <div style={{ color: C.muted, fontSize: 13, margin: "4px 0 10px" }}>The quiz is paused and buzzers are closed. Nothing is lost.</div>
+              <Btn big color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "reopen" })}>
+                Back to the quiz
+              </Btn>
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Btn disabled={busy || s.slide === "winners"} onClick={() => act({ type: "showWinners" })}>
+              Show winners
+            </Btn>
+            <Btn disabled={busy || s.slide === "ending"} onClick={() => act({ type: "showEnding" })}>
+              Show thank-you
+            </Btn>
+          </div>
+        </section>
+      )}
+
       {s.phase !== "lobby" && s.phase !== "winners" && s.phase !== "ending" && (
         <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
           Round {s.roundNo}/{s.roundCount} · {s.roundName}
@@ -295,13 +317,6 @@ function HostPad({ sessionId }: { sessionId: string }) {
       {(s.phase === "winners" || s.phase === "ending") && (
         <section>
           <div style={{ fontFamily: DISPLAY, fontSize: 36, marginBottom: 8 }}>{s.phase === "ending" ? "THANK-YOU SLIDE ON SCREEN" : "WINNERS ON SCREEN"}</div>
-          {s.phase === "winners" && (
-            <div style={{ marginBottom: 8 }}>
-              <Btn color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "showEnding" })}>
-                Show the thank-you slide
-              </Btn>
-            </div>
-          )}
           {!confirmFinish ? (
             <Btn disabled={busy || s.status === "finished"} onClick={() => setConfirmFinish(true)}>
               {s.status === "finished" ? "Night finished" : "End the night"}
@@ -318,7 +333,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
       )}
 
       {/* A way back from every step that has no Undo of its own above. */}
-      {(s.status !== "finished" || s.phase === "ending") && (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal" || s.phase === "winners" || s.phase === "ending") && (
+      {s.slide === null && s.status !== "finished" && (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal" || s.phase === "winners") && (
         <div style={{ marginTop: 12 }}>
           <Btn disabled={busy} onClick={() => act({ type: "undo" })}>
             Undo: go back one step
