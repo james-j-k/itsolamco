@@ -20,7 +20,7 @@ const quizSchema = z.object({
       z.object({
         name: z.string().trim().min(1).max(80),
         blurb: z.string().trim().max(400).optional(),
-        rightPoints: z.number().int().min(1).max(1000),
+        rightPoints: z.number().int().min(0).max(1000), // 0 = a practice round: nothing is scored
         wrongPenalty: z.number().int().min(0).max(1000),
         placeDecay: z.boolean(),
         questions: z.array(questionSchema).min(1).max(100),

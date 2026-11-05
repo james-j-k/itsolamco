@@ -2,7 +2,7 @@
 // tested on their own. "Place" is 0-based: the first team to buzz is place 0.
 
 export type RoundRule = {
-  rightPoints: number; // points for a right answer
+  rightPoints: number; // points for a right answer (0 = a practice round, nothing is scored)
   wrongPenalty: number; // points lost for a wrong answer or a skip (0 = this round has no negatives)
   placeDecay: boolean; // later places score less. Only applies to rounds with no penalty.
 };
@@ -12,7 +12,7 @@ export type RoundRule = {
 // marking pay the same to whichever team gets it right: the penalty already
 // punishes the teams that had a go first.
 export function pointsForRight(rule: RoundRule, place: number): number {
-  if (rule.placeDecay && rule.wrongPenalty === 0 && place > 0) {
+  if (rule.rightPoints > 0 && rule.placeDecay && rule.wrongPenalty === 0 && place > 0) {
     return Math.max(1, Math.round(rule.rightPoints * (1 - 0.1 * place)));
   }
   return rule.rightPoints;

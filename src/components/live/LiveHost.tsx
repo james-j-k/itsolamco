@@ -126,7 +126,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
       {s.phase !== "lobby" && s.phase !== "winners" && s.phase !== "ending" && (
         <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
           Round {s.roundNo}/{s.roundCount} · {s.roundName}
-          {s.phase === "question" || s.phase === "reveal" || s.phase === "celebrate" ? ` · Q${s.questionNo}/${s.questionCount}` : ""} · +{s.rightPoints}
+          {s.phase === "question" || s.phase === "reveal" || s.phase === "celebrate" ? ` · Q${s.questionNo}/${s.questionCount}` : ""} · {s.rightPoints === 0 ? "practice, no points" : `+${s.rightPoints}`}
           {penalty ? ` / −${s.wrongPenalty}` : ""}
         </div>
       )}
@@ -228,7 +228,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
             <>
               <div style={{ color: C.amber, letterSpacing: 2, fontSize: 12, fontWeight: 800 }}>CORRECT</div>
               <div style={{ fontFamily: DISPLAY, fontSize: 34 }}>
-                {s.celebration?.teamName} +{s.celebration?.points}
+                {s.celebration?.teamName}{s.celebration?.points ? ` +${s.celebration.points}` : ""}
               </div>
               <div style={{ color: C.muted }}>Next question coming up...</div>
             </>

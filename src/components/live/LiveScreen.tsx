@@ -67,6 +67,14 @@ function Header({ s }: { s: LiveState }) {
 
 function PointsChips({ s }: { s: LiveState }) {
   const chip = { fontFamily: BODY, fontWeight: 700, fontSize: 28, padding: "8px 20px", borderRadius: 999 } as const;
+  if (s.rightPoints === 0) {
+    return (
+      <div style={{ display: "flex", gap: 14 }}>
+        <span style={{ ...chip, background: C.amber, color: C.bg }}>practice round</span>
+        <span style={{ ...chip, border: `2px solid ${C.muted}`, color: C.muted }}>no points</span>
+      </div>
+    );
+  }
   return (
     <div style={{ display: "flex", gap: 14 }}>
       <span style={{ ...chip, background: C.amber, color: C.bg }}>+{s.rightPoints} right</span>
@@ -392,7 +400,7 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
             <Header s={st} />
             <div style={{ position: "absolute", left: 0, right: 0, top: 210, textAlign: "center", fontFamily: BODY, fontWeight: 800, fontSize: 48, letterSpacing: 10, color: C.amber }}>CORRECT</div>
             <div style={{ position: "absolute", left: 80, right: 80, top: 290, textAlign: "center", fontFamily: DISPLAY, fontSize: 230, lineHeight: 1.05, color: C.cream, animation: "olampop .5s ease-out", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.celebration?.teamName}</div>
-            <div style={{ position: "absolute", left: 0, right: 0, top: 560, textAlign: "center", fontFamily: DISPLAY, fontSize: 260, lineHeight: 1, color: C.green, animation: "olampop .7s .15s ease-out both" }}>+{st.celebration?.points}</div>
+            <div style={{ position: "absolute", left: 0, right: 0, top: 560, textAlign: "center", fontFamily: DISPLAY, fontSize: 260, lineHeight: 1, color: C.green, animation: "olampop .7s .15s ease-out both" }}>{st.celebration?.points ? `+${st.celebration.points}` : "NICE!"}</div>
             <div style={{ position: "absolute", left: 0, right: 0, bottom: 150, textAlign: "center", fontFamily: DISPLAY, fontSize: 80, color: C.amber }}>{st.celebration?.answer}</div>
             {st.celebration?.note && <div style={{ position: "absolute", left: 160, right: 160, bottom: 70, textAlign: "center", fontFamily: BODY, fontSize: 32, color: C.muted }}>{st.celebration.note}</div>}
           </Stage>
