@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { HostAction, LiveState } from "@/lib/liveTypes";
 import { clock, seconds, useLivePoll, useNow } from "./liveClient";
 
@@ -21,6 +21,58 @@ function Btn({ children, onClick, color = C.panel, text = C.cream, disabled, big
   );
 }
 
+// Before the first question: type in what each team already scored in rounds played off the system.
+function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name: string }[]; scores: Map<string, number>; busy: boolean; onSet: (teamId: string, points: number) => Promise<boolean> }) {
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const dropDraft = (id: string) => setDraft((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== id)));
+  // A typed value stays on screen until the server's score catches up, so it never flickers back to the old number.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- drops the typed value once the saved score matches it
+    setDraft((d) => {
+      const keep = Object.entries(d).filter(([id, v]) => Number(v) !== (scores.get(id) ?? 0));
+      return keep.length === Object.keys(d).length ? d : Object.fromEntries(keep);
+    });
+  }, [scores]);
+  function commit(id: string) {
+    const raw = (draft[id] ?? "").trim();
+    const n = Number(raw);
+    if (raw === "" || raw === "-" || !Number.isInteger(n) || n === (scores.get(id) ?? 0)) {
+      dropDraft(id);
+      return;
+    }
+    void onSet(id, n).then((saved) => {
+      if (!saved) dropDraft(id);
+    });
+  }
+  return (
+    <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontWeight: 800, marginBottom: 2 }}>Starting scores</div>
+      <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>Played earlier rounds on paper? Type each team&apos;s score so far. It saves when you tap away, and counts toward the final total.</div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {teams.map((t) => (
+          <label key={t.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ flex: 1, fontWeight: 700, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              aria-label={`${t.name} starting score`}
+              disabled={busy}
+              value={draft[t.id] ?? String(scores.get(t.id) ?? 0)}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => setDraft((d) => ({ ...d, [t.id]: e.target.value.replace(/[^0-9-]/g, "") }))}
+              onBlur={() => commit(t.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              style={{ width: 90, background: C.bg, color: C.amber, border: 0, borderRadius: 10, padding: "10px 12px", fontSize: 20, fontWeight: 800, textAlign: "right" }}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HostPad({ sessionId }: { sessionId: string }) {
   const { state: s, error, offset, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, 700);
   const now = useNow(250);
@@ -29,8 +81,8 @@ function HostPad({ sessionId }: { sessionId: string }) {
   const [showBoard, setShowBoard] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
 
-  async function act(a: HostAction) {
-    if (busy) return;
+  async function act(a: HostAction): Promise<boolean> {
+    if (busy) return false;
     setBusy(true);
     setMsg("");
     try {
@@ -38,8 +90,10 @@ function HostPad({ sessionId }: { sessionId: string }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setMsg(data.error ?? "That didn't work.");
       poke();
+      return res.ok;
     } catch {
       setMsg("Connection lost. Try again.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -55,6 +109,8 @@ function HostPad({ sessionId }: { sessionId: string }) {
   const canSkipQ = s.canSkipQuestion;
   const waitSkip = Math.max(0, Math.ceil((s.skipAfterMs - elapsed) / 1000));
   const penalty = s.wrongPenalty > 0;
+  // Before the first question nothing else has scored, so a team's total is its starting score.
+  const scoreOf = new Map((s.leaderboard ?? []).map((r) => [r.teamId, r.score]));
 
   return (
     <div style={{ minHeight: "100dvh", background: C.bg, color: C.cream, padding: "16px 16px 40px", maxWidth: 560, margin: "0 auto", fontFamily: "var(--font-archivo), Arial, sans-serif" }}>
@@ -87,6 +143,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
               </span>
             ))}
           </div>
+          {s.teams.length > 0 && <StartScores teams={s.teams} scores={scoreOf} busy={busy} onSet={(teamId, points) => act({ type: "setCarry", teamId, points })} />}
           <Btn big color={C.amber} text={C.bg} disabled={busy || s.teams.length === 0} onClick={() => act({ type: "start" })}>
             START THE QUIZ
           </Btn>
@@ -97,6 +154,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
         <section>
           <div style={{ fontFamily: DISPLAY, fontSize: 40, lineHeight: 1.05 }}>{s.roundName}</div>
           <p style={{ color: C.muted, margin: "8px 0 16px" }}>{s.roundBlurb}</p>
+          {s.roundNo === 1 && s.teams.length > 0 && <StartScores teams={s.teams} scores={scoreOf} busy={busy} onSet={(teamId, points) => act({ type: "setCarry", teamId, points })} />}
           <Btn big color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "continue" })}>
             OPEN THE FIRST QUESTION
           </Btn>

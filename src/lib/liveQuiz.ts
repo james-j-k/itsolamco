@@ -341,6 +341,19 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
           return { ok: true };
         }
 
+        case "setCarry": {
+          // Points a team already earned in rounds played off the system. They count toward the total,
+          // but sit outside every round (roundIdx -1) so they never show up in a round's own points.
+          const team = await tx.liveTeam.findFirst({ where: { id: action.teamId, sessionId: s.id } });
+          if (!team) return fail("Team not found", 404);
+          await tx.liveScoreEvent.updateMany({ where: { sessionId: s.id, teamId: team.id, kind: "carry", undoneAt: null }, data: { undoneAt: new Date() } });
+          if (action.points !== 0) {
+            await tx.liveScoreEvent.create({ data: { sessionId: s.id, teamId: team.id, roundIdx: -1, points: action.points, kind: "carry" } });
+          }
+          await bump();
+          return { ok: true };
+        }
+
         case "finish": {
           await bump({ status: "finished", phase: "winners" });
           return { ok: true };

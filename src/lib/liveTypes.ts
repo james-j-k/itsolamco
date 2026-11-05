@@ -83,6 +83,7 @@ export type HostAction =
   | { type: "undo" }
   | { type: "release"; teamId: string }
   | { type: "setHide"; hideFromRound: number }
+  | { type: "setCarry"; teamId: string; points: number } // a team's score from rounds played off the system; counts toward the total only
   | { type: "finish" };
 
 export const SKIP_AFTER_MS = 30_000;
