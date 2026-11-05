@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { LiveTeamState } from "@/lib/liveTypes";
-import { useLivePoll } from "./liveClient";
+import { useLivePoll, useNow } from "./liveClient";
 import { sfx, unlockSounds } from "./liveSounds";
 
 // A team's phone: join once, then one big buzzer. The phone remembers its team, so a refresh
@@ -40,13 +40,15 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: () => void }) {
-  const { state: s, error, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, 700, { "x-team-token": saved.token });
+  const { state: s, error, offset, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, 700, { "x-team-token": saved.token });
   const [busy, setBusy] = useState(false);
   const [guess, setGuess] = useState("");
   const [msg, setMsg] = useState("");
   const [pressedOn, setPressedOn] = useState<string | null>(null); // the question this phone has just buzzed on, shown at once
 
+  const now = useNow(250);
   const myTurn = !!s?.myBuzz?.answering;
+  const turnLeft = myTurn && s?.turnUntil ? Math.max(0, Math.ceil((s.turnUntil - (now + offset)) / 1000)) : null;
   useEffect(() => {
     // The phone buzzes in the hand when it is this team's turn to answer.
     if (myTurn) navigator.vibrate?.([140, 70, 140]);
@@ -104,7 +106,7 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
     if (my) {
       if (my.answering) {
         label = "YOUR TURN";
-        sub = "Shout your answer!";
+        sub = turnLeft !== null ? `Shout your answer! ${turnLeft}s` : "Shout your answer!";
         buttonColor = C.amber;
       } else if (my.outcome === "pending") {
         label = `#${my.place + 1}`;

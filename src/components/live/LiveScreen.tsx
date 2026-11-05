@@ -79,7 +79,8 @@ function PointsChips({ s }: { s: LiveState }) {
   );
 }
 
-function QueueStrip({ s, elapsed }: { s: LiveState; elapsed: number }) {
+function QueueStrip({ s, elapsed, serverNow }: { s: LiveState; elapsed: number; serverNow: number }) {
+  const turnLeft = s.phaseUntil ? Math.max(0, Math.ceil((s.phaseUntil - serverNow) / 1000)) : null; // the team that is answering
   if (s.queue.length === 0) {
     return (
       <div style={{ position: "absolute", left: 104, right: 104, bottom: 56, height: 220, display: "flex", alignItems: "center", gap: 48, background: C.panel, borderRadius: 28, padding: "0 56px" }}>
@@ -121,7 +122,7 @@ function QueueStrip({ s, elapsed }: { s: LiveState; elapsed: number }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span style={{ fontFamily: DISPLAY, fontSize: 72, lineHeight: 1 }}>{q.place + 1}</span>
               <span style={{ fontFamily: BODY, fontWeight: 700, fontSize: 24, letterSpacing: 2, textTransform: "uppercase" }}>
-                {answering ? "answering" : q.outcome === "wrong" ? "wrong" : q.outcome === "skipped" ? "skipped" : q.outcome === "correct" ? "correct" : "next"}
+                {answering ? (turnLeft !== null ? `answering · ${turnLeft}s` : "answering") : q.outcome === "wrong" ? "wrong" : q.outcome === "skipped" ? "skipped" : q.outcome === "correct" ? "correct" : "next"}
               </span>
             </div>
             <div style={{ fontFamily: BODY, fontWeight: 800, fontSize: 44, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{q.teamName}</div>
@@ -359,7 +360,7 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
               <PointsChips s={st} />
             </div>
             <QuestionBody s={st} />
-            <QueueStrip s={st} elapsed={elapsed} />
+            <QueueStrip s={st} elapsed={elapsed} serverNow={serverNow} />
           </Stage>
         );
 

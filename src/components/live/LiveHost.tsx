@@ -106,8 +106,8 @@ function HostPad({ sessionId }: { sessionId: string }) {
   const serverNow = now + offset;
   const elapsed = s.openedAt ? serverNow - s.openedAt : 0;
   const answering = s.queue.find((q) => q.answering);
-  const canSkipQ = s.canSkipQuestion;
-  const waitSkip = Math.max(0, Math.ceil((s.skipAfterMs - elapsed) / 1000));
+  // Seconds the team that is answering has left before the next team is up.
+  const turnLeft = answering && s.phaseUntil ? Math.max(0, Math.ceil((s.phaseUntil - serverNow) / 1000)) : null;
   const penalty = s.wrongPenalty > 0;
   // Before the first question nothing else has scored, so a team's total is its starting score.
   const scoreOf = new Map((s.leaderboard ?? []).map((r) => [r.teamId, r.score]));
@@ -187,7 +187,10 @@ function HostPad({ sessionId }: { sessionId: string }) {
                   Skip
                 </Btn>
               </div>
-              <div style={{ fontSize: 12, marginTop: 8, opacity: 0.8 }}>{penalty ? `Wrong or Skip: −${s.wrongPenalty}` : "Wrong or Skip: no points lost"}</div>
+              <div style={{ fontSize: 12, marginTop: 8, opacity: 0.8 }}>
+                {penalty ? `Wrong or Skip: −${s.wrongPenalty}` : "Wrong or Skip: no points lost"}
+                {turnLeft !== null && ` · No answer in ${turnLeft}s passes to the next team${penalty ? ` (−${s.wrongPenalty})` : ""}`}
+              </div>
             </div>
           ) : (
             <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 12, color: C.muted }}>
@@ -209,8 +212,8 @@ function HostPad({ sessionId }: { sessionId: string }) {
           )}
 
           <div style={{ display: "grid", gap: 8 }}>
-            <Btn disabled={busy || !canSkipQ} onClick={() => act({ type: "reveal" })}>
-              {canSkipQ ? "Skip question (show the answer)" : s.queue.some((q) => q.outcome === "pending") ? "Skip question (finish the queue first)" : `Skip question (in ${waitSkip}s)`}
+            <Btn color={answering ? C.panel : C.amber} text={answering ? C.cream : C.bg} disabled={busy || !s.canSkipQuestion} onClick={() => act({ type: "reveal" })}>
+              {answering ? "Skip question (show the answer now)" : s.queue.length === 0 ? "Nobody buzzed: show the answer" : "Skip question (show the answer)"}
             </Btn>
             <Btn disabled={busy} onClick={() => act({ type: "undo" })}>
               Undo last action
@@ -304,6 +307,23 @@ function HostPad({ sessionId }: { sessionId: string }) {
               <Btn onClick={() => setConfirmFinish(false)}>Cancel</Btn>
             </div>
           )}
+        </section>
+      )}
+
+      {/* A way back from every step that has no Undo of its own above. */}
+      {s.status !== "finished" && (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal" || s.phase === "winners") && (
+        <div style={{ marginTop: 12 }}>
+          <Btn disabled={busy} onClick={() => act({ type: "undo" })}>
+            Undo: go back one step
+          </Btn>
+        </div>
+      )}
+      {s.status === "finished" && (
+        <section style={{ marginTop: 12 }}>
+          <div style={{ color: C.muted, fontSize: 14, marginBottom: 8 }}>The night is ended. Ended it by mistake? Carry on from exactly where it stopped.</div>
+          <Btn color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "reopen" })}>
+            Reopen the night
+          </Btn>
         </section>
       )}
 

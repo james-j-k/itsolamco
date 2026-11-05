@@ -37,7 +37,7 @@ export type LiveState = {
   question: { id: string; kind: string; prompt: string; hint: string | null; audioUrl: string | null } | null;
   answer: { text: string; note: string | null } | null; // the host always gets it; the projector only once it is revealed
   openedAt: number | null;
-  phaseUntil: number | null;
+  phaseUntil: number | null; // when a timed phase moves on; during a question, when the team that is answering runs out of time
   queue: LiveQueueItem[];
   celebration: { teamName: string; points: number; answer: string; note: string | null } | null;
   teams: { id: string; name: string }[];
@@ -46,7 +46,6 @@ export type LiveState = {
   scoresHidden: boolean; // the room is not being shown scores right now, on purpose
   hideFromRound: number;
   canSkipQuestion: boolean;
-  skipAfterMs: number;
   tiebreak: {
     prompt: string;
     tied: { id: string; name: string }[];
@@ -70,6 +69,7 @@ export type LiveTeamState = {
   team: { id: string; name: string };
   buzzOpen: boolean; // the buzzer can be pressed right now
   myBuzz: { place: number; outcome: "pending" | "correct" | "wrong" | "skipped"; answering: boolean } | null;
+  turnUntil: number | null; // when this team runs out of time to answer, if it is answering now
   tiebreak: { mustGuess: boolean; myGuess: number | null; prompt: string } | null;
 };
 
@@ -84,6 +84,7 @@ export type HostAction =
   | { type: "release"; teamId: string }
   | { type: "setHide"; hideFromRound: number }
   | { type: "setCarry"; teamId: string; points: number } // a team's score from rounds played off the system; counts toward the total only
-  | { type: "finish" };
+  | { type: "finish" }
+  | { type: "reopen" }; // carry on with a night that was ended
 
-export const SKIP_AFTER_MS = 30_000;
+export const ANSWER_MS = 15_000; // how long a team has to answer once it is up

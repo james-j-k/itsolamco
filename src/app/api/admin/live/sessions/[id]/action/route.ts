@@ -17,6 +17,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("setHide"), hideFromRound: z.number().int().min(1).max(20) }),
   z.object({ type: z.literal("setCarry"), teamId: z.string().min(1).max(64), points: z.number().int().min(-100000).max(100000) }),
   z.object({ type: z.literal("finish") }),
+  z.object({ type: z.literal("reopen") }),
 ]);
 
 export async function POST(request: NextRequest, { params }: Params) {

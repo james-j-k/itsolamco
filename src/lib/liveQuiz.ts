@@ -2,11 +2,13 @@ import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { closestGuessers, pointsForRight, pointsForWrong, rankTeams, tiedForFirst } from "@/lib/liveScoring";
-import { SKIP_AFTER_MS, type HostAction, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
+import { ANSWER_MS, type HostAction, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
 
 // The brain of a live quiz night. Every change happens inside one database
 // transaction and bumps `version`, so the projector and the phones only ask for
 // the full picture when something has actually changed.
+
+const answerDeadline = () => new Date(Date.now() + ANSWER_MS); // when the team that is answering runs out of time
 
 const CELEBRATE_MS = 4500; // how long the "correct" animation runs before the next question
 const REVEAL_MS = 5000; // how long the answer stays up when nobody got it
@@ -68,21 +70,22 @@ export async function currentVersion(sessionId: string): Promise<number | null> 
 
 // What a poll needs to know, in ONE query: is there anything new? It also moves a timed phase on once its time is up.
 export async function pollHead(where: { id: string } | { code: string }): Promise<{ id: string; version: number } | null> {
-  const select = { id: true, version: true, phase: true, phaseUntil: true } as const;
+  const select = { id: true, version: true, phase: true, phaseUntil: true, status: true } as const;
   const key = "code" in where ? { code: where.code.trim().toUpperCase() } : where;
   let s = await prisma.liveSession.findUnique({ where: key, select });
-  if (s && s.phaseUntil && s.phaseUntil.getTime() <= Date.now() && (s.phase === "celebrate" || s.phase === "reveal")) {
+  if (s && s.status === "active" && s.phaseUntil && s.phaseUntil.getTime() <= Date.now() && (s.phase === "celebrate" || s.phase === "reveal" || s.phase === "question")) {
     await tick(s.id);
     s = await prisma.liveSession.findUnique({ where: key, select });
   }
   return s ? { id: s.id, version: s.version } : null;
 }
 
-// Timed phases (the celebration, the revealed answer) move on by themselves.
+// Timed phases (the celebration, the revealed answer, a team's turn to answer) move on by themselves.
 // Whoever asks first after the time is up moves it; the conditional update means it happens once.
 export async function tick(sessionId: string): Promise<void> {
   const s = await prisma.liveSession.findUnique({ where: { id: sessionId } });
-  if (!s || !s.phaseUntil || s.phaseUntil.getTime() > Date.now()) return;
+  if (!s || s.status !== "active" || !s.phaseUntil || s.phaseUntil.getTime() > Date.now()) return;
+  if (s.phase === "question") return passTurn(s);
   if (s.phase !== "celebrate" && s.phase !== "reveal") return;
   const quiz = await loadQuiz(prisma, s.quizId);
   const round = quiz.rounds[s.roundIdx];
@@ -92,6 +95,32 @@ export async function tick(sessionId: string): Promise<void> {
     data: more
       ? { phase: "question", pos: s.pos + 1, questionOpenedAt: new Date(), phaseUntil: null, version: { increment: 1 } }
       : { phase: "roundResults", phaseUntil: null, version: { increment: 1 } },
+  });
+}
+
+// The team that is answering ran out of time: it counts as a skip (it costs what a wrong answer costs) and
+// the next team in the queue is up. The quizmaster can undo it like any other skip.
+async function passTurn(s: { id: string; quizId: string; roundIdx: number; pos: number }): Promise<void> {
+  const quiz = await loadQuiz(prisma, s.quizId);
+  const round = quiz.rounds[s.roundIdx];
+  const question = round?.questions[s.pos];
+  if (!round || !question) return;
+  await prisma.$transaction(async (tx) => {
+    const cur = await tx.liveSession.findUnique({ where: { id: s.id } });
+    if (!cur || cur.status !== "active" || cur.phase !== "question" || !cur.phaseUntil || cur.phaseUntil.getTime() > Date.now()) return;
+    const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: { id: "asc" } });
+    const answering = buzzes.find((b) => b.outcome === "pending");
+    if (!answering) {
+      await tx.liveSession.update({ where: { id: s.id }, data: { phaseUntil: null } });
+      return;
+    }
+    // Claim the buzz first, so a tap from the quizmaster at the same moment can't score it twice.
+    const claimed = await tx.liveBuzz.updateMany({ where: { id: answering.id, outcome: "pending" }, data: { outcome: "skipped" } });
+    if (claimed.count === 0) return;
+    const points = pointsForWrong({ rightPoints: round.rightPoints, wrongPenalty: round.wrongPenalty, placeDecay: round.placeDecay });
+    await tx.liveScoreEvent.create({ data: { sessionId: s.id, teamId: answering.teamId, questionId: question.id, roundIdx: s.roundIdx, buzzId: answering.id, points, kind: "skipped" } });
+    const next = buzzes.find((b) => b.id !== answering.id && b.outcome === "pending");
+    await tx.liveSession.update({ where: { id: s.id }, data: { phaseUntil: next ? answerDeadline() : null, version: { increment: 1 } } });
   });
 }
 
@@ -170,7 +199,7 @@ export async function buzz(code: string, teamId: string, token: string): Promise
     const auth = await authTeam(tx, code, teamId, token);
     if (!auth) return fail("This phone isn't part of the quiz. Rejoin with your team name.", 403);
     const { session, team } = auth;
-    if (session.phase !== "question") return fail("The buzzer isn't open right now.");
+    if (session.phase !== "question" || session.status !== "active") return fail("The buzzer isn't open right now.");
     const quiz = await loadQuiz(tx, session.quizId);
     const q = quiz.rounds[session.roundIdx]?.questions[session.pos];
     if (!q) return fail("No question is open.");
@@ -179,7 +208,9 @@ export async function buzz(code: string, teamId: string, token: string): Promise
     const existing = await tx.liveBuzz.findUnique({ where: { sessionId_questionId_teamId: { sessionId: session.id, questionId: q.id, teamId: team.id } } });
     if (!existing) {
       await tx.liveBuzz.create({ data: { sessionId: session.id, questionId: q.id, teamId: team.id } });
-      await tx.liveSession.update({ where: { id: session.id }, data: { version: { increment: 1 } } });
+      // A team that buzzes into an empty queue is answering straight away, so its clock starts now.
+      const waiting = await tx.liveBuzz.count({ where: { sessionId: session.id, questionId: q.id, outcome: "pending" } });
+      await tx.liveSession.update({ where: { id: session.id }, data: { version: { increment: 1 }, ...(waiting === 1 ? { phaseUntil: answerDeadline() } : {}) } });
     }
     const all = await tx.liveBuzz.findMany({ where: { sessionId: session.id, questionId: q.id }, orderBy: { id: "asc" }, select: { teamId: true } });
     return { ok: true as const, place: all.findIndex((b) => b.teamId === team.id) };
@@ -192,7 +223,7 @@ export async function submitGuess(code: string, teamId: string, token: string, v
     const auth = await authTeam(tx, code, teamId, token);
     if (!auth) return fail("This phone isn't part of the quiz.", 403);
     const { session, team } = auth;
-    if (session.phase !== "tiebreak") return fail("The tie-breaker isn't open.");
+    if (session.phase !== "tiebreak" || session.status !== "active") return fail("The tie-breaker isn't open.");
     if (!(session.tiedTeamIds ?? "").split(",").includes(team.id)) return fail("Only the teams in the tie play this one.");
     await tx.liveGuess.upsert({
       where: { sessionId_teamId: { sessionId: session.id, teamId: team.id } },
@@ -214,7 +245,7 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
     async (tx): Promise<Done | Fail> => {
       const s = await tx.liveSession.findUnique({ where: { id: sessionId } });
       if (!s) return fail("Session not found", 404);
-      if (s.status === "finished" && action.type !== "setHide") return fail("This night is finished.");
+      if (s.status === "finished" && action.type !== "setHide" && action.type !== "reopen") return fail("This night is finished. Reopen it to carry on.");
       const quiz = await loadQuiz(tx, s.quizId);
       const round = quiz.rounds[s.roundIdx];
       const question = round?.questions[s.pos] ?? null;
@@ -288,7 +319,9 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
           if (outcome === "correct") {
             await bump({ phase: "celebrate", phaseUntil: new Date(Date.now() + CELEBRATE_MS), lastTeamId: answering.teamId, lastPoints: points });
           } else {
-            await bump();
+            // Wrong or skipped: the next team in the queue is up, with a fresh clock.
+            const next = buzzes.find((b) => b.id !== answering.id && b.outcome === "pending");
+            await bump({ phaseUntil: next ? answerDeadline() : null });
           }
           return { ok: true };
         }
@@ -300,30 +333,73 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
         }
 
         case "undo": {
-          if (!["question", "celebrate", "reveal", "roundResults"].includes(s.phase)) return fail("You can't undo from here.");
-          const last = await tx.liveScoreEvent.findFirst({
-            where: { sessionId: s.id, undoneAt: null, kind: { in: ["correct", "wrong", "skipped"] } },
-            orderBy: { id: "desc" },
-          });
-          if (!last || !last.questionId) return fail("Nothing to undo.");
-          let roundIdx = -1;
-          let pos = -1;
-          quiz.rounds.forEach((r, ri) => r.questions.forEach((q, qi) => {
-            if (q.id === last.questionId) {
-              roundIdx = ri;
-              pos = qi;
+          // One step back, whatever the last step was. Scores that were given are taken back; scores are never lost silently.
+          if (s.status === "finished") return fail("The night is finished. Reopen it first.");
+          const lastRound = quiz.rounds.length - 1;
+          const lastPosOf = (ri: number) => Math.max(0, (quiz.rounds[ri]?.questions.length ?? 1) - 1);
+          const clockFor = async (questionId: string) =>
+            (await tx.liveBuzz.count({ where: { sessionId: s.id, questionId, outcome: "pending" } })) > 0 ? answerDeadline() : null;
+          const takeBack = async (ev: { id: number; buzzId: number | null }) => {
+            await tx.liveScoreEvent.update({ where: { id: ev.id }, data: { undoneAt: new Date() } });
+            if (ev.buzzId) await tx.liveBuzz.update({ where: { id: ev.buzzId }, data: { outcome: "pending" } });
+          };
+          // Open a question again. If it ended with a right answer, that answer is taken back so the team is up again.
+          const reopen = async (ri: number, pos: number, clearBuzzesOf?: string): Promise<Done | Fail> => {
+            const q = quiz.rounds[ri]?.questions[pos];
+            if (!q) return fail("Nothing to undo.");
+            const right = await tx.liveScoreEvent.findFirst({ where: { sessionId: s.id, questionId: q.id, kind: "correct", undoneAt: null }, orderBy: { id: "desc" } });
+            if (right) await takeBack(right);
+            if (clearBuzzesOf) await tx.liveBuzz.deleteMany({ where: { sessionId: s.id, questionId: clearBuzzesOf } });
+            await bump({ phase: "question", roundIdx: ri, pos, questionOpenedAt: new Date(), phaseUntil: await clockFor(q.id), lastTeamId: null, lastPoints: null });
+            return { ok: true };
+          };
+
+          switch (s.phase) {
+            case "lobby":
+              return fail("Nothing to undo yet.");
+            case "roundIntro":
+              if (s.roundIdx === 0) await bump({ phase: "lobby", phaseUntil: null });
+              else await bump({ phase: "roundResults", roundIdx: s.roundIdx - 1, pos: lastPosOf(s.roundIdx - 1), phaseUntil: null });
+              return { ok: true };
+            case "question": {
+              if (!question) return fail("Nothing to undo.");
+              const last = await tx.liveScoreEvent.findFirst({
+                where: { sessionId: s.id, questionId: question.id, undoneAt: null, kind: { in: ["correct", "wrong", "skipped"] } },
+                orderBy: { id: "desc" },
+              });
+              if (last) {
+                await takeBack(last);
+                await bump({ phaseUntil: answerDeadline(), lastTeamId: null, lastPoints: null });
+                return { ok: true };
+              }
+              // Nothing was scored on this question yet: go back to how the previous step left things.
+              if (s.pos > 0) return reopen(s.roundIdx, s.pos - 1, question.id);
+              await tx.liveBuzz.deleteMany({ where: { sessionId: s.id, questionId: question.id } });
+              await bump({ phase: "roundIntro", phaseUntil: null });
+              return { ok: true };
             }
-          }));
-          if (roundIdx < 0) return fail("That question no longer exists.");
-          await tx.liveScoreEvent.update({ where: { id: last.id }, data: { undoneAt: new Date() } });
-          if (last.buzzId) await tx.liveBuzz.update({ where: { id: last.buzzId }, data: { outcome: "pending" } });
-          // If the night has already moved on, bring that question back. Teams that had
-          // only just buzzed on the newer question are cleared (nothing was scored there).
-          if (question && question.id !== last.questionId) {
-            await tx.liveBuzz.deleteMany({ where: { sessionId: s.id, questionId: question.id } });
+            case "celebrate":
+              return reopen(s.roundIdx, s.pos);
+            case "reveal":
+              if (!question) return fail("Nothing to undo.");
+              await bump({ phase: "question", phaseUntil: await clockFor(question.id) });
+              return { ok: true };
+            case "roundResults":
+              return reopen(s.roundIdx, lastPosOf(s.roundIdx));
+            case "tiebreak":
+              await bump({ phase: "roundResults", roundIdx: lastRound, pos: lastPosOf(lastRound), tiedTeamIds: null, phaseUntil: null });
+              return { ok: true };
+            case "tiebreakReveal":
+              await tx.liveScoreEvent.updateMany({ where: { sessionId: s.id, kind: "tiebreak", undoneAt: null }, data: { undoneAt: new Date() } });
+              await bump({ phase: "tiebreak" });
+              return { ok: true };
+            case "winners":
+              if (s.tiedTeamIds) await bump({ phase: "tiebreakReveal" });
+              else await bump({ phase: "roundResults", roundIdx: lastRound, pos: lastPosOf(lastRound), phaseUntil: null });
+              return { ok: true };
+            default:
+              return fail("You can't undo from here.");
           }
-          await bump({ phase: "question", roundIdx, pos, questionOpenedAt: new Date(), phaseUntil: null, lastTeamId: null, lastPoints: null });
-          return { ok: true };
         }
 
         case "release": {
@@ -355,7 +431,15 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
         }
 
         case "finish": {
-          await bump({ status: "finished", phase: "winners" });
+          // Only the status changes, so the night can be reopened exactly where it was. The screens show the winners while it is finished.
+          await bump({ status: "finished" });
+          return { ok: true };
+        }
+
+        case "reopen": {
+          if (s.status !== "finished") return fail("This night isn't finished.");
+          const waiting = s.phase === "question" && question ? await tx.liveBuzz.count({ where: { sessionId: s.id, questionId: question.id, outcome: "pending" } }) : 0;
+          await bump({ status: "active", ...(s.phase === "question" ? { phaseUntil: waiting > 0 ? answerDeadline() : null } : {}) });
           return { ok: true };
         }
       }
@@ -371,8 +455,10 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
 type Snapshot = Awaited<ReturnType<typeof loadSnapshot>>;
 
 async function loadSnapshot(sessionId: string) {
-  const s = await prisma.liveSession.findUnique({ where: { id: sessionId } });
-  if (!s) return null;
+  const stored = await prisma.liveSession.findUnique({ where: { id: sessionId } });
+  if (!stored) return null;
+  // A finished night shows the winners on every screen. The stored phase is kept so the night can be reopened where it was.
+  const s = { ...stored, phase: stored.status === "finished" ? "winners" : stored.phase };
   const quiz = await loadQuiz(prisma, s.quizId);
   const round = quiz.rounds[s.roundIdx] ?? null;
   const question = round?.questions[s.pos] ?? null;
@@ -410,7 +496,7 @@ function queueOf(snap: NonNullable<Snapshot>, limit: number | null): LiveQueueIt
 export async function getLiveState(sessionId: string, view: "host" | "screen"): Promise<LiveState | null> {
   const snap = await loadSnapshot(sessionId);
   if (!snap) return null;
-  const { s, quiz, teams, round, question, buzzes, totals } = snap;
+  const { s, quiz, teams, round, question, totals } = snap;
   const host = view === "host";
   const standings = standingsOf(teams, totals);
   const roundNo = s.roundIdx + 1;
@@ -437,9 +523,7 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
       : null;
 
   const queue = queueOf(snap, host ? null : 4);
-  const noPending = !buzzes.some((b) => b.outcome === "pending");
-  const sinceOpen = s.questionOpenedAt ? Date.now() - s.questionOpenedAt.getTime() : 0;
-  const canSkipQuestion = phase === "question" && noPending && (sinceOpen >= SKIP_AFTER_MS || buzzes.some((b) => b.outcome !== "pending"));
+  const canSkipQuestion = phase === "question"; // the quizmaster can always show the answer and move on
 
   const lastTeam = s.lastTeamId ? teams.find((t) => t.id === s.lastTeamId) : null;
   const celebration = phase === "celebrate" && lastTeam && question
@@ -494,14 +578,14 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
     scoresHidden: !host && phase === "roundResults" && !resultsVisible,
     hideFromRound: s.hideFromRound,
     canSkipQuestion,
-    skipAfterMs: SKIP_AFTER_MS,
     tiebreak,
   };
 }
 
 export async function getTeamState(code: string, teamId: string, token: string): Promise<LiveTeamState | Fail> {
-  const s = await prisma.liveSession.findUnique({ where: { code: code.trim().toUpperCase() } });
-  if (!s) return fail("We can't find that night.", 404);
+  const stored = await prisma.liveSession.findUnique({ where: { code: code.trim().toUpperCase() } });
+  if (!stored) return fail("We can't find that night.", 404);
+  const s = { ...stored, phase: stored.status === "finished" ? "winners" : stored.phase };
   const sessionId = s.id;
   const quiz = await loadQuiz(prisma, s.quizId);
   const round = quiz.rounds[s.roundIdx] ?? null;
@@ -537,6 +621,7 @@ export async function getTeamState(code: string, teamId: string, token: string):
     team: { id: team.id, name: team.name },
     buzzOpen: s.phase === "question" && !myBuzz,
     myBuzz,
+    turnUntil: myBuzz?.answering ? (s.phaseUntil?.getTime() ?? null) : null,
     tiebreak,
   };
 }
