@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { BUSINESS } from "@/lib/business";
 import type { LiveQueueItem, LiveState } from "@/lib/liveTypes";
 import { clock, seconds, useLivePoll, useNow } from "./liveClient";
 import { isMuted, setMuted, sfx, unlockSounds } from "./liveSounds";
@@ -184,6 +185,7 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
   const [armed, setArmed] = useState(false); // a click is needed once, so the browser will let the songs play
   const [scale, setScale] = useState(1);
   const [qr, setQr] = useState("");
+  const [igQr, setIgQr] = useState("");
   const [mutedShown, setMutedShown] = useState(false);
   const [joinUrl, setJoinUrl] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -200,6 +202,12 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
+  }, []);
+
+  useEffect(() => {
+    QRCode.toString(BUSINESS.instagramUrl, { type: "svg", margin: 1, color: { dark: "#1C1512", light: "#F5F0E6" } })
+      .then(setIgQr)
+      .catch(() => setIgQr(""));
   }, []);
 
   const code = s?.code;
@@ -460,6 +468,29 @@ export default function LiveScreen({ sessionId }: { sessionId: string }) {
                 <div style={{ position: "absolute", left: 104, bottom: 60, fontFamily: DISPLAY, fontSize: 90, color: C.bg }}>{t.winners.length === 1 ? `${t.winners[0]} WINS THE TIE` : t.winners.length > 1 ? `${t.winners.join(" & ")} SHARE IT` : "NO ANSWERS"}</div>
               </>
             )}
+          </Stage>
+        );
+      }
+
+      case "ending": {
+        return (
+          <Stage>
+            <Confetti count={50} />
+            <div style={{ position: "absolute", left: 0, right: 0, top: 70, textAlign: "center", fontFamily: BODY, fontWeight: 700, fontSize: 34, letterSpacing: 10, color: C.amber }}>{st.quizTitle.toUpperCase()}</div>
+            <div style={{ position: "absolute", left: 0, right: 0, top: 120, textAlign: "center", fontFamily: DISPLAY, fontSize: 230, lineHeight: 1, color: C.cream }}>നന്ദി!</div>
+            <div style={{ position: "absolute", left: 200, right: 200, top: 400, textAlign: "center", fontFamily: BODY, fontWeight: 700, fontSize: 52, color: C.muted }}>Thank you for playing. See you at the next one.</div>
+            <div style={{ position: "absolute", left: 200, right: 200, top: 560, display: "flex", justifyContent: "center", alignItems: "center", gap: 120 }}>
+              <div style={{ width: 300, height: 300, padding: 14, background: C.cream, borderRadius: 24 }}>
+                {igQr ? <div style={{ width: "100%", height: "100%" }} dangerouslySetInnerHTML={{ __html: igQr }} /> : null}
+              </div>
+              <div style={{ fontFamily: BODY }}>
+                <div style={{ fontWeight: 700, fontSize: 30, letterSpacing: 6, color: C.amber }}>SCAN TO FOLLOW US ON INSTAGRAM</div>
+                <div style={{ fontFamily: DISPLAY, fontSize: 120, lineHeight: 1.1, color: C.cream, marginTop: 6 }}>{BUSINESS.instagramHandle}</div>
+                <div style={{ fontSize: 34, color: C.muted, marginTop: 6 }}>Tag us in your photos</div>
+                <div style={{ fontWeight: 700, fontSize: 30, letterSpacing: 6, color: C.amber, marginTop: 40 }}>CATCH THE NEXT QUIZ NIGHT</div>
+                <div style={{ fontFamily: DISPLAY, fontSize: 90, lineHeight: 1.1, color: C.cream }}>itsolamco.in</div>
+              </div>
+            </div>
           </Stage>
         );
       }

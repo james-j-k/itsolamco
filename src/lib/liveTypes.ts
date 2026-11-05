@@ -1,6 +1,6 @@
 // What the projector, the quizmaster's phone and the team phones receive. Safe to import in the browser.
 
-export type LivePhase = "lobby" | "roundIntro" | "question" | "reveal" | "celebrate" | "roundResults" | "tiebreak" | "tiebreakReveal" | "winners";
+export type LivePhase = "lobby" | "roundIntro" | "question" | "reveal" | "celebrate" | "roundResults" | "tiebreak" | "tiebreakReveal" | "winners" | "ending";
 
 export type LiveQueueItem = {
   buzzId: number;
@@ -85,6 +85,7 @@ export type HostAction =
   | { type: "setHide"; hideFromRound: number }
   | { type: "setCarry"; teamId: string; points: number } // a team's score from rounds played off the system; counts toward the total only
   | { type: "finish" }
-  | { type: "reopen" }; // carry on with a night that was ended
+  | { type: "reopen" }
+  | { type: "showEnding" }; // carry on with a night that was ended
 
 export const ANSWER_MS = 15_000; // how long a team has to answer once it is up

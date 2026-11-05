@@ -123,7 +123,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
       {error && <div style={{ background: C.red, borderRadius: 10, padding: "6px 12px", fontSize: 13, marginBottom: 8 }}>{error.message}</div>}
       {msg && <div style={{ background: C.red, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{msg}</div>}
 
-      {s.phase !== "lobby" && s.phase !== "winners" && (
+      {s.phase !== "lobby" && s.phase !== "winners" && s.phase !== "ending" && (
         <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
           Round {s.roundNo}/{s.roundCount} · {s.roundName}
           {s.phase === "question" || s.phase === "reveal" || s.phase === "celebrate" ? ` · Q${s.questionNo}/${s.questionCount}` : ""} · +{s.rightPoints}
@@ -292,9 +292,16 @@ function HostPad({ sessionId }: { sessionId: string }) {
         </section>
       )}
 
-      {s.phase === "winners" && (
+      {(s.phase === "winners" || s.phase === "ending") && (
         <section>
-          <div style={{ fontFamily: DISPLAY, fontSize: 36, marginBottom: 8 }}>WINNERS ON SCREEN</div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 36, marginBottom: 8 }}>{s.phase === "ending" ? "THANK-YOU SLIDE ON SCREEN" : "WINNERS ON SCREEN"}</div>
+          {s.phase === "winners" && (
+            <div style={{ marginBottom: 8 }}>
+              <Btn color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "showEnding" })}>
+                Show the thank-you slide
+              </Btn>
+            </div>
+          )}
           {!confirmFinish ? (
             <Btn disabled={busy || s.status === "finished"} onClick={() => setConfirmFinish(true)}>
               {s.status === "finished" ? "Night finished" : "End the night"}
@@ -311,7 +318,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
       )}
 
       {/* A way back from every step that has no Undo of its own above. */}
-      {s.status !== "finished" && (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal" || s.phase === "winners") && (
+      {(s.status !== "finished" || s.phase === "ending") && (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal" || s.phase === "winners" || s.phase === "ending") && (
         <div style={{ marginTop: 12 }}>
           <Btn disabled={busy} onClick={() => act({ type: "undo" })}>
             Undo: go back one step
@@ -348,7 +355,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
         </section>
       )}
 
-      {s.phase !== "lobby" && s.phase !== "winners" && (
+      {s.phase !== "lobby" && s.phase !== "winners" && s.phase !== "ending" && (
         <section style={{ marginTop: 20, paddingTop: 14, borderTop: `1px solid ${C.panel}` }}>
           <div style={{ color: C.muted, fontSize: 13, marginBottom: 6 }}>Scoreboard hidden from the room from round</div>
           <select
@@ -386,7 +393,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
       )}
 
       {/* Always within reach: stop the night at any point (it goes to the winners screen with the scores so far). */}
-      {s.phase !== "winners" && s.status !== "finished" && (
+      {s.phase !== "winners" && s.phase !== "ending" && s.status !== "finished" && (
         <section style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${C.panel}` }}>
           {!confirmFinish ? (
             <Btn disabled={busy} onClick={() => setConfirmFinish(true)}>

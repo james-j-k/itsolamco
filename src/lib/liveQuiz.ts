@@ -245,7 +245,7 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
     async (tx): Promise<Done | Fail> => {
       const s = await tx.liveSession.findUnique({ where: { id: sessionId } });
       if (!s) return fail("Session not found", 404);
-      if (s.status === "finished" && action.type !== "setHide" && action.type !== "reopen") return fail("This night is finished. Reopen it to carry on.");
+      if (s.status === "finished" && action.type !== "setHide" && action.type !== "reopen" && action.type !== "showEnding" && !(action.type === "undo" && s.phase === "ending")) return fail("This night is finished. Reopen it to carry on.");
       const quiz = await loadQuiz(tx, s.quizId);
       const round = quiz.rounds[s.roundIdx];
       const question = round?.questions[s.pos] ?? null;
@@ -334,7 +334,7 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
 
         case "undo": {
           // One step back, whatever the last step was. Scores that were given are taken back; scores are never lost silently.
-          if (s.status === "finished") return fail("The night is finished. Reopen it first.");
+          if (s.status === "finished" && s.phase !== "ending") return fail("The night is finished. Reopen it first.");
           const lastRound = quiz.rounds.length - 1;
           const lastPosOf = (ri: number) => Math.max(0, (quiz.rounds[ri]?.questions.length ?? 1) - 1);
           const clockFor = async (questionId: string) =>
@@ -393,6 +393,9 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
               await tx.liveScoreEvent.updateMany({ where: { sessionId: s.id, kind: "tiebreak", undoneAt: null }, data: { undoneAt: new Date() } });
               await bump({ phase: "tiebreak" });
               return { ok: true };
+            case "ending":
+              await bump({ phase: "winners" });
+              return { ok: true };
             case "winners":
               if (s.tiedTeamIds) await bump({ phase: "tiebreakReveal" });
               else await bump({ phase: "roundResults", roundIdx: lastRound, pos: lastPosOf(lastRound), phaseUntil: null });
@@ -436,6 +439,13 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
           return { ok: true };
         }
 
+        case "showEnding": {
+          // The thank-you slide comes after the winners. It only follows the real winners screen, so Undo has one place to return to.
+          if (s.phase !== "winners") return fail("The thank-you slide comes after the winners screen.");
+          await bump({ phase: "ending" });
+          return { ok: true };
+        }
+
         case "reopen": {
           if (s.status !== "finished") return fail("This night isn't finished.");
           const waiting = s.phase === "question" && question ? await tx.liveBuzz.count({ where: { sessionId: s.id, questionId: question.id, outcome: "pending" } }) : 0;
@@ -458,7 +468,7 @@ async function loadSnapshot(sessionId: string) {
   const stored = await prisma.liveSession.findUnique({ where: { id: sessionId } });
   if (!stored) return null;
   // A finished night shows the winners on every screen. The stored phase is kept so the night can be reopened where it was.
-  const s = { ...stored, phase: stored.status === "finished" ? "winners" : stored.phase };
+  const s = { ...stored, phase: stored.status === "finished" && stored.phase !== "ending" ? "winners" : stored.phase };
   const quiz = await loadQuiz(prisma, s.quizId);
   const round = quiz.rounds[s.roundIdx] ?? null;
   const question = round?.questions[s.pos] ?? null;
@@ -585,7 +595,7 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
 export async function getTeamState(code: string, teamId: string, token: string): Promise<LiveTeamState | Fail> {
   const stored = await prisma.liveSession.findUnique({ where: { code: code.trim().toUpperCase() } });
   if (!stored) return fail("We can't find that night.", 404);
-  const s = { ...stored, phase: stored.status === "finished" ? "winners" : stored.phase };
+  const s = { ...stored, phase: stored.status === "finished" && stored.phase !== "ending" ? "winners" : stored.phase };
   const sessionId = s.id;
   const quiz = await loadQuiz(prisma, s.quizId);
   const round = quiz.rounds[s.roundIdx] ?? null;
@@ -613,7 +623,8 @@ export async function getTeamState(code: string, teamId: string, token: string):
     now: Date.now(),
     code: s.code,
     status: s.status as LiveTeamState["status"],
-    phase: s.phase as LiveTeamState["phase"],
+    // Phones keep the final scores up while the projector shows the thank-you slide.
+    phase: (s.phase === "ending" ? "winners" : s.phase) as LiveTeamState["phase"],
     roundNo: s.roundIdx + 1,
     roundName: round?.name ?? "",
     questionNo: s.pos + 1,
