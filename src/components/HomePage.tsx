@@ -126,6 +126,9 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
 
   const nextEvent = events[0] ?? null;
   const upcomingCards = events.slice(0, 3);
+  // The hero card shows the soonest night until a visitor picks another one from the row of dates.
+  const [heroPick, setHeroPick] = useState<string | null>(null);
+  const heroEvent = events.find((e) => e.id === heroPick) ?? nextEvent;
 
   const heroDescRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useModalA11y(mobileNavOpen, () => setMobileNavOpen(false));
@@ -173,10 +176,10 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
     return () => clearTimeout(timer);
   }, []);
 
-  // Live countdown to the next real event
+  // Live countdown to the night shown in the hero
   useEffect(() => {
-    const target = nextEvent
-      ? new Date(nextEvent.date)
+    const target = heroEvent
+      ? new Date(heroEvent.date)
       : (() => {
           const d = new Date();
           d.setDate(d.getDate() + 12);
@@ -197,7 +200,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [nextEvent]);
+  }, [heroEvent]);
 
   // The full scroll-choreography system: nav hide/show, statement wipe,
   // round-by-round timeline, venue canvas map, magnetic buttons, reveal-on-scroll.
@@ -595,14 +598,32 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
             </div>
             <div className="border-2 border-[#1C1712] p-4 md:p-8 w-full md:w-96 bg-[#F5F0E6] flex flex-col gap-3 md:gap-6 transform hover:-rotate-1 transition-transform cursor-default z-10">
               <div className="flex justify-between items-center">
-                <div className="font-mono">NEXT EVENT</div>
+                <div className="font-mono">{events.length > 1 ? "UPCOMING NIGHTS" : "NEXT EVENT"}</div>
                 <div className="w-2 h-2 bg-[#B8451D] rounded-full animate-ping" />
               </div>
-              {nextEvent ? (
+              {events.length > 1 && (
+                <div role="group" aria-label="Choose a night" className="flex flex-wrap gap-2 -mt-1">
+                  {events.map((ev) => {
+                    const selected = ev.id === heroEvent?.id;
+                    return (
+                      <button
+                        key={ev.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setHeroPick(ev.id)}
+                        className={`min-h-9 border-2 border-[#1C1712] px-2.5 py-1 font-mono text-xs transition-colors ${selected ? "bg-[#1C1712] text-[#F5F0E6]" : "bg-transparent hover:bg-[#1C1712]/10"}`}
+                      >
+                        {formatShortDate(new Date(ev.date))}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {heroEvent ? (
                 <div>
-                  <h2 className="font-display text-3xl md:text-4xl mb-1 md:mb-2">{nextEvent.theme ?? nextEvent.title}</h2>
+                  <h2 className="font-display text-3xl md:text-4xl mb-1 md:mb-2">{heroEvent.theme ?? heroEvent.title}</h2>
                   <p className="font-mono text-[#6A6357] mb-3 md:mb-6">
-                    {formatShortDate(new Date(nextEvent.date))} / {nextEvent.venueName.toUpperCase()}, KOCHI / {formatTime(new Date(nextEvent.date))}
+                    {formatShortDate(new Date(heroEvent.date))} / {heroEvent.venueName.toUpperCase()}, KOCHI / {formatTime(new Date(heroEvent.date))}
                   </p>
                   <div className="grid grid-cols-4 gap-2 border-t-2 border-[#1C1712] pt-3 md:pt-4" aria-label="Countdown to next event">
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.d}</div><div className="font-mono text-xs opacity-70">DAYS</div></div>
@@ -610,32 +631,32 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.m}</div><div className="font-mono text-xs opacity-70">MIN</div></div>
                     <div className="text-center"><div className="font-display text-3xl text-[#B8451D]">{countdown.s}</div><div className="font-mono text-xs opacity-70">SEC</div></div>
                   </div>
-                  {nextEvent.externalUrl && (
+                  {heroEvent.externalUrl && (
                     <p className="font-mono text-xs mt-3 md:mt-4 border border-[#1C1712] px-2 py-1.5 inline-block">
-                      TICKETS ON {(nextEvent.externalLabel || "THE TICKET SITE").toUpperCase()}
+                      TICKETS ON {(heroEvent.externalLabel || "THE TICKET SITE").toUpperCase()}
                     </p>
                   )}
-                  {nextEvent.teamsBooked > 0 && !nextEvent.externalUrl && (
+                  {heroEvent.teamsBooked > 0 && !heroEvent.externalUrl && (
                     <p className="font-mono text-xs text-[#B8451D] mt-3 md:mt-4 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-[#B8451D] rounded-full" />
-                      {nextEvent.teamsBooked} {nextEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
+                      {heroEvent.teamsBooked} {heroEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
                     </p>
                   )}
                 </div>
               ) : (
                 <p className="text-[#6A6357]">New nights dropping soon — check back shortly.</p>
               )}
-              {nextEvent?.externalUrl ? (
+              {heroEvent?.externalUrl ? (
                 <a
-                  href={nextEvent.externalUrl}
+                  href={heroEvent.externalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-rust magnetic block w-full py-3 md:py-4 font-display text-xl text-center"
                 >
-                  {`BOOK ON ${(nextEvent.externalLabel || "THE TICKET SITE").toUpperCase()}`}
+                  {`BOOK ON ${(heroEvent.externalLabel || "THE TICKET SITE").toUpperCase()}`}
                 </a>
               ) : (
-                <button onClick={() => openBooking(nextEvent?.id)} className="btn-rust magnetic w-full py-3 md:py-4 font-display text-xl text-center">
+                <button onClick={() => openBooking(heroEvent?.id)} className="btn-rust magnetic w-full py-3 md:py-4 font-display text-xl text-center">
                   RSVP YOUR TEAM
                 </button>
               )}
