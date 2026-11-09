@@ -176,6 +176,99 @@ h2 em{font-style:normal;color:var(--mustard)}
 
 .fs{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:50;font:700 14px var(--body);padding:11px 16px;border-radius:999px;border:2px solid var(--cream);background:rgba(18,14,16,.85);color:var(--cream);cursor:pointer;backdrop-filter:blur(6px)}
 .fs:hover{background:var(--mustard);border-color:var(--mustard);color:var(--mustard-ink)}
+/* ---------- crossword ---------- */
+.xwtools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:26px}
+.xwtools .btn{padding:9px 16px;font-size:14px;border-width:1.5px}
+.xwstat{margin-left:auto;font:700 14px var(--mono);letter-spacing:.08em;color:var(--mustard)}
+.xwclock{font:400 30px/1 var(--display);letter-spacing:.04em;min-width:78px;text-align:center;color:var(--cream)}
+.xwclock.low{color:var(--red)}
+.xw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:32px;margin-top:22px;align-items:start}
+.clue-now{background:var(--ink3);border-left:4px solid var(--mustard);border-radius:8px;padding:12px 18px;min-height:78px;margin-bottom:14px}
+.clue-now b{font:400 22px/1.1 var(--display);letter-spacing:.03em;color:var(--mustard);display:block;margin-bottom:2px}
+.clue-now span{color:#D9CBB8}
+.gridwrap{overflow-x:auto;padding:6px 6px 14px;-webkit-overflow-scrolling:touch;background:var(--ink3);border:1px solid var(--line);border-radius:12px}
+.grid{--c:36px;display:grid;grid-template-columns:repeat(19,var(--c));grid-template-rows:repeat(16,var(--c));width:max-content;margin-inline:auto}
+.cell{position:relative}
+.cell i{position:absolute;left:3px;top:1px;font:700 10px/1 var(--mono);color:var(--red);pointer-events:none;font-style:normal;z-index:1}
+.cell input{width:100%;height:100%;padding:0;margin:0;border:1px solid #2a2326;border-radius:0;background:var(--cream);color:var(--ink);font:400 22px/1 var(--display);text-align:center;text-transform:uppercase;caret-color:transparent;cursor:pointer}
+.cell input:focus{outline:2px solid var(--red);outline-offset:-2px}
+.cell.inword input{background:#F7DFA6}
+.cell.cur input{background:var(--mustard)}
+.cell.ok input{background:#BDE6C9}
+.cell.bad input{background:#F3B3AC;color:#8d1d14}
+.xwmsg{margin-top:16px;min-height:28px;font-weight:700;color:var(--good)}
+.clues{background:var(--ink3);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;max-height:640px;overflow:auto}
+.clues h3{font:400 22px var(--display);letter-spacing:.04em;color:var(--mustard);margin:6px 0 8px}
+.clues h3:not(:first-child){margin-top:18px}
+.cl{display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:7px 8px;color:var(--cream);font:inherit;font-size:15px;line-height:1.35;cursor:pointer}
+.cl:hover{background:rgba(243,233,215,.07)}
+.cl b{font:700 13px var(--mono);color:var(--mustard);padding-top:2px}
+.cl em{font-style:normal;color:var(--muted);white-space:nowrap}
+.cl.act{background:rgba(242,179,61,.18)}
+.cl.done{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(107,203,139,.7)}
+.cl.done b{color:var(--good)}
+
+/* ---------- answer sheets ---------- */
+.shtabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;align-items:center}
+.shtabs .tab{font:400 20px var(--display);letter-spacing:.04em;padding:8px 16px;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--cream);cursor:pointer}
+.shtabs .tab[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard);color:var(--mustard-ink)}
+.shtabs .btn{padding:9px 16px;font-size:14px;border-width:1.5px}
+.shtabs .sp{flex:1}
+.shnote{margin:10px 0 0;color:var(--muted);font-size:14px}
+.sheet{--paper:#F4ECD9;--pr:#B3201A;--pi:#141414;position:relative;margin-top:22px;background:var(--paper);color:var(--pi);border-radius:8px;padding:26px 30px 24px;box-shadow:0 24px 50px rgba(0,0,0,.5),10px 10px 0 var(--red)}
+.sheet[hidden]{display:none}
+.sh-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.sh-head .brand{font-size:26px;color:var(--pr);line-height:1}
+.sh-title{text-align:right}
+.sh-title b{display:block;font:400 clamp(38px,6vw,54px)/.9 var(--display);color:var(--pr);letter-spacing:.01em}
+.sh-title span{font:700 12px var(--body);letter-spacing:.22em;text-transform:uppercase}
+.sh-meta{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:24px;margin-top:20px}
+.sh-meta label{font:700 15px var(--body);display:flex;align-items:flex-end;gap:10px;white-space:nowrap}
+.sheet input{font:600 17px var(--body);background:transparent;border:0;border-bottom:2px solid var(--pi);border-radius:0;color:var(--pi);width:100%;min-width:0;padding:4px 2px;outline:0}
+.sheet input:focus{border-bottom-color:var(--pr);background:rgba(179,32,26,.06)}
+.sheet input::placeholder{color:rgba(20,20,20,.28)}
+.sh-rule{margin:14px 0 18px;font-size:15px;color:#3d3228}
+.sh-lines{list-style:none;margin:0;padding:0;display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--rows),auto);grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 30px}
+.sh-lines li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:end}
+.sh-lines li.two{grid-template-columns:30px minmax(0,1.5fr) minmax(0,1fr)}
+.sh-lines .n{font:400 28px/1 var(--display);color:var(--pr);text-align:left}
+.sh-lines li.two input:last-child{border-bottom:2px dashed rgba(20,20,20,.55);font-weight:500}
+.sh-tie{display:flex;align-items:flex-end;gap:12px;margin-top:20px;font:700 15px var(--body)}
+.sh-tie input{max-width:300px}
+.sh-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:22px;padding-top:16px;border-top:2px solid rgba(20,20,20,.18);font:600 15px var(--body);color:#5b4a36}
+.sh-foot .box{width:64px;border:2px solid var(--pi);text-align:center;padding:6px 4px;background:#fffdf6}
+.sh-foot .tot{margin-left:auto;border:2px solid var(--pi);border-radius:4px;padding:6px 14px;min-width:150px;font:700 11px var(--mono);letter-spacing:.14em;color:var(--pi)}
+.sh-foot .tot b{display:block;font:400 34px/1.1 var(--display);color:var(--pr);letter-spacing:.02em}
+.pgridwrap{overflow-x:auto;margin-top:6px;padding-bottom:6px}
+.pgrid{--pc:30px;display:grid;grid-template-columns:repeat(19,var(--pc));grid-template-rows:repeat(16,var(--pc));width:max-content;margin-inline:auto}
+.pc{position:relative;border:1.5px solid var(--pi);background:#fffdf6}
+.pc.blk{border:0;background:transparent}
+.pc i{position:absolute;left:2px;top:1px;font:700 9px/1 var(--mono);color:var(--pi);font-style:normal}
+@media (max-width:1000px){
+  .xw{grid-template-columns:minmax(0,1fr)}
+  .clues{max-height:none}
+}
+@media (max-width:700px){
+  .sheet{padding:20px 16px 18px;box-shadow:0 20px 40px rgba(0,0,0,.5),6px 6px 0 var(--red)}
+  .sh-lines{grid-auto-flow:row;grid-template-rows:none;grid-template-columns:minmax(0,1fr)}
+  .sh-meta{grid-template-columns:1fr;gap:12px}
+    .sh-foot .tot{margin-left:0;width:100%}
+  .xwstat{margin-left:0;width:100%}
+}
+@media print{
+  @page{size:A4;margin:10mm}
+  html,body{background:#fff!important;color:#000}
+  body>*:not(#sheets){display:none!important}
+  #sheets{padding:0!important;background:#fff!important;border:0!important}
+  #sheets .shui{display:none!important}
+  #sheets .sheet{display:block!important;margin:0 0 9mm;padding:0 2mm;box-shadow:none;background:#fff;border-radius:0;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #sheets .sheet[data-sheet="r2"],#sheets .sheet[data-sheet="r3"]{break-after:page;page-break-after:always}
+  #sheets .sheet[data-sheet="r5"]{break-after:auto}
+  .sheet input{border-bottom-color:#000}
+  .sh-foot .box{background:#fff}
+  .pgrid{--pc:9.6mm}
+  .sh-title b,.sh-lines .n,.sh-head .brand,.sh-foot .tot b{color:#B3201A!important}
+}
 @media (max-width:900px){
   .hero .wrap,.proof,.quiz,.planner{grid-template-columns:1fr}
   .hero::after{background:linear-gradient(0deg,var(--ink) 10%,rgba(18,14,16,.75))}
@@ -215,6 +308,7 @@ h2 em{font-style:normal;color:var(--mustard)}
       <div class="cta">
         <a class="btn fill" href="#play">▶ Play a round</a>
         <a class="btn" href="#watch">Watch a real night</a>
+        <a class="btn" href="#crossword">✎ Crossword &amp; sheets</a>
       </div>
     </div>
     <div style="position:relative">
@@ -275,6 +369,48 @@ h2 em{font-style:normal;color:var(--mustard)}
     </div>
     <div class="runsheet" id="runsheet" role="group" aria-label="Run of show"></div>
     <div class="slotinfo" id="slotinfo"></div>
+  </div>
+</section>
+
+<!-- CROSSWORD -->
+<section id="crossword">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">Round 3 · Try it yourself</span>
+      <h2>The Mollywood <em>crossword</em></h2>
+      <p class="lede">The real grid from our Orb night. Nineteen clues, every answer a Malayalam film title in English letters, no spaces. At the table it is 15 minutes on a printed sheet; here, tap a square and type. +10 a word, no negatives, and the first table with a full grid gets +30.</p>
+    </div>
+    <div class="xwtools">
+      <button class="btn gold" type="button" id="xwStart">⏱ Start 15:00</button>
+      <span class="xwclock" id="xwClock" aria-live="off">15:00</span>
+      <button class="btn" type="button" id="xwCheck">✓ Check</button>
+      <button class="btn" type="button" id="xwWord">Reveal word</button>
+      <button class="btn" type="button" id="xwAll">Reveal all</button>
+      <button class="btn" type="button" id="xwClear">Clear</button>
+      <span class="xwstat" id="xwStat" role="status">0 / 19 words · 0 pts</span>
+    </div>
+    <div class="xw">
+      <div>
+        <div class="clue-now" id="clueNow" aria-live="polite"><b>Pick a square</b><span>Tap any white square, or choose a clue from the list. Tap the same square again to switch between across and down.</span></div>
+        <div class="gridwrap"><div class="grid" id="xwGrid" role="group" aria-label="Crossword grid"></div></div>
+        <div class="xwmsg" id="xwMsg" role="status"></div>
+      </div>
+      <aside class="clues" id="xwClues" aria-label="Clues"></aside>
+    </div>
+  </div>
+</section>
+
+<!-- ANSWER SHEETS -->
+<section id="sheets" class="band">
+  <div class="wrap">
+    <div class="shui rv">
+      <span class="eyebrow">What every table gets</span>
+      <h2>Our <em>answer sheets</em></h2>
+      <p class="lede">One sheet per round, one per team. Type straight into them: they save on this device, the totals add themselves up, and Print gives you the real A4 sheets (or a PDF).</p>
+    </div>
+    <div class="shui shtabs" id="shTabs" role="group" aria-label="Choose a round"></div>
+    <p class="shui shnote" id="shNote">Everything you type is saved on this device only.</p>
+    <div id="shBox"></div>
   </div>
 </section>
 
@@ -449,7 +585,7 @@ function answer(i){
   c.querySelectorAll('.opt').forEach((b,k)=>{b.disabled=true;if(k===q.a)b.classList.add('right');else if(k===i)b.classList.add('wrong')});
   const ok=i===q.a;if(ok)score++;res[qi]=ok;
   $('rev').innerHTML=(i===-1?'<b>Time’s up!</b> ':ok?'<b>Correct!</b> ':'<b>Not quite.</b> ')+q.ex;
-  const nx=$('nx');nx.hidden=false;nx.onclick=()=>{qi++;renderQ()};nx.focus({preventScroll:true});
+  const nx=$('nx');nx.hidden=false;nx.onclick=()=>{qi++;renderQ()};if(i!==-1)nx.focus({preventScroll:true});
   bars();
 }
 /* start quiz only when visible, so the timer isn't running off-screen */
@@ -486,6 +622,206 @@ function renderDays(){
   $('days').querySelectorAll('.day').forEach(b=>b.onclick=()=>{dSel=+b.dataset.i;renderDays()});
 }
 renderDays();
+
+/* crossword + answer sheets */
+(()=>{
+const store={get(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---- crossword data: number, direction, row, col, answer, clue ---- */
+const W=[
+ [1,'D',0,1,'NARASIMHAM','Induchoodan comes back from jail for the men who framed him (2000)'],
+ [2,'A',0,9,'ROMANCHAM','Seven bachelors in a Bangalore house summon a spirit with a Ouija board (2023)'],
+ [2,'D',0,9,'RORSCHACH','Luke Antony shows up in a village claiming his wife went missing in the forest (2022)'],
+ [3,'D',0,15,'HELEN','A nursing graduate gets locked inside a fast-food outlet’s freezer overnight (2019)'],
+ [4,'D',0,17,'MEMORIES','An alcoholic cop is dragged back to hunt a serial killer (2013)'],
+ [5,'D',2,5,'PAVITHRAM','A grown man raises his newborn baby sister as if she were his own daughter (1994)'],
+ [6,'A',2,8,'URUMI','A boy grows up to avenge his father’s death at the hands of Vasco da Gama (2011)'],
+ [7,'D',3,13,'KAMALADALAM','Dance teacher Nandagopan drowns his grief in drink at Kerala Kala Mandiram (1992)'],
+ [8,'D',4,3,'VANAPRASTHAM','A low-caste Kathakali artist and a noblewoman obsessed with his Arjuna (1999)'],
+ [9,'D',4,7,'OPPAM','A blind lift operator becomes the only witness to a murder (2016)'],
+ [10,'D',4,11,'KAAZCHA','A film projector operator takes in a boy orphaned by the Gujarat earthquake (2004)'],
+ [11,'A',5,0,'PIRAVI','An old father waits for his son, taken by the police during the Emergency (1988)'],
+ [12,'A',8,3,'PERUMTHACHAN','A legendary master carpenter grows jealous of his own gifted son (1990)'],
+ [13,'D',8,8,'THIRA','A doctor fighting child trafficking and a teen searching for his kidnapped sister (2013)'],
+ [14,'D',8,18,'OZHIMURI','A 55-year-old wife sues her 71-year-old husband for divorce in old Travancore (2012)'],
+ [15,'A',10,2,'KAMMATIPAADAM','Krishnan and Ganga grow up on land swallowed by Kochi’s real-estate boom (2016)'],
+ [16,'A',12,0,'MOOTHON','A boy from Lakshadweep goes to Mumbai looking for his elder brother (2019)'],
+ [17,'A',12,8,'AARKKARIYAM','A lockdown visit to her father uncovers a decades-old killing (2021)'],
+ [18,'A',14,1,'THALLUMAALA','A love story told through a garland of fistfights, one vlog at a time (2022)']
+];
+const ROWS=16,COLS=19,DIRN={A:'across',D:'down'};
+const cells={};
+W.forEach((w,i)=>{const [n,d,r,c,a]=w;for(let k=0;k<a.length;k++){
+  const rr=d==='D'?r+k:r,cc=d==='A'?c+k:c,key=rr+','+cc;
+  const cell=cells[key]||(cells[key]={key,r:rr,c:cc,ans:a[k],val:'',w:{},pos:{},num:0});
+  if(cell.ans!==a[k])console.error('crossword conflict at',key);
+  cell.w[d]=i;cell.pos[d]=k;if(k===0)cell.num=n;}});
+const wordCells=i=>{const [,d,r,c,a]=W[i];return [...a].map((_,k)=>cells[(d==='D'?r+k:r)+','+(d==='A'?c+k:c)])};
+
+/* ---- crossword UI ---- */
+const grid=$('xwGrid');
+let cur={key:null,dir:'A'},solved=new Set(),celebrated=false,assisted=false;
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+  const cell=cells[r+','+c],d=document.createElement('div');
+  if(!cell){d.className='cell blk';grid.appendChild(d);continue}
+  d.className='cell';
+  const lab=Object.keys(cell.w).map(k=>`${W[cell.w[k]][0]} ${DIRN[k]}`).join(', ');
+  d.innerHTML=(cell.num?`<i>${cell.num}</i>`:'')+`<input type="text" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="${lab}">`;
+  cell.el=d;cell.inp=d.querySelector('input');grid.appendChild(d);wire(cell);
+}
+function wire(cell){
+  const inp=cell.inp;let wasCur=false;
+  inp.addEventListener('pointerdown',()=>{wasCur=cur.key===cell.key});
+  inp.addEventListener('focus',()=>{if(cur.key!==cell.key)setCur(cell.key,cur.dir);inp.select()});
+  inp.addEventListener('click',()=>{if(wasCur){const o=cur.dir==='A'?'D':'A';if(cell.w[o]!==undefined)setCur(cell.key,o)}inp.select()});
+  inp.addEventListener('input',()=>{
+    const v=inp.value.toUpperCase().replace(/[^A-Z]/g,'').slice(-1);
+    inp.value=v;cell.val=v;cell.el.classList.remove('bad');
+    if(v)step(1);update();
+  });
+  inp.addEventListener('keydown',e=>{
+    const k=e.key;
+    if(k==='Backspace'){e.preventDefault();
+      if(cell.val){cell.val='';inp.value=''}else{step(-1);const p=cells[cur.key];p.val='';p.inp.value=''}
+      update();return}
+    if(k==='Delete'){e.preventDefault();cell.val='';inp.value='';update();return}
+    if(k==='Tab'||k==='Enter'){e.preventDefault();nextWord(e.shiftKey?-1:1);return}
+    const mv={ArrowLeft:[0,-1,'A'],ArrowRight:[0,1,'A'],ArrowUp:[-1,0,'D'],ArrowDown:[1,0,'D']}[k];
+    if(mv){e.preventDefault();const n=cells[(cell.r+mv[0])+','+(cell.c+mv[1])];
+      if(n)setCur(n.key,n.w[mv[2]]!==undefined?mv[2]:cur.dir);}
+  });
+}
+function setCur(key,dir){
+  const cell=cells[key];if(!cell)return;
+  if(cell.w[dir]===undefined)dir=dir==='A'?'D':'A';
+  cur={key,dir};paint();
+  if(document.activeElement!==cell.inp)cell.inp.focus({preventScroll:true});
+  cell.el.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function step(delta){
+  const cell=cells[cur.key],wc=wordCells(cell.w[cur.dir]),i=wc.indexOf(cell),n=wc[i+delta];
+  if(n)setCur(n.key,cur.dir);
+}
+function nextWord(delta){
+  const wi=cur.key?cells[cur.key].w[cur.dir]:-delta,ni=(wi+delta+W.length)%W.length;
+  focusWord(ni);
+}
+function focusWord(i){
+  const wc=wordCells(i),t=wc.find(x=>!x.val)||wc[0];
+  setCur(t.key,W[i][1]);
+}
+function paint(){
+  grid.querySelectorAll('.inword,.cur').forEach(e=>e.classList.remove('inword','cur'));
+  document.querySelectorAll('#xwClues .cl.act').forEach(e=>e.classList.remove('act'));
+  if(!cur.key){return}
+  const cell=cells[cur.key],wi=cell.w[cur.dir];
+  wordCells(wi).forEach(x=>x.el.classList.add('inword'));
+  cell.el.classList.add('cur');
+  const w=W[wi];
+  $('clueNow').innerHTML=`<b>${w[0]} ${DIRN[w[1]].toUpperCase()} · ${w[4].length} letters</b><span>${esc(w[5])}</span>`;
+  const cl=document.querySelector(`#xwClues .cl[data-i="${wi}"]`);if(cl)cl.classList.add('act');
+}
+function update(){
+  solved=new Set();
+  W.forEach((w,i)=>{if(wordCells(i).every(x=>x.val===x.ans))solved.add(i)});
+  Object.values(cells).forEach(c=>c.el.classList.toggle('ok',Object.values(c.w).some(i=>solved.has(i))));
+  document.querySelectorAll('#xwClues .cl').forEach(b=>b.classList.toggle('done',solved.has(+b.dataset.i)));
+  $('xwStat').textContent=`${solved.size} / ${W.length} words · ${solved.size*10} pts`;
+  const full=solved.size===W.length;
+  if(full&&!celebrated&&!assisted){$('xwMsg').textContent='Full grid! 🎉 At the table, the first team to get here takes +30.';stopClock()}
+  if(!full)$('xwMsg').textContent=$('xwMsg').dataset.keep||'';
+  celebrated=full;
+  store.set('kadavu-xw-v1',Object.fromEntries(Object.values(cells).filter(c=>c.val).map(c=>[c.key,c.val])));
+}
+function flash(t){const m=$('xwMsg');m.dataset.keep=t;m.textContent=t}
+/* clue list */
+(()=>{const box=$('xwClues');let h='';
+ ['A','D'].forEach(d=>{h+=`<h3>${d==='A'?'Across':'Down'}</h3>`;
+  W.forEach((w,i)=>{if(w[1]===d)h+=`<button type="button" class="cl" data-i="${i}"><b>${w[0]}</b><span>${esc(w[5])} <em>[${w[4].length}]</em></span></button>`})});
+ box.innerHTML=h;
+ box.addEventListener('click',e=>{const b=e.target.closest('.cl');if(b){focusWord(+b.dataset.i);$('clueNow').scrollIntoView({block:'nearest'})}});})();
+/* two-step buttons so nothing is wiped by accident */
+function confirmBtn(id,idle,armed,fn){const b=$(id);let t=null;
+ b.addEventListener('click',()=>{if(t){clearTimeout(t);t=null;b.textContent=idle;fn();return}
+  b.textContent=armed;t=setTimeout(()=>{t=null;b.textContent=idle},3000)})}
+confirmBtn('xwClear','Clear','Click again to clear',()=>{Object.values(cells).forEach(c=>{c.val='';c.inp.value='';c.el.classList.remove('bad')});flash('');celebrated=false;assisted=false;update()});
+confirmBtn('xwAll','Reveal all','Click again to reveal',()=>{Object.values(cells).forEach(c=>{c.val=c.ans;c.inp.value=c.ans;c.el.classList.remove('bad')});assisted=true;flash('Every answer revealed. Hit Clear to play again.');update()});
+$('xwWord').addEventListener('click',()=>{
+  if(!cur.key){flash('Pick a square first, then I’ll reveal that word.');return}
+  wordCells(cells[cur.key].w[cur.dir]).forEach(c=>{c.val=c.ans;c.inp.value=c.ans;c.el.classList.remove('bad')});assisted=true;update();
+});
+$('xwCheck').addEventListener('click',()=>{
+  let bad=0,filled=0;
+  Object.values(cells).forEach(c=>{if(c.val){filled++;const w=c.val!==c.ans;c.el.classList.toggle('bad',w);if(w)bad++}});
+  flash(!filled?'Type a few letters first.':bad?`${bad} wrong letter${bad>1?'s':''}, marked in red. Keep going.`:'All good so far. Keep going.');
+});
+/* 15:00 clock */
+let clock=null;
+const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+function stopClock(){if(clock){clearInterval(clock);clock=null}$('xwStart').textContent='⏱ Start 15:00'}
+$('xwStart').addEventListener('click',()=>{
+  if(clock){stopClock();$('xwClock').textContent='15:00';$('xwClock').classList.remove('low');return}
+  const end=Date.now()+15*60*1000;$('xwStart').textContent='■ Stop';$('xwMsg').dataset.keep='';
+  const tick=()=>{const left=Math.max(0,Math.round((end-Date.now())/1000));
+    $('xwClock').textContent=fmt(left);$('xwClock').classList.toggle('low',left<=60);
+    if(left===0){stopClock();flash('Pens down! ✏️ Time’s up.')}};
+  tick();clock=setInterval(tick,500);
+  if(!cur.key)focusWord(0);
+});
+/* restore progress */
+(()=>{const s=store.get('kadavu-xw-v1');if(s)Object.entries(s).forEach(([k,v])=>{const c=cells[k];if(c&&/^[A-Z]$/.test(v)){c.val=v;c.inp.value=v}});celebrated=true;update();celebrated=solved.size===W.length})();
+
+/* ---- answer sheets ---- */
+const SHEETS=[
+ {id:'r1',n:1,title:'EMOJI PICTIONARY',rule:'Write the Malayalam film each set of emojis spells out. Spelling doesn’t matter. +10 for each right answer, no negatives.',rows:15,sc:[['Right','×10',10]]},
+ {id:'r2',n:2,title:'OPENING CREDITS',rule:'We play a song clip. Write the FILM it’s from, not the song name. +10 for the film, +5 bonus for the music director. No negatives.',rows:15,two:true,sc:[['Films','×10',10],['Composers','×5',5]]},
+ {id:'r3',n:3,title:'THE MOLLYWOOD CROSSWORD',rule:'Clues are on the screen. Every answer is a Malayalam film title, in English letters, no spaces. +10 for each correct word · no negatives · full correct grid bonus: 1st team +30, 2nd +15, every team after +5. 15 minutes.',grid:true,sc:[['Right','×10',10],['Bonus','(30 / 15 / 5)',1]]},
+ {id:'r4',n:4,title:'WAY TOO SPECIFIC',rule:'One-word answers. +20 for every right answer, −5 for every wrong one. A blank costs nothing.',rows:10,sc:[['Right','×20',20],['Wrong','×5',-5]]},
+ {id:'r5',n:5,title:'THE JACKPOT · BACKUP SHEET',rule:'Only if the quizmaster says the buzzer is off: write your answers here. +30 right, −10 wrong, blank 0.',rows:10,tie:true,sc:[['Right','×30',30],['Wrong','×10',-10]]}
+];
+const saved=store.get('kadavu-sheets-v1')||{};
+const persist=()=>store.set('kadavu-sheets-v1',saved);
+let pg='';for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=cells[r+','+c];pg+=x?`<div class="pc">${x.num?`<i>${x.num}</i>`:''}</div>`:'<div class="pc blk"></div>'}
+function sheetHTML(s){
+  const lines=s.rows?`<ol class="sh-lines" style="--rows:${Math.ceil(s.rows/2)}">`+Array.from({length:s.rows},(_,i)=>{const k=`${s.id}.${i+1}`;
+    return s.two
+     ?`<li class="two"><span class="n">${i+1}</span><input data-k="${k}.f" placeholder="Film" aria-label="Question ${i+1}, film" autocomplete="off"><input data-k="${k}.m" placeholder="Music director" aria-label="Question ${i+1}, music director" autocomplete="off"></li>`
+     :`<li><span class="n">${i+1}</span><input data-k="${k}" aria-label="Question ${i+1}" autocomplete="off"></li>`}).join('')+'</ol>':'';
+  const tie=s.tie?`<div class="sh-tie"><label for="tie">Tie-breaker:</label><input id="tie" data-k="${s.id}.tie" autocomplete="off"></div>`:'';
+  const gridH=s.grid?`<div class="pgridwrap"><div class="pgrid" aria-label="Blank crossword grid for printing">${pg}</div></div>`:'';
+  const foot=s.sc.map(([l,m],j)=>{
+    const lead=j?'':(s.grid?'<span>Marked by team:</span><input data-k="r3.by" style="width:150px" aria-label="Marked by team" autocomplete="off">':'<span>Quizmaster only →</span>');
+    return `${lead}<label>${l} ${m} =</label><input class="box" type="number" inputmode="numeric" min="0" max="99" data-k="${s.id}.c${j}" aria-label="${l}">`}).join('');
+  return `<article class="sheet" data-sheet="${s.id}"${s.id==='r1'?'':' hidden'}>
+   <div class="sh-head"><span class="brand">It's ഓളം Company</span><div class="sh-title"><b>ROUND ${s.n}</b><span>${s.title}</span></div></div>
+   <div class="sh-meta"><label>Team name <input data-sync="team" autocomplete="off"></label><label>Table <input data-sync="table" autocomplete="off"></label></div>
+   <p class="sh-rule">${s.rule}</p>${gridH}${lines}${tie}
+   <div class="sh-foot">${foot}<div class="tot">TOTAL<b data-tot="${s.id}">0</b></div></div>
+  </article>`;
+}
+$('shBox').innerHTML=SHEETS.map(sheetHTML).join('');
+$('shTabs').innerHTML=SHEETS.map((s,i)=>`<button type="button" class="tab" data-id="${s.id}" aria-pressed="${i===0}">R${s.n}</button>`).join('')
+  +'<span class="sp"></span><button class="btn gold" type="button" id="shPrint">🖨 Print all sheets</button><button class="btn" type="button" id="shClear">Clear sheets</button>';
+function totals(){
+  SHEETS.forEach(s=>{let t=0;s.sc.forEach(([,,m],j)=>{t+=m*(+saved[`${s.id}.c${j}`]||0)});
+    const el=document.querySelector(`[data-tot="${s.id}"]`);if(el)el.textContent=Math.max(0,t)});
+}
+function fill(){document.querySelectorAll('#shBox [data-k]').forEach(i=>{i.value=saved[i.dataset.k]??''});
+  document.querySelectorAll('#shBox [data-sync]').forEach(i=>{i.value=saved[i.dataset.sync]??''});totals()}
+$('shBox').addEventListener('input',e=>{const i=e.target;
+  if(i.dataset.sync){saved[i.dataset.sync]=i.value;document.querySelectorAll(`#shBox [data-sync="${i.dataset.sync}"]`).forEach(o=>{if(o!==i)o.value=i.value})}
+  else if(i.dataset.k){saved[i.dataset.k]=i.value}
+  else return;
+  persist();totals();
+});
+$('shTabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;
+  document.querySelectorAll('#shTabs .tab').forEach(t=>t.setAttribute('aria-pressed',t===b));
+  document.querySelectorAll('#shBox .sheet').forEach(s=>s.hidden=s.dataset.sheet!==b.dataset.id)});
+$('shPrint').addEventListener('click',()=>window.print());
+confirmBtn('shClear','Clear sheets','Click again to clear',()=>{Object.keys(saved).forEach(k=>delete saved[k]);persist();fill()});
+fill();
+})();
 </script>
 
 </body></html>
