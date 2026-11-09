@@ -25,9 +25,9 @@ const csp = [
   "frame-ancestors 'none'",
 ].join("; ");
 
-// The Orb pitch page (/orb) is a self-contained page that loads its fonts from Google Fonts.
-// Its rule sits after the general one below, so for this path only it replaces the policy.
-const orbCsp = [
+// The pitch pages (/orb, /kadavu) are self-contained pages that load their fonts from Google Fonts.
+// Their rules sit after the general one below, so for these paths only they replace the policy.
+const pitchCsp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -64,7 +64,14 @@ const nextConfig: NextConfig = {
       {
         source: "/orb/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: orbCsp },
+          { key: "Content-Security-Policy", value: pitchCsp },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+        ],
+      },
+      {
+        source: "/kadavu/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: pitchCsp },
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
       },
