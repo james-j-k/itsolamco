@@ -18,10 +18,12 @@ export const FEATURED_NIGHT = {
   mapsUrl: "https://www.google.com/maps/search/?api=1&query=Falooda%20Nation%20Edappally%20Kochi",
 } as const;
 
-// Falooda Nation's own logo, shown beside ours on the registration page. Left empty until the venue's logo file is in
-// /public: then set it to { src: "/falooda-nation-logo.png", width: <pixels wide>, height: <pixels tall> }.
-// Until then their name is shown in their colours instead.
-export const FALOODA_LOGO: { src: string; width: number; height: number } | null = null;
+// Falooda Nation's own logo (the name only, no tagline), shown beside ours on the registration page.
+export const FALOODA_LOGO: { src: string; width: number; height: number } | null = {
+  src: "/falooda-nation-logo.png",
+  width: 1200,
+  height: 123,
+};
 
 // Every other night: teams of up to 6, the company's usual format.
 export const DEFAULT_MAX_TEAM_SIZE = 6;

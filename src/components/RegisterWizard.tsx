@@ -347,7 +347,7 @@ export default function RegisterWizard({ night, theme, teamsBooked }: { night: N
                   ×
                 </span>
                 {FALOODA_LOGO ? (
-                  <Image src={FALOODA_LOGO.src} alt="Falooda Nation" width={FALOODA_LOGO.width} height={FALOODA_LOGO.height} priority className="h-9 w-auto sm:h-10" />
+                  <Image src={FALOODA_LOGO.src} alt="Falooda Nation" width={FALOODA_LOGO.width} height={FALOODA_LOGO.height} priority className="h-3.5 w-auto min-[360px]:h-5 sm:h-7" />
                 ) : (
                   <span className="fn-display text-[1.05rem] leading-none sm:text-xl">
                     <span className="text-[var(--rg-accent)]">FALOODA</span> <span className="text-[var(--rg-alt)]">NATION</span>
@@ -356,13 +356,13 @@ export default function RegisterWizard({ night, theme, teamsBooked }: { night: N
               </>
             )}
           </Link>
-          <span className="fn-display text-right text-sm leading-tight tracking-[0.04em] text-[var(--rg-deep)]">
+          <span className="fn-display hidden text-right text-sm leading-tight tracking-[0.04em] text-[var(--rg-deep)] sm:block">
             {`${when.weekdayShort} ${when.dayMonth} · ${when.shortTime}`.toUpperCase()}
           </span>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-5 pb-16 pt-7 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:pt-12">
+      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-5 pb-16 pt-7 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-12 md:pt-12">
         {/* The night */}
         <section aria-label="About the night" className={`md:sticky md:top-8 md:self-start ${step === "done" ? "hidden md:block" : ""}`}>
           <div className="fn-display inline-flex items-center gap-2 rounded-full bg-[var(--rg-alt)] px-4 py-1.5 text-[13px] tracking-[0.06em] text-white">
