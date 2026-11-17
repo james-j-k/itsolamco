@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { bookingSchema, isLikelyBot } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rateLimit";
 import { sendBookingEmails } from "@/lib/email";
+import { FEATURED_NIGHT } from "@/lib/featuredNight";
+import { ensureFeaturedEvent } from "@/lib/featuredNightServer";
 
 export async function POST(request: NextRequest) {
-  if (isRateLimited(request, "bookings")) {
+  // Generous on purpose: a venue's Wi-Fi, a college network or a mobile carrier can put dozens of real people
+  // behind one address, and the form is already guarded by the hidden trap field and the too-fast check.
+  if (isRateLimited(request, "bookings", 20)) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
@@ -26,11 +30,29 @@ export async function POST(request: NextRequest) {
 
   const { teamName, contactName, email, teamSize, eventId, phone, message } = parsed.data;
 
+  // The Falooda Nation night is capped at 4 players a team (checked here too, not just on the form).
+  if (eventId === FEATURED_NIGHT.id && teamSize > FEATURED_NIGHT.maxTeamSize) {
+    const msg = `Teams for this night are ${FEATURED_NIGHT.minTeamSize} to ${FEATURED_NIGHT.maxTeamSize} players.`;
+    return NextResponse.json({ error: msg, issues: { teamSize: [msg] } }, { status: 400 });
+  }
+
+  // Registering for a night needs a mobile number (+91 and 10 digits), so we can WhatsApp the details.
+  if (eventId) {
+    const compact = (phone ?? "").replace(/[\s-]/g, "");
+    if (!/^\+91[6-9]\d{9}$/.test(compact)) {
+      const msg = "Enter a valid 10-digit mobile number.";
+      return NextResponse.json({ error: msg, issues: { phone: [msg] } }, { status: 400 });
+    }
+  }
+
   // "Any upcoming night" means the soonest one, so pin it to that real event
   // now. That way the dashboard and emails name an actual date/venue, and the
   // duplicate check below sees "any night" and "Oct 7" as the same booking.
   // Stays null only when no upcoming event exists yet.
   let resolvedEventId = eventId || null;
+
+  // The featured night is created on first use, so a booking for it can never fail for want of the event.
+  if (resolvedEventId === FEATURED_NIGHT.id) await ensureFeaturedEvent();
   if (!resolvedEventId) {
     const nextEvent = await prisma.event.findFirst({
       where: { date: { gte: new Date() }, externalTicketUrl: null },

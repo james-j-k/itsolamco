@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Flame,
   Mic2,
@@ -25,6 +26,8 @@ import VenueInquiryModal from "@/components/VenueInquiryModal";
 import { useModalA11y } from "@/lib/useModalA11y";
 import type { RecapDTO } from "@/lib/recaps";
 import ProofStrip from "@/components/ProofStrip";
+import FeaturedBanner from "@/components/FeaturedBanner";
+import { registerPath, type NightInfo } from "@/lib/featuredNight";
 
 const INSTAGRAM_URL = "https://www.instagram.com/itsolamco/";
 const X_URL = "https://x.com/itsOlamco";
@@ -104,9 +107,16 @@ function getHoverCapabilityServerSnapshot() {
   return true;
 }
 
-type Props = { events: EventDTO[]; rounds: QuizRoundDTO[]; venues: VenueDTO[]; recap?: RecapDTO | null };
+type Props = {
+  events: EventDTO[];
+  rounds: QuizRoundDTO[];
+  venues: VenueDTO[];
+  recap?: RecapDTO | null;
+  // The big night shown first, above everything else (null once it has passed)
+  featured?: { night: NightInfo; qrSvg: string; teamsBooked: number; others: EventDTO[] } | null;
+};
 
-export default function HomePage({ events, rounds, venues, recap = null }: Props) {
+export default function HomePage({ events, rounds, venues, recap = null, featured = null }: Props) {
   // "Past Nights" only appears in the menu once there is a recap to show.
   const navLinks = recap
     ? [...NAV_LINKS.slice(0, 3), { href: "#past-nights", label: "Past Nights" }, ...NAV_LINKS.slice(3)]
@@ -118,6 +128,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
   const [venueOpen, setVenueOpen] = useState(false);
   const [countdown, setCountdown] = useState({ d: "00", h: "00", m: "00", s: "00" });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const router = useRouter();
   const canHover = useSyncExternalStore(
     subscribeToHoverCapability,
     getHoverCapabilitySnapshot,
@@ -140,12 +151,19 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
       window.open(target.externalUrl, "_blank", "noopener,noreferrer");
       return;
     }
-    setBookingPreselect(eventId ?? null);
+    // Every other night is registered on its own page (a real page, not a pop-up, so typing and scrolling stay smooth on a phone).
+    const night = target ?? events.find((e) => !e.externalUrl);
+    if (night) {
+      router.push(registerPath(night.id));
+      return;
+    }
+    // No nights listed yet: the general pop-up, which adds the team to whichever night comes first.
+    setBookingPreselect(null);
     setBookingKey((k) => k + 1);
     setBookingOpen(true);
   }
 
-  // The "Book your team" button in an invite email links to /?book=<night>; open the form for it.
+  // The "Book your team" button in an invite email links to /?book=<night>; take them to that night's page.
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("book");
     if (!id || !events.some((e) => e.id === id)) return;
@@ -155,9 +173,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
       window.location.replace(linked.externalUrl);
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time open driven by the link the visitor arrived on
-    openBooking(id);
-    window.history.replaceState(null, "", window.location.pathname);
+    router.replace(registerPath(id));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival; the link is only read then
   }, []);
 
@@ -569,6 +585,9 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
       )}
 
       <main id="main-content">
+        {/* The next big night, first thing anyone sees */}
+        {featured && <FeaturedBanner night={featured.night} qrSvg={featured.qrSvg} teamsBooked={featured.teamsBooked} others={featured.others} />}
+
         {/* Hero */}
         <section className="pt-6 pb-5 md:pt-20 md:pb-20 px-6 md:px-8 grid-bg md:min-h-screen flex flex-col md:justify-between overflow-hidden">
           <div className="relative">
@@ -611,7 +630,7 @@ export default function HomePage({ events, rounds, venues, recap = null }: Props
                         type="button"
                         aria-pressed={selected}
                         onClick={() => setHeroPick(ev.id)}
-                        className={`min-h-9 border-2 border-[#1C1712] px-2.5 py-1 font-mono text-xs transition-colors ${selected ? "bg-[#1C1712] text-[#F5F0E6]" : "bg-transparent hover:bg-[#1C1712]/10"}`}
+                        className={`min-h-11 border-2 border-[#1C1712] px-2.5 py-1 font-mono text-xs transition-colors ${selected ? "bg-[#1C1712] text-[#F5F0E6]" : "bg-transparent hover:bg-[#1C1712]/10"}`}
                       >
                         {formatShortDate(new Date(ev.date))}
                       </button>

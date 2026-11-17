@@ -266,6 +266,71 @@ body {
   transition: transform .25s cubic-bezier(.16,1,.3,1);
 }
 
+/* ---------- Falooda Nation themed banner + registration page ---------- */
+/* Falooda Nation's colours: soft pink #FCE8F0, magenta #CA4D8C (deeper #B23B79 for text and buttons), teal #139186, charcoal #2C2C2C */
+.fn-display {
+  font-family: var(--font-phudu), Impact, "Arial Narrow", sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+.fn-marquee {
+  animation: fn-scroll 38s linear infinite;
+  will-change: transform;
+}
+@keyframes fn-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.fn-bob { animation: fn-bob 5s ease-in-out infinite; }
+@keyframes fn-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(1.5deg); }
+}
+.fn-float { animation: fn-drift 6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.fn-float-slow { animation: fn-drift 8.5s ease-in-out infinite reverse; transform-box: fill-box; transform-origin: center; }
+@keyframes fn-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  50% { transform: translate(4px, -9px) rotate(8deg); }
+}
+.fn-tilt { transform: rotate(-3deg); transition: transform 0.3s ease; }
+.fn-tilt:hover { transform: rotate(0) scale(1.03); }
+.fn-blink { animation: fn-blink 1.4s ease-in-out infinite; }
+@keyframes fn-blink { 50% { opacity: 0.25; } }
+/* The big register button: a soft ring that pulses, and a physical "press" */
+.fn-cta {
+  position: relative;
+  box-shadow: 0 6px 0 var(--rg-shadow, #7d2655);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+}
+.fn-cta::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 3px solid var(--rg-accent, #CA4D8C);
+  opacity: 0;
+  animation: fn-ring 2.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes fn-ring {
+  0% { transform: scale(0.96); opacity: 0.7; }
+  70%, 100% { transform: scale(1.08); opacity: 0; }
+}
+.fn-cta:hover { background-color: var(--rg-deep-hover, #A23270); }
+.fn-cta:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--rg-shadow, #7d2655); }
+.fn-banner :focus-visible, .fn-page :focus-visible { outline-color: var(--rg-alt, #139186); }
+/* dvh is newer than vh: browsers that don't know it keep the first line */
+.fn-page { min-height: 100vh; min-height: 100dvh; }
+/* The other nights use the site's own headline font instead of Falooda Nation's */
+.rg-olam .fn-display {
+  font-family: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ambient-hairline::after { animation: none; display: none; }
   [data-reveal] { transition: none; opacity: 1; transform: none; }
@@ -273,4 +338,5 @@ body {
   .magnetic { transition: none !important; transform: none !important; }
   /* Tailwind's looping pulse / ping / bounce decorations stop for visitors who ask for less motion */
   .animate-pulse, .animate-ping, .animate-bounce { animation: none !important; }
+  .fn-marquee, .fn-bob, .fn-float, .fn-float-slow, .fn-blink, .fn-cta::after { animation: none !important; }
 }

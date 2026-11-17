@@ -12,7 +12,7 @@ export default function NotFound() {
       <p className="text-[#6A6357] max-w-md mb-10 leading-relaxed">
         This page wandered off before the quiz started. Let&apos;s get you back to the action.
       </p>
-      <Link href="/" className="btn-rust px-8 py-3 font-display text-lg">
+      <Link href="/" className="btn-rust inline-flex min-h-12 items-center px-8 py-3 font-display text-lg">
         BACK TO HOME
       </Link>
     </div>

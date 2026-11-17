@@ -2,13 +2,34 @@ import { prisma } from "@/lib/prisma";
 import { TICKETING_SOURCE } from "@/lib/bookingSource";
 import { getPublishedRecaps } from "@/lib/recaps";
 import { safeHttpUrl } from "@/lib/eventLinks";
+import QRCode from "qrcode";
+import { FEATURED_NIGHT, featuredNightUrl, nightIsLive } from "@/lib/featuredNight";
+import { loadFeaturedNight } from "@/lib/featuredNightServer";
 import HomePage from "@/components/HomePage";
 import type { EventDTO } from "@/types/event";
 import type { QuizRoundDTO, VenueDTO } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
+// The banner at the very top of the page. It must never be the reason the home page fails to load.
+async function loadFeatured() {
+  try {
+    const night = await loadFeaturedNight();
+    if (!nightIsLive(night.startsAt)) return null;
+    const [teamsBooked, qrSvg] = await Promise.all([
+      prisma.booking.count({ where: { eventId: FEATURED_NIGHT.id, status: { not: "cancelled" }, source: { not: TICKETING_SOURCE } } }),
+      QRCode.toString(featuredNightUrl("qr"), { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#2C2C2C", light: "#FFFFFF" } }),
+    ]);
+    return { night, teamsBooked, qrSvg };
+  } catch (err) {
+    console.error("Couldn't load the featured night banner:", err);
+    return null;
+  }
+}
+
 export default async function Page() {
+  // First, so a brand-new night is already in the list the queries below read.
+  const featured = await loadFeatured();
   const [events, rounds, venues, unassignedBookingCount, recaps] = await Promise.all([
     prisma.event.findMany({
       where: { date: { gte: new Date() } },
@@ -59,5 +80,19 @@ export default async function Page() {
     area: v.area,
   }));
 
-  return <HomePage events={eventDTOs} rounds={roundDTOs} venues={venueDTOs} recap={recaps[0] ?? null} />;
+  return (
+    <HomePage
+      events={eventDTOs}
+      rounds={roundDTOs}
+      venues={venueDTOs}
+      recap={recaps[0] ?? null}
+      featured={
+        featured && {
+          ...featured,
+          // The other nights coming up, for the "more nights" strip under the banner
+          others: eventDTOs.filter((e) => e.id !== FEATURED_NIGHT.id).slice(0, 5),
+        }
+      }
+    />
+  );
 }
