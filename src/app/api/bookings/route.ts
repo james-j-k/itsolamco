@@ -55,19 +55,26 @@ export async function POST(request: NextRequest) {
   if (resolvedEventId === FEATURED_NIGHT.id) await ensureFeaturedEvent();
   if (!resolvedEventId) {
     const nextEvent = await prisma.event.findFirst({
-      where: { date: { gte: new Date() }, externalTicketUrl: null },
+      where: { date: { gte: new Date() }, externalTicketUrl: null, registrationClosed: false },
       orderBy: { date: "asc" },
       select: { id: true },
     });
     resolvedEventId = nextEvent?.id ?? null;
   }
 
-  // A night whose tickets are sold on another site isn't booked here.
   if (resolvedEventId) {
     const sold = await prisma.event.findUnique({
       where: { id: resolvedEventId },
-      select: { externalTicketUrl: true, externalTicketLabel: true },
+      select: { externalTicketUrl: true, externalTicketLabel: true, registrationClosed: true },
     });
+    // The admin has stopped registrations for this night (checked here, so a form that was already open can't sneak one in).
+    if (sold?.registrationClosed) {
+      return NextResponse.json(
+        { error: "Registration for this night is now closed. Follow us on Instagram for the next one.", closed: true },
+        { status: 409 }
+      );
+    }
+    // A night whose tickets are sold on another site isn't booked here.
     if (sold?.externalTicketUrl) {
       return NextResponse.json(
         { error: `Tickets for this night are booked on ${sold.externalTicketLabel || "another site"}. Please book there.`, externalUrl: sold.externalTicketUrl },

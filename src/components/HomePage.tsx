@@ -152,7 +152,8 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
       return;
     }
     // Every other night is registered on its own page (a real page, not a pop-up, so typing and scrolling stay smooth on a phone).
-    const night = target ?? events.find((e) => !e.externalUrl);
+    // With no night picked, prefer one that is still taking registrations.
+    const night = target ?? events.find((e) => !e.externalUrl && !e.registrationClosed) ?? events.find((e) => !e.externalUrl);
     if (night) {
       router.push(registerPath(night.id));
       return;
@@ -655,7 +656,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
                       TICKETS ON {(heroEvent.externalLabel || "THE TICKET SITE").toUpperCase()}
                     </p>
                   )}
-                  {heroEvent.teamsBooked > 0 && !heroEvent.externalUrl && (
+                  {heroEvent.teamsBooked > 0 && !heroEvent.externalUrl && !heroEvent.registrationClosed && (
                     <p className="font-mono text-xs text-[#B8451D] mt-3 md:mt-4 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-[#B8451D] rounded-full" />
                       {heroEvent.teamsBooked} {heroEvent.teamsBooked === 1 ? "TEAM" : "TEAMS"} ALREADY BOOKED
@@ -674,6 +675,14 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
                 >
                   {`BOOK ON ${(heroEvent.externalLabel || "THE TICKET SITE").toUpperCase()}`}
                 </a>
+              ) : heroEvent?.registrationClosed ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full cursor-not-allowed border-2 border-[#1C1712]/40 py-3 md:py-4 font-display text-xl text-center text-[#1C1712]/60"
+                >
+                  REGISTRATION CLOSED
+                </button>
               ) : (
                 <button onClick={() => openBooking(heroEvent?.id)} className="btn-rust magnetic w-full py-3 md:py-4 font-display text-xl text-center">
                   RSVP YOUR TEAM
@@ -853,7 +862,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
                     onClick={() => openBooking(ev.id)}
                     role="button"
                     tabIndex={0}
-                    aria-label={ev.externalUrl ? `Book tickets for ${ev.title} on ${ev.externalLabel || "the ticket site"}` : `Register your team for ${ev.title}`}
+                    aria-label={ev.externalUrl ? `Book tickets for ${ev.title} on ${ev.externalLabel || "the ticket site"}` : ev.registrationClosed ? `${ev.title}: registration is closed` : `Register your team for ${ev.title}`}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
@@ -867,6 +876,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
                       <div className="font-mono">
                         {formatDayDate(d)} / {formatTime(d)}
                         {ev.externalUrl && <span className="mt-1 block">TICKETS ON {(ev.externalLabel || "THE TICKET SITE").toUpperCase()}</span>}
+                        {!ev.externalUrl && ev.registrationClosed && <span className="mt-1 block">REGISTRATION CLOSED</span>}
                       </div>
                       <div className="w-2 h-2 rounded-full bg-current" />
                     </div>
@@ -1061,7 +1071,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
         key={bookingKey}
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        events={events.filter((e) => !e.externalUrl)}
+        events={events.filter((e) => !e.externalUrl && !e.registrationClosed)}
         preselectedEventId={bookingPreselect}
       />
       <VenueInquiryModal open={venueOpen} onClose={() => setVenueOpen(false)} />

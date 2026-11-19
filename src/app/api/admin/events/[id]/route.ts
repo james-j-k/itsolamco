@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { del } from "@vercel/blob";
+import { z } from "zod";
 import { eventSchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
@@ -39,6 +40,25 @@ export async function PUT(request: NextRequest, { params }: Params) {
           externalTicketLabel: externalTicketUrl ? externalTicketLabel || null : null,
         }),
       },
+    });
+    return NextResponse.json({ event });
+  } catch {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+}
+
+// Stop (or restart) taking registrations for one night. Nothing else about the night changes.
+const registrationSchema = z.object({ registrationClosed: z.boolean() });
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const { id } = await params;
+  const parsed = registrationSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  try {
+    const event = await prisma.event.update({
+      where: { id },
+      data: { registrationClosed: parsed.data.registrationClosed },
+      select: { id: true, registrationClosed: true },
     });
     return NextResponse.json({ event });
   } catch {

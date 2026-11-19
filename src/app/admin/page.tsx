@@ -37,6 +37,7 @@ export default async function AdminPage() {
         reminderOfferNote: e.reminderOfferNote,
         externalTicketUrl: e.externalTicketUrl,
         externalTicketLabel: e.externalTicketLabel,
+        registrationClosed: e.registrationClosed,
         recapPublished: e.recapPublished,
         winnerTeam: e.winnerTeam,
         recapStats: e.recapStats,

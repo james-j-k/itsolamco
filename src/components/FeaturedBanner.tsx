@@ -120,13 +120,22 @@ export default function FeaturedBanner({
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
-              href={registerPath(night.id)}
-              className="fn-cta fn-display group inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-[#B23B79] px-8 text-xl text-white sm:w-auto md:text-2xl"
-            >
-              REGISTER YOUR TEAM
-              <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-            </Link>
+            {night.registrationClosed ? (
+              <p
+                className="fn-display inline-flex min-h-14 w-full items-center justify-center rounded-full bg-white px-8 text-center text-xl text-[#B23B79] sm:w-auto md:text-2xl"
+                role="status"
+              >
+                REGISTRATION CLOSED
+              </p>
+            ) : (
+              <Link
+                href={registerPath(night.id)}
+                className="fn-cta fn-display group inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-[#B23B79] px-8 text-xl text-white sm:w-auto md:text-2xl"
+              >
+                REGISTER YOUR TEAM
+                <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              </Link>
+            )}
             <a
               href={night.mapsUrl}
               target="_blank"
@@ -142,6 +151,7 @@ export default function FeaturedBanner({
         {/* Laptop and bigger: the glass, with the QR code beside it to scan and register from a phone */}
         <div className="relative mt-2 hidden items-end justify-center gap-6 md:flex lg:gap-10">
           <FaloodaGlass className="fn-bob h-[24rem] w-auto lg:h-[29rem]" />
+          {!night.registrationClosed && (
           <figure className={`fn-tilt mb-6 w-44 shrink-0 rounded-3xl bg-white p-4 text-center shadow-[0_10px_0_rgba(202,77,140,0.3)] lg:w-52`}>
             <div
               className="mx-auto aspect-square w-full"
@@ -154,6 +164,7 @@ export default function FeaturedBanner({
               <span className="block font-sans text-xs font-semibold normal-case tracking-normal text-[#2C2C2C]/70">Opens on your phone, takes a minute</span>
             </figcaption>
           </figure>
+          )}
         </div>
       </div>
 
@@ -186,7 +197,7 @@ export default function FeaturedBanner({
                     <span className="min-w-0 flex-1 leading-tight">
                       <span className="block truncate font-bold">{ev.venueName}</span>
                       <span className="block truncate text-sm text-[#2C2C2C]/70">
-                        {w.weekdayShort} · {w.shortTime} · {external ? `Tickets on ${ev.externalLabel || "the ticket site"}` : "Register"}
+                        {w.weekdayShort} · {w.shortTime} · {external ? `Tickets on ${ev.externalLabel || "the ticket site"}` : ev.registrationClosed ? "Registration closed" : "Register"}
                       </span>
                     </span>
                     <ArrowRight className="h-5 w-5 shrink-0 text-[#B23B79]" aria-hidden="true" />

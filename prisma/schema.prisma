@@ -32,6 +32,8 @@ model Event {
   // Tickets for this night are sold on another site (for example Sort My Scene).
   externalTicketUrl   String?
   externalTicketLabel String?
+  // Switched on in the admin to stop taking registrations for this night (it stays visible, marked as closed).
+  registrationClosed  Boolean @default(false)
   recapPublished Boolean @default(false)
   winnerTeam     String?
   recapStats     String? // e.g. "20 teams · 73 quizzers"

@@ -41,9 +41,10 @@ export type NightInfo = {
   mapsUrl: string;
   minTeamSize: number;
   maxTeamSize: number;
+  registrationClosed: boolean; // the admin has stopped registrations for this night
 };
 
-type EventLike = { id: string; title: string; theme?: string | null; date: Date | string; venueName: string; venueArea: string; mapsUrl?: string | null };
+type EventLike = { id: string; title: string; theme?: string | null; date: Date | string; venueName: string; venueArea: string; mapsUrl?: string | null; registrationClosed?: boolean };
 
 export function nightInfoFrom(e: EventLike): NightInfo {
   const featured = e.id === FEATURED_NIGHT.id;
@@ -58,6 +59,7 @@ export function nightInfoFrom(e: EventLike): NightInfo {
     mapsUrl: e.mapsUrl && /^https?:\/\//i.test(e.mapsUrl) ? e.mapsUrl : `https://www.google.com/maps/search/?api=1&query=${query}`,
     minTeamSize: FEATURED_NIGHT.minTeamSize,
     maxTeamSize: featured ? FEATURED_NIGHT.maxTeamSize : DEFAULT_MAX_TEAM_SIZE,
+    registrationClosed: e.registrationClosed === true,
   };
 }
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { BUSINESS } from "@/lib/business";
 import { TICKETING_SOURCE } from "@/lib/bookingSource";
 import { safeHttpUrl } from "@/lib/eventLinks";
 import { FEATURED_NIGHT, formatNight, nightInfoFrom, nightIsLive } from "@/lib/featuredNight";
@@ -53,6 +54,32 @@ export default async function BookNightPage({ params }: Props) {
           <Link href="/" className="btn-rust mt-6 inline-flex min-h-12 items-center px-6 font-display text-lg">
             SEE WHAT&apos;S NEXT
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (night.registrationClosed) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#F5F0E6] px-6 text-center text-[#1C1712]">
+        <div className="max-w-md">
+          <h1 className="font-display text-4xl">REGISTRATION IS CLOSED.</h1>
+          <p className="mt-3 text-[#6A6357]">
+            We are not taking any more teams for this night. Already registered? You are all set, see you there. Follow {BUSINESS.instagramHandle} for the next one.
+          </p>
+          <a
+            href={BUSINESS.instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-rust mt-6 inline-flex min-h-12 items-center px-6 font-display text-lg"
+          >
+            FOLLOW US ON INSTAGRAM
+          </a>
+          <div>
+            <Link href="/" className="mt-3 inline-flex min-h-12 items-center px-4 font-mono text-xs underline underline-offset-4">
+              See other nights
+            </Link>
+          </div>
         </div>
       </main>
     );

@@ -64,6 +64,7 @@ export default async function Page() {
     teamsBooked: e._count.bookings + (i === 0 ? unassignedBookingCount : 0),
     externalUrl: safeHttpUrl(e.externalTicketUrl),
     externalLabel: e.externalTicketLabel,
+    registrationClosed: e.registrationClosed,
   }));
 
   const roundDTOs: QuizRoundDTO[] = rounds.map((r) => ({

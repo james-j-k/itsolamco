@@ -14,6 +14,7 @@ export type AdminEvent = {
   reminderOfferNote: string | null;
   externalTicketUrl: string | null; // tickets sold on another site
   externalTicketLabel: string | null;
+  registrationClosed: boolean; // no new registrations for this night
   recapPublished: boolean;
   winnerTeam: string | null;
   recapStats: string | null;

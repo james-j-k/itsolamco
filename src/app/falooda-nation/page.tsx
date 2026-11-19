@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { BUSINESS } from "@/lib/business";
 import { TICKETING_SOURCE } from "@/lib/bookingSource";
 import { FEATURED_NIGHT, defaultFeaturedInfo, formatNight, nightIsLive } from "@/lib/featuredNight";
 import { loadFeaturedNight } from "@/lib/featuredNightServer";
@@ -50,6 +51,34 @@ export default async function FaloodaPage() {
           <Link href="/" className="mt-6 inline-flex min-h-12 items-center rounded-full bg-[#B23B79] px-6 font-bold text-white">
             See what&apos;s next
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // The admin has stopped registrations for this night
+  if (night.registrationClosed) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#FCE8F0] px-6 text-center text-[#2C2C2C]">
+        <div className="max-w-md">
+          <h1 className="text-3xl font-bold">Registration is closed.</h1>
+          <p className="mt-3">
+            We are not taking any more teams for {night.title} at {night.venueName}. Already registered? You are all set, see you there. Follow{" "}
+            {BUSINESS.instagramHandle} for the next night.
+          </p>
+          <a
+            href={BUSINESS.instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 inline-flex min-h-12 items-center rounded-full bg-[#B23B79] px-6 font-bold text-white"
+          >
+            Follow us on Instagram
+          </a>
+          <div>
+            <Link href="/" className="mt-3 inline-flex min-h-12 items-center px-4 font-bold underline underline-offset-4">
+              See other nights
+            </Link>
+          </div>
         </div>
       </main>
     );

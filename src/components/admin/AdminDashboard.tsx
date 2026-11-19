@@ -679,6 +679,22 @@ export default function AdminDashboard({
     }
   }
 
+  // Stop or restart registrations for a night. Shown at once; put back if the save fails.
+  async function setRegistrationClosed(id: string, closed: boolean) {
+    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, registrationClosed: closed } : e)));
+    try {
+      const res = await fetch(`/api/admin/events/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registrationClosed: closed }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, registrationClosed: !closed } : e)));
+      pushError(closed ? "Couldn't close registration — try again." : "Couldn't reopen registration — try again.");
+    }
+  }
+
   async function deleteEvent(id: string, title: string) {
     askConfirm({
       title: "Delete event?",
@@ -1195,6 +1211,24 @@ export default function AdminDashboard({
         <td className="p-3">
           <div className="font-semibold">{ev.title}</div>
           {ev.theme && <div className="text-[#8C8477] text-xs">{ev.theme}</div>}
+          {!isPast && !ev.externalTicketUrl && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span
+                className={`border px-1.5 py-0.5 font-mono text-[10px] uppercase ${
+                  ev.registrationClosed ? "border-[#B8451D] bg-[#B8451D] text-[#F5F0E6]" : "border-[#4B7B4E] text-[#4B7B4E]"
+                }`}
+              >
+                {ev.registrationClosed ? "Registration closed" : "Registration open"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setRegistrationClosed(ev.id, !ev.registrationClosed)}
+                className="min-h-9 font-mono text-[10px] uppercase text-[#B8451D] hover:underline"
+              >
+                {ev.registrationClosed ? "Reopen registration" : "Close registration"}
+              </button>
+            </div>
+          )}
           {ev.externalTicketUrl && (
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="border border-[#1C1712] px-1.5 py-0.5 font-mono text-[10px] uppercase">
