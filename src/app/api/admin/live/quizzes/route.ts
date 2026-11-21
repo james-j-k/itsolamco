@@ -14,6 +14,7 @@ const questionSchema = z.object({
 
 const quizSchema = z.object({
   title: z.string().trim().min(1).max(160),
+  theme: z.enum(["olam", "falooda"]).optional(), // how the screen and the team phones look
   tiebreak: z.object({ prompt: z.string().trim().min(1).max(400), answer: z.string().trim().regex(/^\d{1,6}$/) }).nullish(),
   rounds: z
     .array(

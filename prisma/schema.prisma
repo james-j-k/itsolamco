@@ -169,6 +169,7 @@ model LiveQuiz {
   title          String
   tiebreakPrompt String?
   tiebreakAnswer String? // a number (for example a year): the closest guess wins
+  theme          String        @default("olam") // how the screen and the team phones look: "olam" or "falooda"
   createdAt      DateTime      @default(now())
   rounds         LiveRound[]
   sessions       LiveSession[]

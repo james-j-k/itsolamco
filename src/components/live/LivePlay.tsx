@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import type { LiveTeamState } from "@/lib/liveTypes";
 import { useLivePoll, useNow } from "./liveClient";
 import { sfx, unlockSounds } from "./liveSounds";
+import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
 
 // A team's phone: join once, then one big buzzer. The phone remembers its team, so a refresh
 // or a dropped connection puts it straight back. One phone belongs to one team.
-const C = { bg: "#1C1512", panel: "#2A201B", cream: "#F5F0E6", amber: "#F2A93B", red: "#C0280A", muted: "#D9CBB8", green: "#3F9D5F" };
-const DISPLAY = "var(--font-anton), Impact, sans-serif";
 
 type Saved = { teamId: string; name: string; token: string };
 
@@ -32,14 +31,29 @@ function load(code: string): Saved | null {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
+  const T = useLiveTheme();
+  const { C } = T;
+  const logo = T.logo.onDark;
   return (
-    <div style={{ minHeight: "100dvh", background: C.bg, color: C.cream, padding: "20px 18px 32px", display: "flex", flexDirection: "column", fontFamily: "var(--font-archivo), Arial, sans-serif" }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, color: C.cream, padding: `${T.stripe ? 30 : 20}px 18px 32px`, display: "flex", flexDirection: "column", fontFamily: T.BODY, position: "relative" }}>
+      {T.stripe && (
+        <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 8, display: "flex" }} aria-hidden="true">
+          {["#F06A9E", "#F9C623", "#8CC63F", "#F39237"].map((c) => (
+            <span key={c} style={{ flex: 1, background: c }} />
+          ))}
+        </div>
+      )}
+      {logo && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt="It's Olam Company" style={{ height: 40, width: "auto", alignSelf: "flex-start", marginBottom: 12 }} />
+      )}
       {children}
     </div>
   );
 }
 
 function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: () => void }) {
+  const { C, DISPLAY, DW, D } = useLiveTheme();
   const { state: s, error, offset, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, 700, { "x-team-token": saved.token });
   const [busy, setBusy] = useState(false);
   const [guess, setGuess] = useState("");
@@ -150,7 +164,7 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
 
       {s.phase === "tiebreak" && s.tiebreak ? (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14 }}>
-          <div style={{ fontFamily: DISPLAY, fontSize: 40 }}>TIE-BREAKER</div>
+          <div style={{ fontFamily: DISPLAY, fontWeight: DW, fontSize: D(40) }}>TIE-BREAKER</div>
           <div style={{ fontSize: 20, lineHeight: 1.35 }}>{s.tiebreak.prompt}</div>
           {s.tiebreak.mustGuess ? (
             s.tiebreak.myGuess !== null ? (
@@ -168,7 +182,7 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
                   }
                   await post("guess", { teamId: saved.teamId, value: v });
                 }}
-                style={{ display: "grid", gap: 10 }}
+                style={{ display: "grid", gap: 10, gridTemplateColumns: "minmax(0, 1fr)" }}
               >
                 <input
                   inputMode="numeric"
@@ -177,9 +191,9 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
                   onChange={(e) => setGuess(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="Your number"
                   aria-label="Your number"
-                  style={{ fontSize: 32, padding: 16, borderRadius: 14, border: 0, textAlign: "center" }}
+                  style={{ fontSize: 32, padding: 16, borderRadius: 14, border: 0, textAlign: "center", width: "100%", boxSizing: "border-box", background: C.cream, color: C.ink }}
                 />
-                <button type="submit" disabled={busy || !guess} style={{ background: C.amber, color: C.bg, border: 0, borderRadius: 14, padding: 18, fontSize: 22, fontWeight: 800, opacity: busy || !guess ? 0.5 : 1 }}>
+                <button type="submit" disabled={busy || !guess} style={{ background: C.amber, color: C.ink, border: 0, borderRadius: 14, padding: 18, fontSize: 22, fontWeight: 800, opacity: busy || !guess ? 0.5 : 1 }}>
                   LOCK IT IN
                 </button>
                 <div style={{ color: C.muted, fontSize: 13 }}>You only get one answer.</div>
@@ -209,9 +223,10 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
               borderRadius: "50%",
               border: 0,
               background: buttonColor,
-              color: buttonColor === C.amber ? C.bg : C.cream,
+              color: buttonColor === C.amber ? C.ink : C.cream,
               fontFamily: DISPLAY,
-              fontSize: enabled ? 64 : 40,
+              fontWeight: DW,
+              fontSize: D(enabled ? 64 : 40),
               lineHeight: 1.1,
               padding: 16,
               boxShadow: enabled ? `0 0 0 10px rgba(192,40,10,.35), 0 12px 40px rgba(0,0,0,.5)` : "none",
@@ -230,7 +245,17 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   );
 }
 
-export default function LivePlay({ code }: { code: string }) {
+export default function LivePlay({ code, theme = "olam" }: { code: string; theme?: LiveThemeId }) {
+  const T = liveThemeFor(theme);
+  return (
+    <LiveThemeContext.Provider value={T}>
+      <LivePlayInner code={code} />
+    </LiveThemeContext.Provider>
+  );
+}
+
+function LivePlayInner({ code }: { code: string }) {
+  const { C, DISPLAY, DW, D } = useLiveTheme();
   const [saved, setSaved] = useState<Saved | null | undefined>(undefined); // undefined = not read yet
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -291,11 +316,11 @@ export default function LivePlay({ code }: { code: string }) {
   return (
     <Shell>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
-        <div style={{ fontFamily: DISPLAY, fontSize: 44, lineHeight: 1 }}>JOIN THE NIGHT</div>
+        <div style={{ fontFamily: DISPLAY, fontWeight: DW, fontSize: D(44), lineHeight: 1 }}>JOIN THE NIGHT</div>
         <div style={{ color: C.muted }}>
           Code <b style={{ color: C.amber, letterSpacing: 3 }}>{code}</b>. One phone per team, so pick the phone that will do the buzzing.
         </div>
-        <form onSubmit={join} style={{ display: "grid", gap: 12 }}>
+        <form onSubmit={join} style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -303,9 +328,9 @@ export default function LivePlay({ code }: { code: string }) {
             placeholder="Your team name"
             aria-label="Team name"
             autoComplete="off"
-            style={{ fontSize: 24, padding: 16, borderRadius: 14, border: 0 }}
+            style={{ fontSize: 24, padding: 16, borderRadius: 14, border: 0, width: "100%", boxSizing: "border-box", background: C.cream, color: C.ink }}
           />
-          <button type="submit" disabled={busy || name.trim().length === 0} style={{ background: C.amber, color: C.bg, border: 0, borderRadius: 14, padding: 18, fontSize: 22, fontWeight: 800, opacity: busy || name.trim().length === 0 ? 0.5 : 1 }}>
+          <button type="submit" disabled={busy || name.trim().length === 0} style={{ background: C.amber, color: C.ink, border: 0, borderRadius: 14, padding: 18, fontSize: 22, fontWeight: 800, opacity: busy || name.trim().length === 0 ? 0.5 : 1 }}>
             {busy ? "JOINING..." : "JOIN"}
           </button>
         </form>

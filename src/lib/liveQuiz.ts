@@ -657,6 +657,7 @@ export async function getTeamState(code: string, teamId: string, token: string):
 
 export type QuizImport = {
   title: string;
+  theme?: "olam" | "falooda"; // how the screen and the team phones look; the Olam look when left out
   tiebreak?: { prompt: string; answer: string } | null;
   rounds: {
     name: string;
@@ -672,6 +673,7 @@ export async function importQuiz(data: QuizImport): Promise<string> {
   const quiz = await prisma.liveQuiz.create({
     data: {
       title: data.title,
+      theme: data.theme ?? "olam",
       tiebreakPrompt: data.tiebreak?.prompt ?? null,
       tiebreakAnswer: data.tiebreak?.answer ?? null,
       rounds: {
@@ -699,4 +701,15 @@ export async function importQuiz(data: QuizImport): Promise<string> {
     select: { id: true },
   });
   return quiz.id;
+}
+
+// How a night's screen and team phones should look. Never fails: any problem means the Olam look.
+export async function liveThemeOf(by: { id: string } | { code: string }): Promise<"olam" | "falooda"> {
+  try {
+    const where = "id" in by ? { id: by.id } : { code: by.code.trim().toUpperCase() };
+    const s = await prisma.liveSession.findUnique({ where, select: { quiz: { select: { theme: true } } } });
+    return s?.quiz.theme === "falooda" ? "falooda" : "olam";
+  } catch {
+    return "olam";
+  }
 }
