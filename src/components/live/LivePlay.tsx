@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LiveTeamState } from "@/lib/liveTypes";
-import { useLivePoll, useNow } from "./liveClient";
+import { pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
 import { sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
 
@@ -54,19 +54,49 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: () => void }) {
   const { C, DISPLAY, DW, D } = useLiveTheme();
-  const { state: s, error, offset, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, 700, { "x-team-token": saved.token });
+  // Faster polling while the order of the buzzes is being locked in, so every phone learns the result quickly.
+  const fastRef = useRef(false);
+  const { state: s, error, offset: pollOffset, confirmedAt, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, () => (fastRef.current ? 250 : 700), { "x-team-token": saved.token });
+  const sync = useClockSync();
+  const offset = sync.ready ? sync.offset : pollOffset; // this phone's clock vs the server's
+  const offsetRef = useRef(offset);
   const [busy, setBusy] = useState(false);
   const [guess, setGuess] = useState("");
   const [msg, setMsg] = useState("");
-  const [pressedOn, setPressedOn] = useState<string | null>(null); // the question this phone has just buzzed on, shown at once
+  // The buzz this phone has just sent: shown at once, and kept until the server has confirmed it.
+  const [pressed, setPressed] = useState<{ qid: string; state: "sending" | "sent" | "failed" } | null>(null);
+  const qidRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    offsetRef.current = offset;
+    qidRef.current = s?.phase === "question" ? s.questionId : null;
+  });
 
   const now = useNow(250);
-  const myTurn = !!s?.myBuzz?.answering;
+  // The buzzer opens at one moment for everyone (a beat after the quizmaster moves on). Before that the button waits.
+  const opened = useReached(s?.phase === "question" ? s.openedAt : null, offset);
+  const orderFinal = useOrderFinal(s?.phase === "question" ? s.lockUntil : null, confirmedAt, offset);
+  useEffect(() => {
+    fastRef.current = s?.phase === "question" && s.lockUntil !== null && !orderFinal;
+  });
+  const myTurn = !!s?.myBuzz?.answering && orderFinal;
   const turnLeft = myTurn && s?.turnUntil ? Math.max(0, Math.ceil((s.turnUntil - (now + offset)) / 1000)) : null;
   useEffect(() => {
     // The phone buzzes in the hand when it is this team's turn to answer.
     if (myTurn) navigator.vibrate?.([140, 70, 140]);
   }, [myTurn]);
+
+  // Keep the buzz route awake. A server that has been idle can take a second to start, which would
+  // slow down the very first buzz of the night. This never buzzes; it only says hello.
+  useEffect(() => {
+    const ping = () => {
+      if (document.visibilityState !== "visible") return;
+      fetch(`/api/live/${code}/buzz`, { method: "POST", headers: { "Content-Type": "application/json", "x-team-token": saved.token }, body: JSON.stringify({ teamId: saved.teamId, warm: true }), signal: AbortSignal.timeout(5000) }).catch(() => {});
+    };
+    ping();
+    const every = setInterval(ping, 45_000);
+    return () => clearInterval(every);
+  }, [code, saved.teamId, saved.token]);
 
   useEffect(() => {
     // The quizmaster released this phone, or the night is gone: go back to the join form.
@@ -90,6 +120,43 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
     }
   }
 
+  // Sends the buzz and keeps trying until the server answers, so a dropped signal for a few seconds doesn't lose it.
+  // The press time is fixed the moment of the tap and sent every time, so the retries can't make it later.
+  async function sendBuzz(qid: string, pressedAtDevice: number) {
+    const pressedAt = Math.round(pressedAtDevice + offsetRef.current); // the press, on the server's clock
+    const started = Date.now();
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const res = await fetch(`/api/live/${code}/buzz`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-team-token": saved.token },
+          body: JSON.stringify({ teamId: saved.teamId, questionId: qid, pressedAt }),
+          signal: AbortSignal.timeout(2500),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setPressed((p) => (p && p.qid === qid ? { qid, state: "sent" } : p));
+          poke();
+          return;
+        }
+        if (res.status >= 400 && res.status < 500) {
+          // The server said no (not open yet, question over, not your phone): trying again won't change that.
+          setPressed((p) => (p && p.qid === qid ? null : p));
+          setMsg(data.error ?? "That didn't work.");
+          poke();
+          return;
+        }
+      } catch {
+        // no signal for a moment: try again
+      }
+      if (qidRef.current !== qid) return; // the night moved on to another question
+      if (Date.now() - started > 8000) break;
+      await new Promise((r) => setTimeout(r, Math.min(900, 250 + attempt * 150)));
+    }
+    setPressed((p) => (p && p.qid === qid ? { qid, state: "failed" } : p));
+    setMsg("Couldn't reach the server. Tap again.");
+  }
+
   if (!s) {
     return (
       <Shell>
@@ -99,6 +166,8 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   }
 
   const my = s.myBuzz;
+  const mine = pressed && pressed.qid === s.questionId ? pressed : null; // this phone's own buzz on this question
+  const secondsToOpen = s.openedAt ? Math.max(1, Math.ceil((s.openedAt - (now + offset)) / 1000)) : 1;
   let label = "";
   let sub = "";
   let buttonColor = C.red;
@@ -117,8 +186,16 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
     sub = s.roundName;
     buttonColor = C.panel;
   } else if (s.phase === "question") {
-    if (my) {
-      if (my.answering) {
+    if (!opened) {
+      label = "GET READY";
+      sub = `Buzzer opens in ${secondsToOpen}`;
+      buttonColor = C.panel;
+    } else if (my) {
+      if (!orderFinal) {
+        label = "BUZZED!";
+        sub = "Locking in the order...";
+        buttonColor = C.panel;
+      } else if (my.answering) {
         label = "YOUR TURN";
         sub = turnLeft !== null ? `Shout your answer! ${turnLeft}s` : "Shout your answer!";
         buttonColor = C.amber;
@@ -131,10 +208,14 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
         sub = "Wait for the next question";
         buttonColor = C.panel;
       }
-    } else if (pressedOn === `${s.roundNo}-${s.questionNo}`) {
+    } else if (mine && mine.state !== "failed") {
       label = "BUZZED!";
-      sub = "Checking your place...";
+      sub = mine.state === "sending" ? "Sending..." : "Got it. Locking in the order...";
       buttonColor = C.panel;
+    } else if (mine?.state === "failed") {
+      label = "NOT SENT";
+      sub = "Tap to buzz again";
+      enabled = true;
     } else if (s.buzzOpen) {
       label = "BUZZ!";
       sub = "Tap as soon as you know it";
@@ -208,13 +289,26 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
           <button
             type="button"
             disabled={!enabled || busy}
-            onClick={async () => {
-              const key = `${s.roundNo}-${s.questionNo}`;
+            // Counts the moment the finger lands, not when it lifts: faster, and the time that is sent is the real one.
+            onPointerDown={(e) => {
+              if (!enabled || busy || !s.questionId) return;
+              const qid = s.questionId;
+              const at = pressTime(e);
               unlockSounds();
               sfx.tap();
               navigator.vibrate?.(50);
-              setPressedOn(key);
-              if (!(await post("buzz", { teamId: saved.teamId }))) setPressedOn(null);
+              setMsg("");
+              setPressed({ qid, state: "sending" });
+              void sendBuzz(qid, at);
+            }}
+            onClick={(e) => {
+              // A keyboard (Enter or Space) clicks without a pointer.
+              if (e.detail !== 0 || !enabled || busy || !s.questionId) return;
+              const qid = s.questionId;
+              unlockSounds();
+              setMsg("");
+              setPressed({ qid, state: "sending" });
+              void sendBuzz(qid, Date.now());
             }}
             aria-label="Buzzer"
             style={{

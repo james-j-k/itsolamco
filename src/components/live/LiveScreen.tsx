@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { BUSINESS } from "@/lib/business";
 import type { LiveQueueItem, LiveState } from "@/lib/liveTypes";
-import { clock, seconds, useLivePoll, useNow } from "./liveClient";
+import { clock, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
 import { isMuted, setMuted, sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
 
@@ -111,9 +111,48 @@ function PointsChips({ s }: { s: LiveState }) {
   );
 }
 
-function QueueStrip({ s, elapsed, serverNow }: { s: LiveState; elapsed: number; serverNow: number }) {
+// The beat before a question: the buzzer opens on the projector and on every phone at the same moment.
+function GetReady({ s, offset }: { s: LiveState; offset: number }) {
+  const { C, DISPLAY, DW, BODY, D } = useLiveTheme();
+  const now = useNow(60);
+  const left = s.openedAt ? Math.max(0, s.openedAt - (now + offset)) : 0;
+  const n = Math.max(1, Math.ceil(left / 1000));
+  return (
+    <>
+      <div style={{ position: "absolute", left: 104, top: 168, fontFamily: DISPLAY, fontWeight: DW, fontSize: D(64), lineHeight: 1, color: C.amber }}>
+        Q{s.questionNo}
+        <span style={{ color: C.muted }}> / {s.questionCount}</span>
+      </div>
+      <div style={{ position: "absolute", right: 104, top: 160 }}>
+        <PointsChips s={s} />
+      </div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 320, textAlign: "center", fontFamily: BODY, fontWeight: 800, fontSize: 44, letterSpacing: 14, color: C.muted }}>GET READY</div>
+      <div key={n} style={{ position: "absolute", left: 0, right: 0, top: 400, textAlign: "center", fontFamily: DISPLAY, fontWeight: DW, fontSize: D(420), lineHeight: 1, color: C.amber, animation: "olampop .45s ease-out" }}>{n}</div>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 90, textAlign: "center", fontFamily: BODY, fontSize: 34, color: C.muted }}>Thumbs on your buzzers</div>
+    </>
+  );
+}
+
+function QueueStrip({ s, elapsed, serverNow, locking }: { s: LiveState; elapsed: number; serverNow: number; locking: boolean }) {
   const { C, DISPLAY, DW, BODY, D } = useLiveTheme();
   const turnLeft = s.phaseUntil ? Math.max(0, Math.ceil((s.phaseUntil - serverNow) / 1000)) : null; // the team that is answering
+  if (locking) {
+    // Somebody has buzzed, but slower connections get a moment to be counted before the order is shown.
+    return (
+      <div style={{ position: "absolute", left: 104, right: 104, bottom: 56, height: 220, display: "flex", alignItems: "center", gap: 48, background: C.panel, borderRadius: 28, padding: "0 56px" }}>
+        <div style={{ position: "relative", width: 110, height: 110 }}>
+          <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `6px solid ${C.amber}`, animation: "olamring .9s ease-out infinite" }} />
+          <span style={{ position: "absolute", inset: 22, borderRadius: "50%", background: C.amber, animation: "olampulse .9s ease-in-out infinite" }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: DISPLAY, fontWeight: DW, fontSize: D(84), lineHeight: 1, color: C.cream }}>BUZZERS IN!</div>
+          <div style={{ fontFamily: BODY, fontSize: 32, color: C.muted, marginTop: 8 }}>
+            {s.queue.length} {s.queue.length === 1 ? "team" : "teams"} buzzed. Locking in the order...
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (s.queue.length === 0) {
     return (
       <div style={{ position: "absolute", left: 104, right: 104, bottom: 56, height: 220, display: "flex", alignItems: "center", gap: 48, background: C.panel, borderRadius: 28, padding: "0 56px" }}>
@@ -217,8 +256,17 @@ function Stage({ children, bg, color }: { children: React.ReactNode; bg?: string
 export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: string; theme?: LiveThemeId }) {
   const T = liveThemeFor(theme);
   const { C, DISPLAY, DW, BODY, D } = T;
-  const { state: s, error, offset } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=screen`, 600);
+  const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
+  const { state: s, error, offset: pollOffset, confirmedAt } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=screen`, () => (fastRef.current ? 250 : 600));
+  const sync = useClockSync();
+  const offset = sync.ready ? sync.offset : pollOffset; // this screen's clock vs the server's
   const now = useNow(250);
+  // The question appears at one moment on the projector and on every phone, a beat after the quizmaster moves on.
+  const opened = useReached(s?.phase === "question" ? s.openedAt : null, offset);
+  const orderFinal = useOrderFinal(s?.phase === "question" ? s.lockUntil : null, confirmedAt, offset);
+  useEffect(() => {
+    fastRef.current = s?.phase === "question" && s.lockUntil !== null && !orderFinal;
+  });
   const [armed, setArmed] = useState(false); // a click is needed once, so the browser will let the songs play
   const [scale, setScale] = useState(1);
   const [qr, setQr] = useState("");
@@ -264,7 +312,8 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
     if (!cur) return;
     const type = cur.phase === "lobby" ? "start" : ["roundIntro", "roundResults", "tiebreak", "tiebreakReveal"].includes(cur.phase) ? "continue" : null;
     if (!type) return;
-    await fetch(`/api/admin/live/sessions/${sessionId}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type }) }).catch(() => {});
+    // The tap says which step it was made on, so a repeat press can't skip past the next screen.
+    await fetch(`/api/admin/live/sessions/${sessionId}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, expect: { step: cur.step, version: cur.version } }) }).catch(() => {});
   }, [sessionId]);
 
   useEffect(() => {
@@ -289,7 +338,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
 
   // The song plays by itself the moment its question appears, and stops when the question ends.
   // Once a team has buzzed the song carries on, but quietly, so the room can hear the answers.
-  const wantAudio = s?.phase === "question" ? (s.question?.audioUrl ?? null) : null;
+  const wantAudio = s?.phase === "question" && opened ? (s.question?.audioUrl ?? null) : null;
   const questionId = s?.question?.id ?? null;
   const ducked = (s?.queue.length ?? 0) > 0;
   useEffect(() => {
@@ -326,7 +375,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
       if (s.phase === "celebrate") sfx.correct();
       else if (s.phase === "reveal") sfx.nobody();
       else if (s.phase === "question") {
-        if (s.question?.kind !== "audio") sfx.question();
+        sfx.whoosh(); // "get ready": the question's own sound plays when it opens (see below)
       } else if (s.phase === "roundIntro" || s.phase === "tiebreak" || s.phase === "tiebreakReveal") sfx.whoosh();
       else if (s.phase === "roundResults") sfx.results();
       else if (s.phase === "winners") sfx.winners();
@@ -347,8 +396,24 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
     if (s.phase === "lobby" && s.teams.length > prev.teams) sfx.join();
   }, [s]);
 
+  // The question's sound, at the moment it opens.
+  const openedSeen = useRef(false);
+  const kindNow = s?.question?.kind;
+  useEffect(() => {
+    if (s?.phase !== "question") {
+      openedSeen.current = false;
+      return;
+    }
+    if (opened && !openedSeen.current) {
+      openedSeen.current = true;
+      if (armedRef.current && kindNow !== "audio") sfx.question();
+    } else if (!opened) {
+      openedSeen.current = false;
+    }
+  }, [opened, s?.phase, kindNow, questionId]);
+
   const serverNow = now + offset;
-  const elapsed = s?.openedAt ? serverNow - s.openedAt : 0;
+  const elapsed = s?.openedAt && opened ? serverNow - s.openedAt : 0;
 
   function renderPhase(st: LiveState) {
     switch (st.phase) {
@@ -416,6 +481,14 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
         );
 
       case "question":
+        if (!opened) {
+          return (
+            <Stage bg={T.bgs.question}>
+              <Header s={st} />
+              <GetReady s={st} offset={offset} />
+            </Stage>
+          );
+        }
         return (
           <Stage bg={T.bgs.question}>
             <Header s={st} />
@@ -427,7 +500,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
               <PointsChips s={st} />
             </div>
             <QuestionBody s={st} />
-            <QueueStrip s={st} elapsed={elapsed} serverNow={serverNow} />
+            <QueueStrip s={st} elapsed={elapsed} serverNow={serverNow} locking={st.queue.length > 0 && !orderFinal} />
           </Stage>
         );
 

@@ -2,19 +2,31 @@ import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { closestGuessers, pointsForRight, pointsForWrong, rankTeams, tiedForFirst } from "@/lib/liveScoring";
-import { ANSWER_MS, type HostAction, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
+import { ANSWER_MS, EARLY_BUZZ_MS, LOCK_MS, MAX_BUZZ_AGE_MS, OPEN_LEAD_MS, stepOf, type HostAction, type HostExpect, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
 
 // The brain of a live quiz night. Every change happens inside one database
 // transaction and bumps `version`, so the projector and the phones only ask for
 // the full picture when something has actually changed.
 
 const answerDeadline = () => new Date(Date.now() + ANSWER_MS); // when the team that is answering runs out of time
+const openAt = () => new Date(Date.now() + OPEN_LEAD_MS); // a question opens a beat after the quizmaster moves on, at one moment for every screen and phone
+
+// Buzzes are ranked by when the button was pressed (the phone's own stamp), not by when the server heard about it.
+// Two presses at the same millisecond go to the one that arrived first.
+const BUZZ_ORDER = [{ buzzedAt: "asc" as const }, { id: "asc" as const }];
+
+// The order of buzzes stays open for LOCK_MS after the first one is heard, so a phone on a slow connection
+// still gets the place it earned. Until then nobody is "answering". null = nobody has buzzed.
+function lockAtOf(buzzes: { receivedAt: Date }[]): number | null {
+  if (buzzes.length === 0) return null;
+  return Math.min(...buzzes.map((b) => b.receivedAt.getTime())) + LOCK_MS;
+}
 
 const CELEBRATE_MS = 4500; // how long the "correct" animation runs before the next question
 const REVEAL_MS = 5000; // how long the answer stays up when nobody got it
 
 type Tx = Prisma.TransactionClient;
-type Fail = { ok: false; status: number; error: string };
+type Fail = { ok: false; status: number; error: string; stale?: boolean };
 type Done<T = object> = { ok: true } & T;
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
@@ -102,7 +114,7 @@ export async function tick(sessionId: string): Promise<void> {
   await prisma.liveSession.updateMany({
     where: { id: s.id, phase: s.phase, version: s.version },
     data: more
-      ? { phase: "question", pos: s.pos + 1, questionOpenedAt: new Date(), phaseUntil: null, version: { increment: 1 } }
+      ? { phase: "question", pos: s.pos + 1, questionOpenedAt: openAt(), phaseUntil: null, version: { increment: 1 } }
       : { phase: "roundResults", phaseUntil: null, version: { increment: 1 } },
   });
 }
@@ -117,7 +129,7 @@ async function passTurn(s: { id: string; quizId: string; roundIdx: number; pos: 
   await prisma.$transaction(async (tx) => {
     const cur = await tx.liveSession.findUnique({ where: { id: s.id } });
     if (!cur || cur.status !== "active" || cur.phase !== "question" || !cur.phaseUntil || cur.phaseUntil.getTime() > Date.now()) return;
-    const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: { id: "asc" } });
+    const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: BUZZ_ORDER });
     const answering = buzzes.find((b) => b.outcome === "pending");
     if (!answering) {
       await tx.liveSession.update({ where: { id: s.id }, data: { phaseUntil: null } });
@@ -202,7 +214,10 @@ async function authTeam(db: Tx, code: string, teamId: string, token: string) {
   return team ? { session, team } : null;
 }
 
-export async function buzz(code: string, teamId: string, token: string): Promise<Done<{ place: number }> | Fail> {
+// A buzz carries the question it was pressed on and, when the phone knows the server's clock, the moment of the press.
+// A phone on a slow connection still sends the press time, so it keeps the place it earned. The press time is checked:
+// never before the question opened, never in the future, and never older than MAX_BUZZ_AGE_MS.
+export async function buzz(code: string, teamId: string, token: string, input: { questionId?: string; pressedAt?: number } = {}): Promise<Done<{ place: number }> | Fail> {
   await pollHead({ code });
   return prisma.$transaction(async (tx) => {
     const auth = await authTeam(tx, code, teamId, token);
@@ -212,16 +227,33 @@ export async function buzz(code: string, teamId: string, token: string): Promise
     const quiz = await loadQuiz(tx, session.quizId);
     const q = quiz.rounds[session.roundIdx]?.questions[session.pos];
     if (!q) return fail("No question is open.");
+    // A retry that arrives after the night moved on must not land on the next question.
+    if (input.questionId && input.questionId !== q.id) return fail("That question is over.");
 
-    // One team, one buzz per question. A second tap (or a second phone) changes nothing.
-    const existing = await tx.liveBuzz.findUnique({ where: { sessionId_questionId_teamId: { sessionId: session.id, questionId: q.id, teamId: team.id } } });
+    const arrival = Date.now();
+    const opensAt = session.questionOpenedAt?.getTime() ?? 0;
+    if (arrival < opensAt - EARLY_BUZZ_MS) return fail("The buzzer isn't open yet.");
+
+    // One team, one buzz per question. A second tap (a retry, or a second phone) changes nothing.
+    const where = { sessionId: session.id, questionId: q.id };
+    const existing = await tx.liveBuzz.findUnique({ where: { sessionId_questionId_teamId: { ...where, teamId: team.id } } });
     if (!existing) {
-      await tx.liveBuzz.create({ data: { sessionId: session.id, questionId: q.id, teamId: team.id } });
-      // A team that buzzes into an empty queue is answering straight away, so its clock starts now.
-      const waiting = await tx.liveBuzz.count({ where: { sessionId: session.id, questionId: q.id, outcome: "pending" } });
-      await tx.liveSession.update({ where: { id: session.id }, data: { version: { increment: 1 }, ...(waiting === 1 ? { phaseUntil: answerDeadline() } : {}) } });
+      const before = await tx.liveBuzz.findMany({ where, select: { receivedAt: true } });
+      let at = typeof input.pressedAt === "number" && Number.isFinite(input.pressedAt) ? input.pressedAt : arrival;
+      at = Math.min(at, arrival); // can't be pressed in the future
+      if (arrival - at > MAX_BUZZ_AGE_MS) at = arrival; // too old to trust
+      at = Math.max(at, opensAt); // can't be pressed before it opened
+      // Once the order is final, a late arrival goes behind everyone already in it (but still ahead of anyone later).
+      const lockAt = lockAtOf(before);
+      if (lockAt !== null && arrival > lockAt) at = Math.max(at, lockAt);
+
+      await tx.liveBuzz.create({ data: { ...where, teamId: team.id, buzzedAt: new Date(at), receivedAt: new Date(arrival) } });
+      // The first team in clock starts once the order is final, so the answer clock starts then.
+      const waiting = await tx.liveBuzz.count({ where: { ...where, outcome: "pending" } });
+      const startClock = Math.max(arrival, lockAt ?? arrival + LOCK_MS);
+      await tx.liveSession.update({ where: { id: session.id }, data: { version: { increment: 1 }, ...(waiting === 1 ? { phaseUntil: new Date(startClock + ANSWER_MS) } : {}) } });
     }
-    const all = await tx.liveBuzz.findMany({ where: { sessionId: session.id, questionId: q.id }, orderBy: { id: "asc" }, select: { teamId: true } });
+    const all = await tx.liveBuzz.findMany({ where, orderBy: BUZZ_ORDER, select: { teamId: true } });
     return { ok: true as const, place: all.findIndex((b) => b.teamId === team.id) };
   });
 }
@@ -248,12 +280,20 @@ export async function submitGuess(code: string, teamId: string, token: string, v
 // The quizmaster's actions
 // ---------------------------------------------------------------------------
 
-export async function hostAction(sessionId: string, action: HostAction): Promise<Done | Fail> {
+// Taps that don't depend on which step the night is on (scores, hiding, releasing a phone) are never "stale".
+const STEP_FREE = ["setHide", "setCarry", "release"];
+
+export async function hostAction(sessionId: string, action: HostAction, expect?: HostExpect): Promise<Done | Fail> {
   await tick(sessionId);
   return prisma.$transaction(
     async (tx): Promise<Done | Fail> => {
       const s = await tx.liveSession.findUnique({ where: { id: sessionId } });
       if (!s) return fail("Session not found", 404);
+      // The tap was made on a screen that is out of date (a slow connection, a double tap, a retry): ignore it.
+      if (expect && !STEP_FREE.includes(action.type)) {
+        if (expect.step !== stepOf(s)) return { ...fail("The screen had already moved on, so that tap was ignored. Check the screen."), stale: true };
+        if (action.type === "undo" && expect.version !== s.version) return { ...fail("Something changed just now, so that Undo was ignored. Check the screen, then tap again."), stale: true };
+      }
       if ((s.status !== "active" || s.phase === "ending") && !["setHide", "reopen", "showEnding", "showWinners", "finish"].includes(action.type)) {
         return fail(isFinishedStatus(s.status) ? "This night is finished. Reopen it to carry on." : "The quiz is paused on a slide. Tap Back to the quiz first.");
       }
@@ -274,7 +314,7 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
         case "continue": {
           if (s.phase === "roundIntro") {
             if (!question) return fail("This round has no questions.");
-            await bump({ phase: "question", questionOpenedAt: new Date(), phaseUntil: null });
+            await bump({ phase: "question", questionOpenedAt: openAt(), phaseUntil: null });
             return { ok: true };
           }
           if (s.phase === "roundResults") {
@@ -313,7 +353,9 @@ export async function hostAction(sessionId: string, action: HostAction): Promise
         case "wrong":
         case "skip": {
           if (s.phase !== "question" || !question || !round) return fail("No question is open.");
-          const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: { id: "asc" } });
+          const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: BUZZ_ORDER });
+          const lockAt = lockAtOf(buzzes);
+          if (lockAt !== null && Date.now() < lockAt) return fail("Still locking in the order of the buzzes. Give it a second.");
           const answering = buzzes.find((b) => b.outcome === "pending");
           if (!answering || answering.id !== action.buzzId) return fail("That team isn't answering any more.");
           const place = buzzes.indexOf(answering);
@@ -487,10 +529,10 @@ async function loadSnapshot(sessionId: string) {
   const showsQuestion = ["question", "reveal", "celebrate"].includes(s.phase);
   const [teams, buzzes, totals] = await Promise.all([
     prisma.liveTeam.findMany({ where: { sessionId }, select: { id: true, name: true }, orderBy: { joinedAt: "asc" } }),
-    question && showsQuestion ? prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: { id: "asc" } }) : Promise.resolve([]),
+    question && showsQuestion ? prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: BUZZ_ORDER }) : Promise.resolve([]),
     totalsByTeam(prisma, sessionId),
   ]);
-  return { s, quiz, teams, round, question, buzzes, totals, slide };
+  return { s, stored, quiz, teams, round, question, buzzes, totals, slide };
 }
 
 function queueOf(snap: NonNullable<Snapshot>, limit: number | null): LiveQueueItem[] {
@@ -519,6 +561,7 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
   const snap = await loadSnapshot(sessionId);
   if (!snap) return null;
   const { s, quiz, teams, round, question, totals, slide } = snap;
+  const stored = { status: s.status, phase: snap.stored.phase, roundIdx: s.roundIdx, pos: s.pos };
   const host = view === "host";
   const standings = standingsOf(teams, totals);
   const roundNo = s.roundIdx + 1;
@@ -592,6 +635,8 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
       : null,
     answer: ["question", "reveal", "celebrate"].includes(phase) ? answer : null,
     openedAt: s.questionOpenedAt?.getTime() ?? null,
+    lockUntil: phase === "question" ? lockAtOf(snap.buzzes) : null,
+    step: stepOf(stored),
     phaseUntil: s.phaseUntil?.getTime() ?? null,
     queue,
     celebration,
@@ -617,7 +662,7 @@ export async function getTeamState(code: string, teamId: string, token: string):
   const showsQuestion = ["question", "reveal", "celebrate"].includes(s.phase);
   const [team, buzzes] = await Promise.all([
     prisma.liveTeam.findFirst({ where: { id: teamId, sessionId, tokenHash: hash(token) } }),
-    question && showsQuestion ? prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: { id: "asc" } }) : Promise.resolve([]),
+    question && showsQuestion ? prisma.liveBuzz.findMany({ where: { sessionId, questionId: question.id }, orderBy: BUZZ_ORDER }) : Promise.resolve([]),
   ]);
   if (!team) return fail("This phone isn't part of the quiz.", 403);
 
@@ -644,6 +689,9 @@ export async function getTeamState(code: string, teamId: string, token: string):
     questionNo: s.pos + 1,
     questionCount: round?.questions.length ?? 0,
     team: { id: team.id, name: team.name },
+    questionId: s.phase === "question" ? (question?.id ?? null) : null,
+    openedAt: s.questionOpenedAt?.getTime() ?? null,
+    lockUntil: s.phase === "question" ? lockAtOf(buzzes) : null,
     buzzOpen: s.phase === "question" && !myBuzz,
     myBuzz,
     turnUntil: myBuzz?.answering ? (s.phaseUntil?.getTime() ?? null) : null,

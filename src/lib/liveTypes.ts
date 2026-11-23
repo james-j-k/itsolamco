@@ -37,7 +37,9 @@ export type LiveState = {
   questionCount: number;
   question: { id: string; kind: string; prompt: string; hint: string | null; audioUrl: string | null } | null;
   answer: { text: string; note: string | null } | null; // the host always gets it; the projector only once it is revealed
-  openedAt: number | null;
+  openedAt: number | null; // when the buzzer opens, on the server's clock. It is a moment slightly in the future after the host moves on, so every screen and phone opens at the same instant.
+  lockUntil: number | null; // once a team has buzzed: when the order is final. Until then nobody is "answering" yet, so a slow connection can still get its place.
+  step: string; // which step of the night this is (see stepOf). The quizmaster's taps carry it, so a repeated or late tap can't skip a question.
   phaseUntil: number | null; // when a timed phase moves on; during a question, when the team that is answering runs out of time
   queue: LiveQueueItem[];
   celebration: { teamName: string; points: number; answer: string; note: string | null } | null;
@@ -68,7 +70,10 @@ export type LiveTeamState = {
   questionNo: number;
   questionCount: number;
   team: { id: string; name: string };
-  buzzOpen: boolean; // the buzzer can be pressed right now
+  questionId: string | null; // the question the buzzer belongs to, so a late retry can never land on the next one
+  openedAt: number | null; // when the buzzer opens (server clock)
+  lockUntil: number | null; // when the order of buzzes is final (server clock)
+  buzzOpen: boolean; // the buzzer can be pressed once the opening time has come
   myBuzz: { place: number; outcome: "pending" | "correct" | "wrong" | "skipped"; answering: boolean } | null;
   turnUntil: number | null; // when this team runs out of time to answer, if it is answering now
   tiebreak: { mustGuess: boolean; myGuess: number | null; prompt: string } | null;
@@ -90,4 +95,17 @@ export type HostAction =
   | { type: "showWinners" }
   | { type: "showEnding" }; // carry on with a night that was ended
 
+// A tap from the quizmaster says which step of the night it was made on. If the night has moved on since
+// (a slow connection, a double tap, a retry), the tap is ignored instead of acting on the wrong question.
+// `version` is also checked for Undo, which can happen more than once within the same step.
+export type HostExpect = { step: string; version: number };
+
+export function stepOf(s: { status: string; phase: string; roundIdx: number; pos: number }): string {
+  return `${s.status}|${s.phase}|${s.roundIdx}|${s.pos}`;
+}
+
 export const ANSWER_MS = 15_000; // how long a team has to answer once it is up
+export const OPEN_LEAD_MS = 2_000; // a question opens this long after the quizmaster moves on (the "get ready" beat), the same instant everywhere
+export const LOCK_MS = 1_200; // after the first buzz is heard, the order stays open this long for slower connections, then it is final
+export const EARLY_BUZZ_MS = 200; // a buzz may arrive this much before the opening time (the phone's clock is a little off) and still count
+export const MAX_BUZZ_AGE_MS = 8_000; // a buzz that was pressed longer ago than this is treated as pressed when it arrived

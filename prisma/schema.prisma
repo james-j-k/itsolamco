@@ -247,7 +247,8 @@ model LiveBuzz {
   session    LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   questionId String
   teamId     String
-  buzzedAt   DateTime    @default(now())
+  buzzedAt   DateTime    @default(now()) // when the button was pressed (the phone's own stamp, on the server's clock): this decides the order
+  receivedAt DateTime    @default(now()) // when the server heard about it (only used for the lock-in window)
   outcome    String      @default("pending") // pending | correct | wrong | skipped
 
   @@unique([sessionId, questionId, teamId]) // one team, one buzz per question

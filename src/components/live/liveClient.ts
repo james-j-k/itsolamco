@@ -5,16 +5,21 @@ import { useEffect, useRef, useState } from "react";
 // Asks the server for the night's state over and over, but only gets the full picture back when
 // something changed (the server answers a repeat of the same version with a tiny "unchanged").
 // `offset` is how far the server's clock is from this device's clock, so timers agree everywhere.
-export function useLivePoll<T extends { version: number; now: number }>(url: string | null, intervalMs: number, headers?: Record<string, string>) {
+// `confirmedAt` is the server time of the latest answer of any kind, including "nothing changed": proof that the
+// picture we hold was still the current one at that moment.
+export function useLivePoll<T extends { version: number; now: number }>(url: string | null, intervalMs: number | (() => number), headers?: Record<string, string>) {
   const [state, setState] = useState<T | null>(null);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
   const [offset, setOffset] = useState(0);
+  const [confirmedAt, setConfirmedAt] = useState(0);
   const [nonce, setNonce] = useState(0);
   const versionRef = useRef<number | null>(null);
   const headersRef = useRef<Record<string, string> | undefined>(headers);
+  const intervalRef = useRef(intervalMs); // read on every round (a number, or a function that says the pace right now), so the pace can change without starting over
 
   useEffect(() => {
     headersRef.current = headers;
+    intervalRef.current = intervalMs;
   });
 
   useEffect(() => {
@@ -41,6 +46,7 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
           if (typeof serverNow === "number") {
             const next = serverNow - Date.now();
             setOffset((cur) => (Math.abs(cur - next) > 150 ? next : cur));
+            setConfirmedAt(serverNow);
           }
           if (data.state) {
             versionRef.current = data.state.version;
@@ -51,7 +57,7 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
         if (!stopped) setError({ status: 0, message: "Connection lost. Trying again..." });
       }
       inFlight = false;
-      if (!stopped) timer = setTimeout(run, intervalMs);
+      if (!stopped) timer = setTimeout(run, typeof intervalRef.current === "function" ? intervalRef.current() : intervalRef.current);
     }
     run();
     // Phones throttle timers when the screen is off or the tab is in the background. Catch up the moment it is back.
@@ -69,11 +75,102 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
       document.removeEventListener("visibilitychange", wake);
       window.removeEventListener("online", wake);
     };
-  }, [url, intervalMs, nonce]);
+  }, [url, nonce]);
 
   // Ask again right now (after you press a button), instead of waiting for the next poll.
   const poke = () => setNonce((n) => n + 1);
-  return { state, error, offset, poke };
+  return { state, error, offset, confirmedAt, poke };
+}
+
+// Once a team has buzzed the order stays open for a moment (the server's `lockUntil`). It is final when that moment has
+// passed AND the picture we hold was confirmed current after it. Until then nobody is shown as "answering".
+export function useOrderFinal(lockUntil: number | null, confirmedAt: number, offset: number): boolean {
+  const reached = useReached(lockUntil, offset);
+  return lockUntil === null || (reached && confirmedAt >= lockUntil);
+}
+
+// How far this device's clock is from the server's (server minus device, in ms). It asks the server for its time a few
+// times and trusts the answer that came back fastest: a quick round trip leaves the least room for the two directions
+// to have taken different times. It checks again every 20 seconds, and the moment the phone wakes or comes back online.
+// Until the first answer comes in, `ready` is false and callers should use the poll's rougher offset.
+export function useClockSync(): { offset: number; ready: boolean } {
+  const [sync, setSync] = useState({ offset: 0, ready: false });
+  useEffect(() => {
+    let stopped = false;
+    let running = false;
+    const samples: { rtt: number; offset: number; at: number }[] = [];
+    const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    async function sample() {
+      const t0 = Date.now();
+      try {
+        const res = await fetch("/api/live/time", { cache: "no-store", signal: AbortSignal.timeout(4000) });
+        const data = (await res.json()) as { now?: number };
+        const t1 = Date.now();
+        if (typeof data.now !== "number") return;
+        const rtt = t1 - t0;
+        samples.push({ rtt, offset: data.now - (t0 + rtt / 2), at: t1 });
+      } catch {
+        // a lost ping is fine, the next one will do
+      }
+    }
+
+    async function burst(count: number, gap: number) {
+      if (running) return;
+      running = true;
+      for (let i = 0; i < count && !stopped; i++) {
+        await sample();
+        if (i < count - 1) await pause(gap);
+      }
+      running = false;
+      if (stopped) return;
+      const cutoff = Date.now() - 90_000;
+      while (samples.length > 0 && samples[0].at < cutoff) samples.shift();
+      if (samples.length > 12) samples.splice(0, samples.length - 12);
+      if (samples.length === 0) return;
+      const best = samples.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+      // Small differences are noise: keep the old offset so timers don't restart for nothing.
+      setSync((cur) => (cur.ready && Math.abs(cur.offset - best.offset) < 8 ? cur : { offset: best.offset, ready: true }));
+    }
+
+    void burst(6, 180);
+    const every = setInterval(() => void burst(3, 250), 20_000);
+    const wake = () => {
+      if (document.visibilityState === "visible") void burst(4, 200);
+    };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    return () => {
+      stopped = true;
+      clearInterval(every);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+    };
+  }, []);
+  return sync;
+}
+
+// True once the server's clock has reached `target` (always true for null). It flips at that exact moment, not at the next
+// tick of a clock, so a question opens on every screen and phone at the same instant.
+export function useReached(target: number | null, offset: number): boolean {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (target === null) return;
+    const wait = target - (Date.now() + offset);
+    if (wait <= 0) return;
+    const t = setTimeout(() => setTick((n) => n + 1), wait + 3);
+    return () => clearTimeout(t);
+  }, [target, offset]);
+  // Reading the clock while drawing is the point here: the timer above forces a redraw at the moment it matters.
+  // eslint-disable-next-line react-hooks/purity
+  return target === null || Date.now() + offset >= target;
+}
+
+// When a press really happened, as a time on this device's clock. A phone can be busy for a moment before it runs the
+// tap handler, so the event's own timestamp is used to look back to the real moment of the touch.
+export function pressTime(e: { timeStamp: number }): number {
+  const age = performance.now() - e.timeStamp;
+  return Date.now() - (age >= 0 && age < 1000 ? age : 0);
 }
 
 // A clock that re-renders its component every `ms` milliseconds.

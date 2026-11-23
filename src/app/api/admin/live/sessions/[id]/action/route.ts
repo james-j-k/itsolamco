@@ -22,11 +22,16 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("showEnding") }),
 ]);
 
+// The screen's tap says which step it was made on, so a double tap or a late retry can't act on the wrong question.
+const expectSchema = z.object({ step: z.string().max(120), version: z.number().int() });
+
 export async function POST(request: NextRequest, { params }: Params) {
   const { id } = await params;
-  const parsed = actionSchema.safeParse(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  const parsed = actionSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  const result = await hostAction(id, parsed.data);
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  const expect = expectSchema.safeParse((body as { expect?: unknown } | null)?.expect);
+  const result = await hostAction(id, parsed.data, expect.success ? expect.data : undefined);
+  if (!result.ok) return NextResponse.json({ error: result.error, ...(result.stale ? { stale: true } : {}) }, { status: result.status });
   return NextResponse.json({ ok: true });
 }

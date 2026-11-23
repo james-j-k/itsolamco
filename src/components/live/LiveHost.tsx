@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HostAction, LiveState } from "@/lib/liveTypes";
-import { clock, seconds, useLivePoll, useNow } from "./liveClient";
+import { clock, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
 
 // The quizmaster's phone. Everything here is a big thumb-sized button.
 const C = { bg: "#1C1512", panel: "#2A201B", cream: "#F5F0E6", amber: "#F2A93B", red: "#C0280A", muted: "#D9CBB8", green: "#3F9D5F" };
@@ -74,38 +74,71 @@ function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name
 }
 
 function HostPad({ sessionId }: { sessionId: string }) {
-  const { state: s, error, offset, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, 700);
+  const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
+  const { state: s, error, offset: pollOffset, confirmedAt, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700));
+  const sync = useClockSync();
+  const offset = sync.ready ? sync.offset : pollOffset;
   const now = useNow(250);
+  const opened = useReached(s?.phase === "question" ? s.openedAt : null, offset);
+  const orderFinal = useOrderFinal(s?.phase === "question" ? s.lockUntil : null, confirmedAt, offset);
+  useEffect(() => {
+    fastRef.current = s?.phase === "question" && s.lockUntil !== null && !orderFinal;
+  });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [notice, setNotice] = useState(""); // a tap that was ignored because the night had already moved on: not an error
+  const [sending, setSending] = useState<"idle" | "sending" | "done" | "failed">("idle");
   const [showBoard, setShowBoard] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
 
+  if (!s) {
+    return <div style={{ minHeight: "100dvh", background: C.bg, color: C.muted, padding: 24 }}>{error ? error.message : "Connecting..."}</div>;
+  }
+
+  // Every tap says which step of the night it was made on. If the night has moved on by the time it arrives
+  // (slow signal, a double tap, a retry) the server ignores it, so a repeat can never skip a question.
   async function act(a: HostAction): Promise<boolean> {
-    if (busy) return false;
+    if (busy || !s) return false;
     setBusy(true);
     setMsg("");
+    setNotice("");
+    setSending("sending");
     try {
-      const res = await fetch(`/api/admin/live/sessions/${sessionId}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) });
+      const res = await fetch(`/api/admin/live/sessions/${sessionId}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...a, expect: { step: s.step, version: s.version } }),
+        signal: AbortSignal.timeout(10_000),
+      });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) setMsg(data.error ?? "That didn't work.");
+      if (res.ok) {
+        setSending("done");
+        setTimeout(() => setSending((x) => (x === "done" ? "idle" : x)), 1500);
+      } else if (data.stale) {
+        setNotice(data.error ?? "The screen had already moved on.");
+        setSending("idle");
+      } else {
+        setMsg(data.error ?? "That didn't work.");
+        setSending("failed");
+      }
       poke();
       return res.ok;
     } catch {
-      setMsg("Connection lost. Try again.");
+      setMsg("No answer from the server. Look at the screen to see if it went through, then tap again if not. Tapping twice is safe.");
+      setSending("failed");
+      poke();
       return false;
     } finally {
       setBusy(false);
     }
   }
 
-  if (!s) {
-    return <div style={{ minHeight: "100dvh", background: C.bg, color: C.muted, padding: 24 }}>{error ? error.message : "Connecting..."}</div>;
-  }
-
   const serverNow = now + offset;
-  const elapsed = s.openedAt ? serverNow - s.openedAt : 0;
-  const answering = s.queue.find((q) => q.answering);
+  const elapsed = s.openedAt && opened ? serverNow - s.openedAt : 0;
+  const opensIn = s.openedAt && !opened ? Math.max(1, Math.ceil((s.openedAt - serverNow) / 1000)) : 0;
+  // The team that is answering only counts once the order of the buzzes is final (a moment after the first buzz).
+  const lockingIn = s.queue.length > 0 && !orderFinal;
+  const answering = orderFinal ? s.queue.find((q) => q.answering) : undefined;
   // Seconds the team that is answering has left before the next team is up.
   const turnLeft = answering && s.phaseUntil ? Math.max(0, Math.ceil((s.phaseUntil - serverNow) / 1000)) : null;
   const penalty = s.wrongPenalty > 0;
@@ -122,6 +155,12 @@ function HostPad({ sessionId }: { sessionId: string }) {
       </div>
       {error && <div style={{ background: C.red, borderRadius: 10, padding: "6px 12px", fontSize: 13, marginBottom: 8 }}>{error.message}</div>}
       {msg && <div style={{ background: C.red, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{msg}</div>}
+      {notice && <div style={{ background: C.panel, color: C.amber, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{notice}</div>}
+      {sending !== "idle" && (
+        <div style={{ position: "fixed", right: 12, top: 12, zIndex: 40, borderRadius: 999, padding: "6px 14px", fontSize: 13, fontWeight: 800, background: sending === "done" ? C.green : sending === "failed" ? C.red : C.amber, color: sending === "sending" ? C.bg : C.cream }}>
+          {sending === "sending" ? "Sending..." : sending === "done" ? "Done ✓" : "Not confirmed"}
+        </div>
+      )}
 
       {s.phase !== "lobby" && (
         <section style={{ marginBottom: 12 }}>
@@ -191,7 +230,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
             <div style={{ color: C.muted, fontSize: 12, letterSpacing: 2 }}>ANSWER</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 30, color: C.amber, lineHeight: 1.1 }}>{s.answer?.text}</div>
             {s.answer?.note && <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>{s.answer.note}</div>}
-            <div style={{ color: C.muted, fontSize: 13, marginTop: 8 }}>Open for {clock(elapsed)}</div>
+            <div style={{ color: opened ? C.muted : C.amber, fontSize: 13, marginTop: 8, fontWeight: opened ? 400 : 800 }}>{opened ? `Open for ${clock(elapsed)}` : `Buzzer opens in ${opensIn}...`}</div>
           </div>
 
           {answering ? (
@@ -215,12 +254,18 @@ function HostPad({ sessionId }: { sessionId: string }) {
               </div>
             </div>
           ) : (
-            <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 12, color: C.muted }}>
-              {s.queue.length === 0 ? "Buzzer is open. Waiting for a team to buzz..." : "Everyone who buzzed has had a go. The buzzer is still open for the others."}
+            <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 12, color: lockingIn ? C.amber : C.muted, fontWeight: lockingIn ? 800 : 400 }}>
+              {!opened
+                ? "Get ready. The buzzer opens on every phone and the projector at the same moment."
+                : lockingIn
+                  ? `${s.queue.length} ${s.queue.length === 1 ? "team has" : "teams have"} buzzed. Locking in the order...`
+                  : s.queue.length === 0
+                    ? "Buzzer is open. Waiting for a team to buzz..."
+                    : "Everyone who buzzed has had a go. The buzzer is still open for the others."}
             </div>
           )}
 
-          {s.queue.length > 0 && (
+          {s.queue.length > 0 && orderFinal && (
             <ol style={{ listStyle: "none", padding: 0, margin: "0 0 12px" }}>
               {s.queue.map((q) => (
                 <li key={q.buzzId} style={{ display: "flex", justifyContent: "space-between", padding: "8px 4px", borderBottom: `1px solid ${C.panel}`, opacity: q.outcome === "pending" ? 1 : 0.55 }}>
