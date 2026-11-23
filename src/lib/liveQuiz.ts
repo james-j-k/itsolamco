@@ -271,6 +271,24 @@ export async function buzz(code: string, teamId: string, token: string, input: {
   });
 }
 
+// A phone checking in: how long its round trips take and how far its clock is from the server's. Only the quizmaster
+// sees this (the pre-night check), and it never touches the quiz itself.
+export async function reportHealth(code: string, teamId: string, token: string, rttMs: number | undefined, offsetMs: number | undefined): Promise<void> {
+  const session = await prisma.liveSession.findUnique({ where: { code: code.trim().toUpperCase() }, select: { id: true } });
+  if (!session) return;
+  await prisma.liveTeam.updateMany({
+    where: { id: teamId, sessionId: session.id, tokenHash: hash(token) },
+    data: { seenAt: new Date(), ...(rttMs !== undefined ? { rttMs: Math.round(rttMs) } : {}), ...(offsetMs !== undefined ? { offsetMs: Math.round(offsetMs) } : {}) },
+  });
+}
+
+export type TeamHealth = { teamId: string; name: string; seenAt: number | null; rttMs: number | null; offsetMs: number | null };
+
+export async function getTeamHealth(sessionId: string): Promise<{ now: number; teams: TeamHealth[] }> {
+  const teams = await prisma.liveTeam.findMany({ where: { sessionId }, orderBy: { joinedAt: "asc" }, select: { id: true, name: true, seenAt: true, rttMs: true, offsetMs: true } });
+  return { now: Date.now(), teams: teams.map((t) => ({ teamId: t.id, name: t.name, seenAt: t.seenAt?.getTime() ?? null, rttMs: t.rttMs, offsetMs: t.offsetMs })) };
+}
+
 export async function submitGuess(code: string, teamId: string, token: string, value: number): Promise<Done | Fail> {
   if (!Number.isInteger(value) || value < 0 || value > 100000) return fail("Enter a whole number.", 400);
   return prisma.$transaction(async (tx) => {

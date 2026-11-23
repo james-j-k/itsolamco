@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { LiveTeamState } from "@/lib/liveTypes";
+import { FALSE_START_MS, FALSE_START_SLACK_MS, type LiveTeamState } from "@/lib/liveTypes";
 import { connectionOf, pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
-import { sfx, unlockSounds } from "./liveSounds";
+import { setMuted, sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
 
 // A team's phone: join once, then one big buzzer. The phone remembers its team, so a refresh
@@ -68,36 +68,94 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   // The buzz this phone has just sent: shown at once, and kept until the server has confirmed it.
   const [pressed, setPressed] = useState<{ qid: string; state: "sending" | "sent" | "failed" } | null>(null);
   const qidRef = useRef<string | null>(null);
+  const rttRef = useRef<number | null>(null);
+  // Pressing before the buzzer opens is a false start: this phone is locked out for a moment once it opens.
+  const [lockout, setLockout] = useState<{ qid: string; until: number } | null>(null);
+  const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => {
     offsetRef.current = offset;
+    rttRef.current = sync.rtt;
     qidRef.current = s?.phase === "question" ? s.questionId : null;
   });
+
+  useEffect(() => {
+    // Whether this phone had the sound switched off is kept in the phone's own storage, which only exists in the browser.
+    try {
+      const on = localStorage.getItem("olam-live-sound") !== "off";
+      setMuted(!on);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSoundOn(on);
+    } catch {
+      // storage blocked: sound stays on
+    }
+    // A browser only plays sound after a touch, so the very first touch anywhere unlocks it.
+    const unlock = () => unlockSounds();
+    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
 
   const now = useNow(250);
   // The buzzer opens at one moment for everyone (a beat after the quizmaster moves on). Before that the button waits.
   const opened = useReached(s?.phase === "question" ? s.openedAt : null, offset);
   const orderFinal = useOrderFinal(s?.phase === "question" ? s.lockUntil : null, confirmedAt, offset);
+  const activeLock = lockout && s?.phase === "question" && lockout.qid === s.questionId ? lockout.until : null; // this question's lockout, if this phone jumped the gun
+  const stillLockedOut = !useReached(activeLock, offset);
+  const lockedRef = useRef(false);
   useEffect(() => {
     fastRef.current = s?.phase === "question" && s.lockUntil !== null && !orderFinal;
+    lockedRef.current = activeLock !== null;
   });
   const myTurn = !!s?.myBuzz?.answering && orderFinal;
   const turnLeft = myTurn && s?.turnUntil ? Math.max(0, Math.ceil((s.turnUntil - (now + offset)) / 1000)) : null;
   useEffect(() => {
-    // The phone buzzes in the hand when it is this team's turn to answer.
-    if (myTurn) navigator.vibrate?.([140, 70, 140]);
+    // The phone buzzes in the hand (and chimes) when it is this team's turn to answer.
+    if (myTurn) {
+      navigator.vibrate?.([140, 70, 140]);
+      sfx.yourTurn();
+    }
   }, [myTurn]);
+  const tiedNow = !!s?.tied && orderFinal;
+  useEffect(() => {
+    if (tiedNow) navigator.vibrate?.([60, 40, 60]);
+  }, [tiedNow]);
+  // The buzzer opening: a chime and a tap on the hand. Only when this phone watched it open, not when it reloads mid-question.
+  const sawClosed = useRef<string | null>(null);
+  const openQid = s?.phase === "question" ? s.questionId : null;
+  useEffect(() => {
+    if (!openQid) return;
+    if (!opened) {
+      sawClosed.current = openQid;
+      return;
+    }
+    if (sawClosed.current === openQid) {
+      sawClosed.current = null;
+      if (!lockedRef.current) {
+        sfx.go();
+        navigator.vibrate?.(40);
+      }
+    }
+  }, [opened, openQid]);
 
-  // Keep the buzz route awake. A server that has been idle can take a second to start, which would
-  // slow down the very first buzz of the night. This never buzzes; it only says hello.
+  // Keep the buzz route awake, and tell the quizmaster how this phone's connection is doing (their pre-night check).
+  // A server that has been idle can take a second to start, which would slow down the very first buzz of the night.
+  // This never buzzes; it only says hello.
   useEffect(() => {
     const ping = () => {
       if (document.visibilityState !== "visible") return;
-      fetch(`/api/live/${code}/buzz`, { method: "POST", headers: { "Content-Type": "application/json", "x-team-token": saved.token }, body: JSON.stringify({ teamId: saved.teamId, warm: true }), signal: AbortSignal.timeout(5000) }).catch(() => {});
+      fetch(`/api/live/${code}/buzz`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-team-token": saved.token },
+        body: JSON.stringify({ teamId: saved.teamId, warm: true, ...(rttRef.current !== null ? { rttMs: rttRef.current } : {}), offsetMs: Math.round(offsetRef.current) }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
     };
-    ping();
-    const every = setInterval(ping, 45_000);
-    return () => clearInterval(every);
+    const first = setTimeout(ping, 2500); // after the first clock check has had time to finish
+    const every = setInterval(ping, 10_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(every);
+    };
   }, [code, saved.teamId, saved.token]);
 
   useEffect(() => {
@@ -170,10 +228,32 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   const my = s.myBuzz;
   const mine = pressed && pressed.qid === s.questionId ? pressed : null; // this phone's own buzz on this question
   const secondsToOpen = s.openedAt ? Math.max(1, Math.ceil((s.openedAt - (now + offset)) / 1000)) : 1;
+  const lockLeft = activeLock !== null ? Math.max(1, Math.ceil((activeLock - (now + offset)) / 1000)) : 0;
   let label = "";
   let sub = "";
   let buttonColor = C.red;
   let enabled = false;
+  // Before the buzzer opens the button still takes a press, but only to catch a false start.
+  let pressable = false;
+
+  // One press, from a finger or a key. `at` is when it happened on this phone's clock.
+  function press(at: number) {
+    if (!s || !pressable || busy || !s.questionId) return;
+    const qid = s.questionId;
+    unlockSounds();
+    if (s.openedAt && at + offsetRef.current < s.openedAt - FALSE_START_SLACK_MS) {
+      // Jumped the gun: no buzz is sent, and this phone is locked out for a moment once the buzzer opens.
+      sfx.falseStart();
+      navigator.vibrate?.([90, 60, 90]);
+      setLockout({ qid, until: s.openedAt + FALSE_START_MS });
+      return;
+    }
+    sfx.tap();
+    navigator.vibrate?.(50);
+    setMsg("");
+    setPressed({ qid, state: "sending" });
+    void sendBuzz(qid, at);
+  }
 
   if (s.status === "finished") {
     label = "THE NIGHT IS OVER";
@@ -189,9 +269,16 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
     buttonColor = C.panel;
   } else if (s.phase === "question") {
     if (!opened) {
-      label = "GET READY";
-      sub = `Buzzer opens in ${secondsToOpen}`;
-      buttonColor = C.panel;
+      if (activeLock !== null) {
+        label = "TOO EARLY!";
+        sub = "Wait for the buzzer to open";
+        buttonColor = C.red;
+      } else {
+        label = "GET READY";
+        sub = `Buzzer opens in ${secondsToOpen}`;
+        buttonColor = C.panel;
+        pressable = s.buzzOpen;
+      }
     } else if (my) {
       if (!orderFinal) {
         label = "BUZZED!";
@@ -214,6 +301,10 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
         sub = "Wait for the next question";
         buttonColor = C.panel;
       }
+    } else if (activeLock !== null && stillLockedOut && !mine) {
+      label = "TOO EARLY!";
+      sub = `Locked out for ${lockLeft}s`;
+      buttonColor = C.red;
     } else if (mine && mine.state !== "failed") {
       label = "BUZZED!";
       sub = mine.state === "sending" ? "Sending..." : "Got it. Locking in the order...";
@@ -222,10 +313,12 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
       label = "NOT SENT";
       sub = "Tap to buzz again";
       enabled = true;
+      pressable = true;
     } else if (s.buzzOpen) {
       label = "BUZZ!";
       sub = "Tap as soon as you know it";
       enabled = true;
+      pressable = true;
     } else {
       label = "WAIT";
       sub = "";
@@ -248,8 +341,27 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
           {s.phase === "question" ? `Round ${s.roundNo} · Q${s.questionNo}/${s.questionCount}` : s.phase === "lobby" ? "" : `Round ${s.roundNo}`}
         </span>
       </div>
-      <div style={{ marginTop: 6, color: C.muted }}>
+      <div style={{ marginTop: 6, color: C.muted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <ConnectionBadge state={conn} size={9} fontSize={12} />
+        <button
+          type="button"
+          aria-pressed={soundOn}
+          onClick={() => {
+            const next = !soundOn;
+            setSoundOn(next);
+            setMuted(!next);
+            unlockSounds();
+            if (next) sfx.tap();
+            try {
+              localStorage.setItem("olam-live-sound", next ? "on" : "off");
+            } catch {
+              // not saved; it still works until the page is reloaded
+            }
+          }}
+          style={{ background: "transparent", color: C.muted, border: `1px solid ${C.muted}`, borderRadius: 999, padding: "3px 12px", fontSize: 12, fontWeight: 700 }}
+        >
+          Sound {soundOn ? "on" : "off"}
+        </button>
       </div>
 
       {s.phase === "tiebreak" && s.tiebreak ? (
@@ -297,27 +409,12 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18 }}>
           <button
             type="button"
-            disabled={!enabled || busy}
+            disabled={!pressable || busy}
             // Counts the moment the finger lands, not when it lifts: faster, and the time that is sent is the real one.
-            onPointerDown={(e) => {
-              if (!enabled || busy || !s.questionId) return;
-              const qid = s.questionId;
-              const at = pressTime(e);
-              unlockSounds();
-              sfx.tap();
-              navigator.vibrate?.(50);
-              setMsg("");
-              setPressed({ qid, state: "sending" });
-              void sendBuzz(qid, at);
-            }}
+            onPointerDown={(e) => press(pressTime(e))}
             onClick={(e) => {
               // A keyboard (Enter or Space) clicks without a pointer.
-              if (e.detail !== 0 || !enabled || busy || !s.questionId) return;
-              const qid = s.questionId;
-              unlockSounds();
-              setMsg("");
-              setPressed({ qid, state: "sending" });
-              void sendBuzz(qid, Date.now());
+              if (e.detail === 0) press(Date.now());
             }}
             aria-label="Buzzer"
             style={{

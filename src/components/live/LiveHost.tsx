@@ -74,6 +74,71 @@ function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name
   );
 }
 
+type Health = { now: number; teams: { teamId: string; name: string; seenAt: number | null; rttMs: number | null; offsetMs: number | null }[] };
+
+// How each team's phone is connected, checked before the night starts (and any time after). The phones check in every
+// few seconds with how long their round trips take; "clock" is how far off the phone's clock could be once corrected.
+function TeamHealth({ sessionId }: { sessionId: string }) {
+  const [data, setData] = useState<Health | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let stopped = false;
+    async function load() {
+      try {
+        const res = await fetch(`/api/admin/live/sessions/${sessionId}/health`, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+        if (!res.ok) throw new Error("bad answer");
+        const d = (await res.json()) as Health;
+        if (!stopped) {
+          setData(d);
+          setFailed(false);
+        }
+      } catch {
+        if (!stopped) setFailed(true);
+      }
+    }
+    void load();
+    const every = setInterval(load, 4000);
+    return () => {
+      stopped = true;
+      clearInterval(every);
+    };
+  }, [sessionId]);
+
+  if (!data) return <div style={{ color: C.muted, fontSize: 13 }}>{failed ? "Couldn't load the connections. Trying again..." : "Checking the phones..."}</div>;
+
+  const rows = data.teams.map((t) => {
+    const age = t.seenAt === null ? null : data.now - t.seenAt;
+    const state: "good" | "slow" | "offline" = age === null || age > 35_000 ? "offline" : age > 20_000 || (t.rttMs ?? 0) > 900 ? "slow" : "good";
+    return { ...t, age, state };
+  });
+  const dot = { good: "#6BCB8B", slow: C.amber, offline: "#E5484D" } as const;
+  const ready = rows.filter((r) => r.state === "good").length;
+  return (
+    <div>
+      <div style={{ fontWeight: 800, marginBottom: 8, color: ready === rows.length && rows.length > 0 ? "#6BCB8B" : C.cream }}>
+        {rows.length === 0 ? "No teams yet" : `${ready} of ${rows.length} ${rows.length === 1 ? "team" : "teams"} ready`}
+        {failed && <span style={{ color: C.amber, fontWeight: 400, fontSize: 12 }}> · connection to the server is shaky</span>}
+      </div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {rows.map((r) => (
+          <div key={r.teamId} style={{ display: "flex", alignItems: "center", gap: 10, background: C.panel, borderRadius: 12, padding: "8px 12px" }}>
+            <span aria-hidden="true" style={{ flex: "none", width: 12, height: 12, borderRadius: "50%", background: dot[r.state] }} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+              <div style={{ color: C.muted, fontSize: 12 }}>
+                {r.age === null
+                  ? "Not seen yet. Is the phone on the page?"
+                  : `${r.rttMs !== null ? `ping ${r.rttMs} ms · clock ±${Math.round(r.rttMs / 2)} ms · ` : ""}${r.age < 2000 ? "just now" : `${Math.round(r.age / 1000)}s ago`}${r.state === "offline" ? " · no signal" : r.state === "slow" ? " · weak" : ""}`}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {rows.some((r) => r.state !== "good") && <div style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>Ask teams with an amber or red dot to move near a window, or switch to mobile data.</div>}
+    </div>
+  );
+}
+
 function HostPad({ sessionId }: { sessionId: string }) {
   const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
   const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700));
@@ -92,6 +157,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
   const [sending, setSending] = useState<"idle" | "sending" | "done" | "failed">("idle");
   const [showBoard, setShowBoard] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
+  const [healthOpen, setHealthOpen] = useState(false);
 
   if (!s) {
     return <div style={{ minHeight: "100dvh", background: C.bg, color: C.muted, padding: 24 }}>{error ? error.message : "Connecting..."}</div>;
@@ -209,6 +275,13 @@ function HostPad({ sessionId }: { sessionId: string }) {
               </span>
             ))}
           </div>
+          {s.teams.length > 0 && (
+            <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, marginBottom: 2 }}>Team connections</div>
+              <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>Check every phone before you start. Each one should be green.</div>
+              <TeamHealth sessionId={sessionId} />
+            </div>
+          )}
           {s.teams.length > 0 && <StartScores teams={s.teams} scores={scoreOf} busy={busy} onSet={(teamId, points) => act({ type: "setCarry", teamId, points })} />}
           <Btn big color={C.amber} text={C.bg} disabled={busy || s.teams.length === 0} onClick={() => act({ type: "start" })}>
             START THE QUIZ
@@ -486,6 +559,12 @@ function HostPad({ sessionId }: { sessionId: string }) {
               </option>
             ))}
           </select>
+          {s.teams.length > 0 && (
+            <details style={{ marginTop: 14 }} onToggle={(e) => setHealthOpen(e.currentTarget.open)}>
+              <summary style={{ color: C.muted, fontSize: 14 }}>Team connections</summary>
+              <div style={{ marginTop: 8 }}>{healthOpen && <TeamHealth sessionId={sessionId} />}</div>
+            </details>
+          )}
           {s.teams.length > 0 && (
             <details style={{ marginTop: 14 }}>
               <summary style={{ color: C.muted, fontSize: 14 }}>Release a team&apos;s buzzer (lost phone)</summary>

@@ -236,6 +236,10 @@ model LiveTeam {
   name      String
   tokenHash String // the one phone that holds this team's buzzer
   joinedAt  DateTime    @default(now())
+  // What the phone last reported about its own connection (for the quizmaster's pre-night check). All optional.
+  seenAt    DateTime? // when the phone last checked in
+  rttMs     Int? // its quickest round trip to the server, in ms
+  offsetMs  Int? // how far its clock is from the server's, in ms (already corrected for when buzzing)
 
   @@unique([sessionId, name])
   @@unique([sessionId, tokenHash])

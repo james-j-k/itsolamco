@@ -183,7 +183,7 @@ function QueueStrip({ s, elapsed, serverNow, locking, tie }: { s: LiveState; ela
   }
   return (
     <div style={{ position: "absolute", left: 104, right: 104, bottom: 56, height: 240, display: "flex", gap: 24 }}>
-      {s.queue.map((q: LiveQueueItem) => {
+      {s.queue.map((q: LiveQueueItem, i: number) => {
         const answering = q.answering;
         const resolved = q.outcome !== "pending";
         return (
@@ -197,7 +197,8 @@ function QueueStrip({ s, elapsed, serverNow, locking, tie }: { s: LiveState; ela
               background: answering ? C.amber : C.panel,
               color: answering ? C.ink : C.cream,
               opacity: resolved ? 0.55 : 1,
-              animation: "olampop .35s ease-out",
+              // The order is revealed one team at a time, fastest first (the sound climbs with it).
+              animation: `olampop .45s ${i * 0.18}s ease-out both`,
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
@@ -211,7 +212,12 @@ function QueueStrip({ s, elapsed, serverNow, locking, tie }: { s: LiveState; ela
               </span>
             </div>
             <div style={{ fontFamily: BODY, fontWeight: 800, fontSize: 44, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{q.teamName}</div>
-            <div style={{ fontFamily: DISPLAY, fontWeight: DW, fontSize: D(44) }}>{q.place === 0 ? seconds(q.atMs) : `+${seconds(q.gapMs)}`}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontFamily: DISPLAY, fontWeight: DW, fontSize: D(q.place === 0 ? 56 : 44) }}>{q.place === 0 ? seconds(q.atMs) : `+${seconds(q.gapMs)}`}</span>
+              {q.place === 0 && (
+                <span style={{ fontFamily: BODY, fontWeight: 800, fontSize: 20, letterSpacing: 3, padding: "4px 14px", borderRadius: 999, background: answering ? C.ink : C.amber, color: answering ? C.amber : C.ink }}>FASTEST</span>
+              )}
+            </div>
           </div>
         );
       })}
@@ -409,6 +415,21 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
     }
     if (s.phase === "lobby" && s.teams.length > prev.teams) sfx.join();
   }, [s]);
+
+  // The order of the buzzes is revealed with a little climbing sound, once the order is final.
+  const revealedFor = useRef<string | null>(null);
+  const revealQid = s?.phase === "question" ? (s.question?.id ?? null) : null;
+  const queueLen = s?.queue.length ?? 0;
+  useEffect(() => {
+    if (!revealQid) {
+      revealedFor.current = null;
+      return;
+    }
+    if (queueLen > 0 && orderFinal && revealedFor.current !== revealQid) {
+      revealedFor.current = revealQid;
+      if (armedRef.current) sfx.reveal(queueLen);
+    }
+  }, [orderFinal, queueLen, revealQid]);
 
   // The question's sound, at the moment it opens.
   const openedSeen = useRef(false);

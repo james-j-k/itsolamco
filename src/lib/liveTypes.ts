@@ -111,6 +111,8 @@ export function stepOf(s: { status: string; phase: string; roundIdx: number; pos
 export const ANSWER_MS = 15_000; // how long a team has to answer once it is up
 export const OPEN_LEAD_MS = 2_000; // a question opens this long after the quizmaster moves on (the "get ready" beat), the same instant everywhere
 export const LOCK_MS = 1_200; // after the first buzz is heard, the order stays open this long for slower connections, then it is final
+export const FALSE_START_MS = 1_000; // pressing before the buzzer opens locks that phone out for this long after it opens
+export const FALSE_START_SLACK_MS = 150; // a press this close to the opening time still counts (the phone's clock is a little off)
 export const TIE_MS = 100; // two buzzes closer together than this are too close to call: the quizmaster decides
 export const EARLY_BUZZ_MS = 200; // a buzz may arrive this much before the opening time (the phone's clock is a little off) and still count
 export const MAX_BUZZ_AGE_MS = 8_000; // a buzz that was pressed longer ago than this is treated as pressed when it arrived

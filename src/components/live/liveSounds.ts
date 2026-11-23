@@ -11,6 +11,7 @@ let muted = false;
 // How loud the effect being scheduled right now is. The buzzers stay at full strength; everything else sits well under them.
 const BUZZER = 1;
 const EFFECT = 0.15;
+const PHONE = 0.55; // cues on a team's own phone: held close, so clearer than the room effects but nowhere near the buzzer
 let level = BUZZER;
 
 export function unlockSounds() {
@@ -185,6 +186,39 @@ export const sfx = {
     level = EFFECT;
     const t = c.currentTime;
     tone(c, t, 520, 0.12, "sine", 0.26, 900);
+  },
+  // Team phone: the buzzer just opened.
+  go() {
+    const c = ready();
+    if (!c) return;
+    level = PHONE;
+    const t = c.currentTime;
+    tone(c, t, 1175, 0.08, "sine", 0.22);
+    tone(c, t + 0.08, 1568, 0.14, "sine", 0.22);
+  },
+  // Team phone: it is your team's turn to answer.
+  yourTurn() {
+    const c = ready();
+    if (!c) return;
+    level = PHONE;
+    const t = c.currentTime;
+    [659.25, 880, 1174.66].forEach((f, i) => tone(c, t + i * 0.09, f, 0.16, "triangle", 0.26));
+  },
+  // Team phone: pressed before the buzzer opened.
+  falseStart() {
+    const c = ready();
+    if (!c) return;
+    level = PHONE;
+    const t = c.currentTime;
+    tone(c, t, 196, 0.22, "sawtooth", 0.24, 130, 900);
+  },
+  // Projector: the order of the buzzes appears, one blip per team, climbing.
+  reveal(count: number) {
+    const c = ready();
+    if (!c) return;
+    level = EFFECT;
+    const t = c.currentTime;
+    for (let i = 0; i < Math.min(count, 4); i++) tone(c, t + i * 0.18, 520 + i * 110, 0.12, "triangle", 0.3);
   },
   // A team phone: the click under your thumb.
   tap() {

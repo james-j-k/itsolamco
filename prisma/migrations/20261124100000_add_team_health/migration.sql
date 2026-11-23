@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "LiveTeam" ADD COLUMN "seenAt" TIMESTAMP(3),
+ADD COLUMN "rttMs" INTEGER,
+ADD COLUMN "offsetMs" INTEGER;
