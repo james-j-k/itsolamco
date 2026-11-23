@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { BUSINESS } from "@/lib/business";
 import type { LiveQueueItem, LiveState } from "@/lib/liveTypes";
-import { clock, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { ConnectionBadge } from "./LiveConnection";
 import { isMuted, setMuted, sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
 
@@ -133,9 +134,21 @@ function GetReady({ s, offset }: { s: LiveState; offset: number }) {
   );
 }
 
-function QueueStrip({ s, elapsed, serverNow, locking }: { s: LiveState; elapsed: number; serverNow: number; locking: boolean }) {
+function QueueStrip({ s, elapsed, serverNow, locking, tie }: { s: LiveState; elapsed: number; serverNow: number; locking: boolean; tie: LiveState["tie"] }) {
   const { C, DISPLAY, DW, BODY, D } = useLiveTheme();
   const turnLeft = s.phaseUntil ? Math.max(0, Math.ceil((s.phaseUntil - serverNow) / 1000)) : null; // the team that is answering
+  if (tie && !locking) {
+    // Two teams buzzed too close together to call (closer than the phones and networks can tell apart): the quizmaster decides.
+    return (
+      <div style={{ position: "absolute", left: 104, right: 104, bottom: 56, height: 220, display: "flex", alignItems: "center", gap: 48, background: C.amber, color: C.ink, borderRadius: 28, padding: "0 56px", boxShadow: `0 0 0 6px ${C.red}`, animation: "olampop .35s ease-out" }}>
+        <div style={{ fontFamily: DISPLAY, fontWeight: DW, fontSize: D(110), lineHeight: 1 }}>TIE!</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: BODY, fontWeight: 800, fontSize: 50, lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tie.teams.join(" and ")}</div>
+          <div style={{ fontFamily: BODY, fontSize: 30, marginTop: 6 }}>buzzed at the same moment. The quizmaster decides who goes first.</div>
+        </div>
+      </div>
+    );
+  }
   if (locking) {
     // Somebody has buzzed, but slower connections get a moment to be counted before the order is shown.
     return (
@@ -257,8 +270,9 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
   const T = liveThemeFor(theme);
   const { C, DISPLAY, DW, BODY, D } = T;
   const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
-  const { state: s, error, offset: pollOffset, confirmedAt } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=screen`, () => (fastRef.current ? 250 : 600));
+  const { state: s, error, failures, offset: pollOffset, confirmedAt } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=screen`, () => (fastRef.current ? 250 : 600));
   const sync = useClockSync();
+  const conn = connectionOf(failures, sync.rtt);
   const offset = sync.ready ? sync.offset : pollOffset; // this screen's clock vs the server's
   const now = useNow(250);
   // The question appears at one moment on the projector and on every phone, a beat after the quizmaster moves on.
@@ -500,7 +514,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
               <PointsChips s={st} />
             </div>
             <QuestionBody s={st} />
-            <QueueStrip s={st} elapsed={elapsed} serverNow={serverNow} locking={st.queue.length > 0 && !orderFinal} />
+            <QueueStrip s={st} elapsed={elapsed} serverNow={serverNow} locking={st.queue.length > 0 && !orderFinal} tie={orderFinal ? st.tie : null} />
           </Stage>
         );
 
@@ -676,8 +690,12 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
             <div style={{ fontFamily: BODY, fontSize: 36, color: C.muted, marginTop: 20 }}>One click lets the songs play. Then use the quizmaster&apos;s phone.</div>
           </button>
         )}
-        {s && error && (
-          <div style={{ position: "absolute", left: 104, top: 8, fontFamily: BODY, fontSize: 24, color: C.red, background: C.cream, padding: "4px 16px", borderRadius: 8, zIndex: 15 }}>{error.message}</div>
+        {/* The picture on screen never goes blank when the connection drops: it keeps the last good one and says so quietly. */}
+        {s && (
+          <div style={{ position: "absolute", right: 28, bottom: 20, zIndex: 15, fontFamily: BODY, opacity: conn === "good" ? 0.55 : 1, background: conn === "good" ? "transparent" : "rgba(0,0,0,.55)", padding: conn === "good" ? 0 : "6px 16px", borderRadius: 999, color: "#fff" }}>
+            <ConnectionBadge state={conn} size={14} fontSize={22} showGood={false} />
+            {conn === "good" && <span aria-hidden="true" style={{ display: "block", width: 14, height: 14, borderRadius: "50%", background: "#6BCB8B" }} />}
+          </div>
         )}
       </div>
       {mutedShown && (

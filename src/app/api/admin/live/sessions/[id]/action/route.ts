@@ -12,6 +12,8 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("wrong"), buzzId: z.number().int() }),
   z.object({ type: z.literal("skip"), buzzId: z.number().int() }),
   z.object({ type: z.literal("reveal") }),
+  z.object({ type: z.literal("settleTie"), buzzId: z.number().int() }),
+  z.object({ type: z.literal("buzzFor"), teamId: z.string().min(1).max(64), position: z.enum(["first", "last"]) }),
   z.object({ type: z.literal("undo") }),
   z.object({ type: z.literal("release"), teamId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("setHide"), hideFromRound: z.number().int().min(1).max(20) }),

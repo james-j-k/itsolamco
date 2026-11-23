@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { LiveTeamState } from "@/lib/liveTypes";
-import { pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { connectionOf, pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { ConnectionBadge } from "./LiveConnection";
 import { sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
 
@@ -56,8 +57,9 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   const { C, DISPLAY, DW, D } = useLiveTheme();
   // Faster polling while the order of the buzzes is being locked in, so every phone learns the result quickly.
   const fastRef = useRef(false);
-  const { state: s, error, offset: pollOffset, confirmedAt, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, () => (fastRef.current ? 250 : 700), { "x-team-token": saved.token });
+  const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, () => (fastRef.current ? 250 : 700), { "x-team-token": saved.token });
   const sync = useClockSync();
+  const conn = connectionOf(failures, sync.rtt);
   const offset = sync.ready ? sync.offset : pollOffset; // this phone's clock vs the server's
   const offsetRef = useRef(offset);
   const [busy, setBusy] = useState(false);
@@ -195,6 +197,10 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
         label = "BUZZED!";
         sub = "Locking in the order...";
         buttonColor = C.panel;
+      } else if (s.tied) {
+        label = "TIE!";
+        sub = "Too close to call. The quizmaster decides.";
+        buttonColor = C.amber;
       } else if (my.answering) {
         label = "YOUR TURN";
         sub = turnLeft !== null ? `Shout your answer! ${turnLeft}s` : "Shout your answer!";
@@ -241,6 +247,9 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
         <span>
           {s.phase === "question" ? `Round ${s.roundNo} · Q${s.questionNo}/${s.questionCount}` : s.phase === "lobby" ? "" : `Round ${s.roundNo}`}
         </span>
+      </div>
+      <div style={{ marginTop: 6, color: C.muted }}>
+        <ConnectionBadge state={conn} size={9} fontSize={12} />
       </div>
 
       {s.phase === "tiebreak" && s.tiebreak ? (

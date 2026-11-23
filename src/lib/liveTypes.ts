@@ -42,6 +42,7 @@ export type LiveState = {
   step: string; // which step of the night this is (see stepOf). The quizmaster's taps carry it, so a repeated or late tap can't skip a question.
   phaseUntil: number | null; // when a timed phase moves on; during a question, when the team that is answering runs out of time
   queue: LiveQueueItem[];
+  tie: { buzzIds: number[]; teams: string[] } | null; // the next two teams buzzed too close together to call: the quizmaster picks who goes first
   celebration: { teamName: string; points: number; answer: string; note: string | null } | null;
   teams: { id: string; name: string }[];
   leaderboard: LiveStanding[] | null; // null when the scores are hidden from the room
@@ -75,6 +76,7 @@ export type LiveTeamState = {
   lockUntil: number | null; // when the order of buzzes is final (server clock)
   buzzOpen: boolean; // the buzzer can be pressed once the opening time has come
   myBuzz: { place: number; outcome: "pending" | "correct" | "wrong" | "skipped"; answering: boolean } | null;
+  tied: boolean; // this team is one of the two in an unsettled tie
   turnUntil: number | null; // when this team runs out of time to answer, if it is answering now
   tiebreak: { mustGuess: boolean; myGuess: number | null; prompt: string } | null;
 };
@@ -86,6 +88,8 @@ export type HostAction =
   | { type: "wrong"; buzzId: number }
   | { type: "skip"; buzzId: number }
   | { type: "reveal" } // show the answer and move on (this is also the "skip question" button)
+  | { type: "settleTie"; buzzId: number } // two teams buzzed too close to call: this one goes first
+  | { type: "buzzFor"; teamId: string; position: "first" | "last" } // a team's phone didn't get its buzz through: the quizmaster puts it in the queue
   | { type: "undo" }
   | { type: "release"; teamId: string }
   | { type: "setHide"; hideFromRound: number }
@@ -107,5 +111,6 @@ export function stepOf(s: { status: string; phase: string; roundIdx: number; pos
 export const ANSWER_MS = 15_000; // how long a team has to answer once it is up
 export const OPEN_LEAD_MS = 2_000; // a question opens this long after the quizmaster moves on (the "get ready" beat), the same instant everywhere
 export const LOCK_MS = 1_200; // after the first buzz is heard, the order stays open this long for slower connections, then it is final
+export const TIE_MS = 100; // two buzzes closer together than this are too close to call: the quizmaster decides
 export const EARLY_BUZZ_MS = 200; // a buzz may arrive this much before the opening time (the phone's clock is a little off) and still count
 export const MAX_BUZZ_AGE_MS = 8_000; // a buzz that was pressed longer ago than this is treated as pressed when it arrived

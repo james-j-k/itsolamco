@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { HostAction, LiveState } from "@/lib/liveTypes";
-import { clock, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { ConnectionBadge } from "./LiveConnection";
 
 // The quizmaster's phone. Everything here is a big thumb-sized button.
 const C = { bg: "#1C1512", panel: "#2A201B", cream: "#F5F0E6", amber: "#F2A93B", red: "#C0280A", muted: "#D9CBB8", green: "#3F9D5F" };
@@ -75,8 +76,9 @@ function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name
 
 function HostPad({ sessionId }: { sessionId: string }) {
   const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
-  const { state: s, error, offset: pollOffset, confirmedAt, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700));
+  const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700));
   const sync = useClockSync();
+  const conn = connectionOf(failures, sync.rtt);
   const offset = sync.ready ? sync.offset : pollOffset;
   const now = useNow(250);
   const opened = useReached(s?.phase === "question" ? s.openedAt : null, offset);
@@ -152,6 +154,9 @@ function HostPad({ sessionId }: { sessionId: string }) {
         <span style={{ color: C.muted, fontSize: 13 }}>
           Code <b style={{ color: C.amber, letterSpacing: 3, fontSize: 18 }}>{s.code}</b> · {s.teams.length} teams
         </span>
+      </div>
+      <div style={{ marginBottom: 8, color: C.muted }}>
+        <ConnectionBadge state={conn} size={10} fontSize={13} />
       </div>
       {error && <div style={{ background: C.red, borderRadius: 10, padding: "6px 12px", fontSize: 13, marginBottom: 8 }}>{error.message}</div>}
       {msg && <div style={{ background: C.red, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{msg}</div>}
@@ -233,7 +238,20 @@ function HostPad({ sessionId }: { sessionId: string }) {
             <div style={{ color: opened ? C.muted : C.amber, fontSize: 13, marginTop: 8, fontWeight: opened ? 400 : 800 }}>{opened ? `Open for ${clock(elapsed)}` : `Buzzer opens in ${opensIn}...`}</div>
           </div>
 
-          {answering ? (
+          {s.tie && orderFinal ? (
+            <div style={{ background: C.amber, color: C.bg, borderRadius: 16, padding: 14, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 800 }}>TIE · TOO CLOSE TO CALL</div>
+              <div style={{ fontFamily: DISPLAY, fontSize: 32, lineHeight: 1.1, margin: "4px 0 12px" }}>Who goes first?</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {s.tie.buzzIds.map((id, i) => (
+                  <Btn key={id} big color={C.bg} text={C.cream} disabled={busy} onClick={() => act({ type: "settleTie", buzzId: id })}>
+                    {s.tie?.teams[i]} first
+                  </Btn>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, marginTop: 8, opacity: 0.8 }}>They buzzed within 0.1 s of each other. The other team goes next.</div>
+            </div>
+          ) : answering ? (
             <div style={{ background: C.amber, color: C.bg, borderRadius: 16, padding: 14, marginBottom: 12 }}>
               <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 800 }}>ANSWERING NOW · #{answering.place + 1} · {answering.place === 0 ? seconds(answering.atMs) : `+${seconds(answering.gapMs)}`}</div>
               <div style={{ fontFamily: DISPLAY, fontSize: 38, lineHeight: 1.05, margin: "4px 0 12px" }}>{answering.teamName}</div>
@@ -277,6 +295,45 @@ function HostPad({ sessionId }: { sessionId: string }) {
               ))}
             </ol>
           )}
+
+          <details style={{ marginBottom: 12 }}>
+            <summary style={{ color: C.muted, fontSize: 14 }}>A team&apos;s buzz didn&apos;t get through?</summary>
+            <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+              {s.teams.map((t) => {
+                const q = s.queue.find((x) => x.teamId === t.id);
+                const hadGo = !!q && q.outcome !== "pending";
+                const small = { background: C.panel, color: C.cream, border: 0, borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14, touchAction: "manipulation" } as const;
+                return (
+                  <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, opacity: hadGo ? 0.45 : 1 }}>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 700 }}>
+                      {t.name}
+                      {q ? <span style={{ color: C.muted, fontWeight: 400 }}> · {hadGo ? q.outcome : `#${q.place + 1}`}</span> : null}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy || hadGo || !opened}
+                      style={small}
+                      onClick={() => {
+                        if (window.confirm(`Put ${t.name} first in the queue?`)) act({ type: "buzzFor", teamId: t.id, position: "first" });
+                      }}
+                    >
+                      Put first
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !!q || !opened}
+                      style={small}
+                      onClick={() => {
+                        if (window.confirm(`Add ${t.name} to the end of the queue?`)) act({ type: "buzzFor", teamId: t.id, position: "last" });
+                      }}
+                    >
+                      Put last
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
 
           <div style={{ display: "grid", gap: 8 }}>
             <Btn color={answering ? C.panel : C.amber} text={answering ? C.cream : C.bg} disabled={busy || !s.canSkipQuestion} onClick={() => act({ type: "reveal" })}>

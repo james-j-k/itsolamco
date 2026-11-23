@@ -12,6 +12,7 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
   const [offset, setOffset] = useState(0);
   const [confirmedAt, setConfirmedAt] = useState(0);
+  const [failures, setFailures] = useState(0); // answers in a row that didn't come (or came back as a server error)
   const [nonce, setNonce] = useState(0);
   const versionRef = useRef<number | null>(null);
   const headersRef = useRef<Record<string, string> | undefined>(headers);
@@ -35,13 +36,15 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
         const known = versionRef.current;
         const sep = url!.includes("?") ? "&" : "?";
         // A request that never answers (weak signal, a phone that slept) must not freeze the screen: give up and ask again.
-        const res = await fetch(known === null ? url! : `${url}${sep}v=${known}`, { cache: "no-store", headers: headersRef.current, signal: AbortSignal.timeout(8000) });
+        const res = await fetch(known === null ? url! : `${url}${sep}v=${known}`, { cache: "no-store", headers: headersRef.current, signal: AbortSignal.timeout(6000) });
         const data = await res.json().catch(() => ({}));
         if (stopped) return;
         if (!res.ok) {
           setError({ status: res.status, message: data.error ?? "Connection problem" });
+          setFailures((f) => (res.status >= 500 ? f + 1 : 0)); // a "no" from the server means we reached it
         } else {
           setError(null);
+          setFailures(0);
           const serverNow: number | undefined = data.state?.now ?? data.now;
           if (typeof serverNow === "number") {
             const next = serverNow - Date.now();
@@ -54,7 +57,10 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
           }
         }
       } catch {
-        if (!stopped) setError({ status: 0, message: "Connection lost. Trying again..." });
+        if (!stopped) {
+          setError({ status: 0, message: "Connection lost. Trying again..." });
+          setFailures((f) => f + 1);
+        }
       }
       inFlight = false;
       if (!stopped) timer = setTimeout(run, typeof intervalRef.current === "function" ? intervalRef.current() : intervalRef.current);
@@ -79,7 +85,16 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
 
   // Ask again right now (after you press a button), instead of waiting for the next poll.
   const poke = () => setNonce((n) => n + 1);
-  return { state, error, offset, confirmedAt, poke };
+  return { state, error, offset, confirmedAt, failures, poke };
+}
+
+// How good this device's connection is right now: "offline" after two missed answers in a row, "slow" after one missed
+// answer or when the quickest ping to the server took close to a second.
+export type ConnState = "good" | "slow" | "offline";
+export function connectionOf(failures: number, rtt: number | null): ConnState {
+  if (failures >= 2) return "offline";
+  if (failures === 1 || (rtt !== null && rtt > 900)) return "slow";
+  return "good";
 }
 
 // Once a team has buzzed the order stays open for a moment (the server's `lockUntil`). It is final when that moment has
@@ -93,8 +108,8 @@ export function useOrderFinal(lockUntil: number | null, confirmedAt: number, off
 // times and trusts the answer that came back fastest: a quick round trip leaves the least room for the two directions
 // to have taken different times. It checks again every 20 seconds, and the moment the phone wakes or comes back online.
 // Until the first answer comes in, `ready` is false and callers should use the poll's rougher offset.
-export function useClockSync(): { offset: number; ready: boolean } {
-  const [sync, setSync] = useState({ offset: 0, ready: false });
+export function useClockSync(): { offset: number; ready: boolean; rtt: number | null } {
+  const [sync, setSync] = useState<{ offset: number; ready: boolean; rtt: number | null }>({ offset: 0, ready: false, rtt: null });
   useEffect(() => {
     let stopped = false;
     let running = false;
@@ -130,7 +145,11 @@ export function useClockSync(): { offset: number; ready: boolean } {
       if (samples.length === 0) return;
       const best = samples.reduce((a, b) => (b.rtt < a.rtt ? b : a));
       // Small differences are noise: keep the old offset so timers don't restart for nothing.
-      setSync((cur) => (cur.ready && Math.abs(cur.offset - best.offset) < 8 ? cur : { offset: best.offset, ready: true }));
+      setSync((cur) => {
+        const sameOffset = cur.ready && Math.abs(cur.offset - best.offset) < 8;
+        if (sameOffset && Math.abs((cur.rtt ?? 0) - best.rtt) < 100) return cur;
+        return { offset: sameOffset ? cur.offset : best.offset, ready: true, rtt: best.rtt };
+      });
     }
 
     void burst(6, 180);

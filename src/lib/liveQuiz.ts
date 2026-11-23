@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { closestGuessers, pointsForRight, pointsForWrong, rankTeams, tiedForFirst } from "@/lib/liveScoring";
-import { ANSWER_MS, EARLY_BUZZ_MS, LOCK_MS, MAX_BUZZ_AGE_MS, OPEN_LEAD_MS, stepOf, type HostAction, type HostExpect, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
+import { ANSWER_MS, EARLY_BUZZ_MS, LOCK_MS, MAX_BUZZ_AGE_MS, OPEN_LEAD_MS, TIE_MS, stepOf, type HostAction, type HostExpect, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
 
 // The brain of a live quiz night. Every change happens inside one database
 // transaction and bumps `version`, so the projector and the phones only ask for
@@ -24,6 +24,14 @@ function lockAtOf(buzzes: { receivedAt: Date }[]): number | null {
 
 const CELEBRATE_MS = 4500; // how long the "correct" animation runs before the next question
 const REVEAL_MS = 5000; // how long the answer stays up when nobody got it
+
+// The next two teams still waiting buzzed within TIE_MS of each other: too close to call (network and phone delays are
+// bigger than that), so the quizmaster picks who goes first. Nobody is "answering" until they do.
+function tieOf<T extends { outcome: string; buzzedAt: Date }>(buzzes: T[]): [T, T] | null {
+  const waiting = buzzes.filter((b) => b.outcome === "pending");
+  if (waiting.length < 2) return null;
+  return waiting[1].buzzedAt.getTime() - waiting[0].buzzedAt.getTime() < TIE_MS ? [waiting[0], waiting[1]] : null;
+}
 
 type Tx = Prisma.TransactionClient;
 type Fail = { ok: false; status: number; error: string; stale?: boolean };
@@ -133,6 +141,11 @@ async function passTurn(s: { id: string; quizId: string; roundIdx: number; pos: 
     const answering = buzzes.find((b) => b.outcome === "pending");
     if (!answering) {
       await tx.liveSession.update({ where: { id: s.id }, data: { phaseUntil: null } });
+      return;
+    }
+    // A tie is waiting for the quizmaster, so nobody is on the clock yet: give it a fresh one rather than skipping a team.
+    if (tieOf(buzzes)) {
+      await tx.liveSession.update({ where: { id: s.id }, data: { phaseUntil: answerDeadline() } });
       return;
     }
     // Claim the buzz first, so a tap from the quizmaster at the same moment can't score it twice.
@@ -356,6 +369,7 @@ export async function hostAction(sessionId: string, action: HostAction, expect?:
           const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: BUZZ_ORDER });
           const lockAt = lockAtOf(buzzes);
           if (lockAt !== null && Date.now() < lockAt) return fail("Still locking in the order of the buzzes. Give it a second.");
+          if (tieOf(buzzes)) return fail("Two teams buzzed too close to call. Pick who goes first.");
           const answering = buzzes.find((b) => b.outcome === "pending");
           if (!answering || answering.id !== action.buzzId) return fail("That team isn't answering any more.");
           const place = buzzes.indexOf(answering);
@@ -376,6 +390,42 @@ export async function hostAction(sessionId: string, action: HostAction, expect?:
             const next = buzzes.find((b) => b.id !== answering.id && b.outcome === "pending");
             await bump({ phaseUntil: next ? answerDeadline() : null });
           }
+          return { ok: true };
+        }
+
+        case "settleTie": {
+          if (s.phase !== "question" || !question) return fail("No question is open.");
+          const buzzes = await tx.liveBuzz.findMany({ where: { sessionId: s.id, questionId: question.id }, orderBy: BUZZ_ORDER });
+          const tie = tieOf(buzzes);
+          if (!tie) return fail("There's no tie to settle.");
+          const winner = tie.find((b) => b.id === action.buzzId);
+          const loser = tie.find((b) => b.id !== action.buzzId);
+          if (!winner || !loser) return fail("That team isn't in the tie.");
+          // The other team moves just behind, so the order is clear from now on (and no longer a tie).
+          await tx.liveBuzz.update({ where: { id: loser.id }, data: { buzzedAt: new Date(winner.buzzedAt.getTime() + TIE_MS + 1) } });
+          await bump({ phaseUntil: answerDeadline() });
+          return { ok: true };
+        }
+
+        case "buzzFor": {
+          // For a team whose phone couldn't get its buzz through: the quizmaster puts it in the queue.
+          if (s.phase !== "question" || !question) return fail("No question is open.");
+          const arrival = Date.now();
+          if (arrival < (s.questionOpenedAt?.getTime() ?? 0) - EARLY_BUZZ_MS) return fail("The buzzer isn't open yet.");
+          const team = await tx.liveTeam.findFirst({ where: { id: action.teamId, sessionId: s.id } });
+          if (!team) return fail("Team not found", 404);
+          const where = { sessionId: s.id, questionId: question.id };
+          const buzzes = await tx.liveBuzz.findMany({ where, orderBy: BUZZ_ORDER });
+          const mine = buzzes.find((b) => b.teamId === team.id);
+          if (mine && mine.outcome !== "pending") return fail(`${team.name} has already had a go on this question.`);
+          if (mine && action.position === "last") return fail(`${team.name} is already in the queue.`);
+          const others = buzzes.filter((b) => b.outcome === "pending" && b.id !== mine?.id);
+          // First: just ahead of whoever is waiting (clear of a tie). Last: now, which is behind everyone already in.
+          const at = action.position === "first" && others.length > 0 ? others[0].buzzedAt.getTime() - TIE_MS - 1 : arrival;
+          if (mine) await tx.liveBuzz.update({ where: { id: mine.id }, data: { buzzedAt: new Date(at) } });
+          else await tx.liveBuzz.create({ data: { ...where, teamId: team.id, buzzedAt: new Date(at), receivedAt: new Date(arrival) } });
+          const nowFirst = others.length === 0 || action.position === "first";
+          await bump(nowFirst ? { phaseUntil: new Date(arrival + (buzzes.length === 0 ? LOCK_MS : 0) + ANSWER_MS) } : {});
           return { ok: true };
         }
 
@@ -541,6 +591,7 @@ function queueOf(snap: NonNullable<Snapshot>, limit: number | null): LiveQueueIt
   const opened = s.questionOpenedAt?.getTime() ?? buzzes[0]?.buzzedAt.getTime() ?? 0;
   const first = buzzes[0]?.buzzedAt.getTime() ?? 0;
   const pendingIdx = buzzes.findIndex((b) => b.outcome === "pending");
+  const tied = s.phase === "question" && tieOf(buzzes) !== null;
   const items: LiveQueueItem[] = buzzes.map((b, i) => ({
     buzzId: b.id,
     teamId: b.teamId,
@@ -549,7 +600,7 @@ function queueOf(snap: NonNullable<Snapshot>, limit: number | null): LiveQueueIt
     atMs: Math.max(0, b.buzzedAt.getTime() - opened),
     gapMs: Math.max(0, b.buzzedAt.getTime() - first),
     outcome: b.outcome as LiveQueueItem["outcome"],
-    answering: s.phase === "question" && i === pendingIdx,
+    answering: s.phase === "question" && i === pendingIdx && !tied,
   }));
   if (limit === null || items.length <= limit) return items;
   const anchor = pendingIdx === -1 ? items.length : pendingIdx;
@@ -639,6 +690,12 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
     step: stepOf(stored),
     phaseUntil: s.phaseUntil?.getTime() ?? null,
     queue,
+    tie: (() => {
+      const pair = phase === "question" ? tieOf(snap.buzzes) : null;
+      if (!pair) return null;
+      const names = new Map(teams.map((t) => [t.id, t.name]));
+      return { buzzIds: pair.map((b) => b.id), teams: pair.map((b) => names.get(b.teamId) ?? "Team") };
+    })(),
     celebration,
     teams,
     leaderboard,
@@ -668,7 +725,8 @@ export async function getTeamState(code: string, teamId: string, token: string):
 
   const idx = buzzes.findIndex((b) => b.teamId === team.id);
   const pendingIdx = buzzes.findIndex((b) => b.outcome === "pending");
-  const myBuzz = idx >= 0 ? { place: idx, outcome: buzzes[idx].outcome as "pending" | "correct" | "wrong" | "skipped", answering: s.phase === "question" && idx === pendingIdx } : null;
+  const tiePair = s.phase === "question" ? tieOf(buzzes) : null;
+  const myBuzz = idx >= 0 ? { place: idx, outcome: buzzes[idx].outcome as "pending" | "correct" | "wrong" | "skipped", answering: s.phase === "question" && idx === pendingIdx && !tiePair } : null;
 
   let tiebreak: LiveTeamState["tiebreak"] = null;
   if (s.phase === "tiebreak" && quiz.tiebreakPrompt) {
@@ -692,6 +750,7 @@ export async function getTeamState(code: string, teamId: string, token: string):
     questionId: s.phase === "question" ? (question?.id ?? null) : null,
     openedAt: s.questionOpenedAt?.getTime() ?? null,
     lockUntil: s.phase === "question" ? lockAtOf(buzzes) : null,
+    tied: !!tiePair && tiePair.some((b) => b.teamId === team.id),
     buzzOpen: s.phase === "question" && !myBuzz,
     myBuzz,
     turnUntil: myBuzz?.answering ? (s.phaseUntil?.getTime() ?? null) : null,
