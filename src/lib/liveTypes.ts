@@ -45,6 +45,7 @@ export type LiveState = {
   tie: { buzzIds: number[]; teams: string[] } | null; // the next two teams buzzed too close together to call: the quizmaster picks who goes first
   celebration: { teamName: string; points: number; answer: string; note: string | null } | null;
   teams: { id: string; name: string }[];
+  adjusted: { teamId: string; points: number }[]; // host only: how much the quizmaster has corrected each team's score by (kept so a fix is never invisible)
   leaderboard: LiveStanding[] | null; // null when the scores are hidden from the room
   roundResult: LiveRoundResult | null;
   scoresHidden: boolean; // the room is not being shown scores right now, on purpose
@@ -93,6 +94,7 @@ export type HostAction =
   | { type: "undo" }
   | { type: "release"; teamId: string }
   | { type: "setHide"; hideFromRound: number }
+  | { type: "setTotal"; teamId: string; total: number } // fix a team's total score (before or after the winners): recorded as an adjustment
   | { type: "setCarry"; teamId: string; points: number } // a team's score from rounds played off the system; counts toward the total only
   | { type: "finish" }
   | { type: "reopen" }

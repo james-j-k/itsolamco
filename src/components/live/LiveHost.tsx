@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { HostAction, LiveState } from "@/lib/liveTypes";
-import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 
 // The quizmaster's phone. Everything here is a big thumb-sized button.
@@ -22,8 +22,31 @@ function Btn({ children, onClick, color = C.panel, text = C.cream, disabled, big
   );
 }
 
-// Before the first question: type in what each team already scored in rounds played off the system.
-function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name: string }[]; scores: Map<string, number>; busy: boolean; onSet: (teamId: string, points: number) => Promise<boolean> }) {
+// A list of teams with a number box each. Before the first question it is for what each team already scored in rounds
+// played off the system; at the end it is for fixing a team's final total. It saves when you tap away from a box.
+function StartScores({
+  teams,
+  scores,
+  busy,
+  onSet,
+  title = "Starting scores",
+  help = "Played earlier rounds on paper? Type each team's score so far. It saves when you tap away, and counts toward the final total.",
+  noun = "starting score",
+  adjusted,
+  bare = false,
+  onPage = false,
+}: {
+  teams: { id: string; name: string }[];
+  scores: Map<string, number>;
+  busy: boolean;
+  onSet: (teamId: string, points: number) => Promise<boolean>;
+  title?: string;
+  help?: string;
+  noun?: string;
+  adjusted?: Map<string, number>; // how much each team's score has already been corrected by
+  bare?: boolean; // no panel around it (it sits inside something else)
+  onPage?: boolean; // it sits straight on the page, so the number boxes need a visible edge
+}) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const dropDraft = (id: string) => setDraft((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== id)));
   // A typed value stays on screen until the server's score catches up, so it never flickers back to the old number.
@@ -46,17 +69,20 @@ function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name
     });
   }
   return (
-    <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 16 }}>
-      <div style={{ fontWeight: 800, marginBottom: 2 }}>Starting scores</div>
-      <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>Played earlier rounds on paper? Type each team&apos;s score so far. It saves when you tap away, and counts toward the final total.</div>
+    <div style={bare ? { marginTop: 8 } : { background: C.panel, borderRadius: 16, padding: 14, marginBottom: 16 }}>
+      {title && <div style={{ fontWeight: 800, marginBottom: 2 }}>{title}</div>}
+      {help && <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>{help}</div>}
       <div style={{ display: "grid", gap: 8 }}>
         {teams.map((t) => (
           <label key={t.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ flex: 1, fontWeight: 700, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+              {adjusted?.get(t.id) ? <span style={{ display: "block", color: C.amber, fontSize: 12 }}>fixed by {adjusted.get(t.id)! > 0 ? "+" : ""}{adjusted.get(t.id)} so far</span> : null}
+            </span>
             <input
               type="text"
               inputMode="numeric"
-              aria-label={`${t.name} starting score`}
+              aria-label={`${t.name} ${noun}`}
               disabled={busy}
               value={draft[t.id] ?? String(scores.get(t.id) ?? 0)}
               onFocus={(e) => e.target.select()}
@@ -65,7 +91,7 @@ function StartScores({ teams, scores, busy, onSet }: { teams: { id: string; name
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}
-              style={{ width: 90, background: C.bg, color: C.amber, border: 0, borderRadius: 10, padding: "10px 12px", fontSize: 20, fontWeight: 800, textAlign: "right" }}
+              style={{ width: 90, background: onPage ? C.panel : C.bg, color: C.amber, border: onPage ? `1px solid ${C.muted}` : 0, borderRadius: 10, padding: "10px 12px", fontSize: 20, fontWeight: 800, textAlign: "right" }}
             />
           </label>
         ))}
@@ -142,6 +168,7 @@ function TeamHealth({ sessionId }: { sessionId: string }) {
 function HostPad({ sessionId }: { sessionId: string }) {
   const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
   const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700));
+  useWakeLock(); // the quizmaster's phone must not lock itself mid-quiz
   const sync = useClockSync();
   const conn = connectionOf(failures, sync.rtt);
   const offset = sync.ready ? sync.offset : pollOffset;
@@ -158,6 +185,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
   const [showBoard, setShowBoard] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
+  const [reviewWinners, setReviewWinners] = useState(false); // "Show winners" first asks you to check the final scores
 
   if (!s) {
     return <div style={{ minHeight: "100dvh", background: C.bg, color: C.muted, padding: 24 }}>{error ? error.message : "Connecting..."}</div>;
@@ -212,6 +240,22 @@ function HostPad({ sessionId }: { sessionId: string }) {
   const penalty = s.wrongPenalty > 0;
   // Before the first question nothing else has scored, so a team's total is its starting score.
   const scoreOf = new Map((s.leaderboard ?? []).map((r) => [r.teamId, r.score]));
+  const adjustedOf = new Map(s.adjusted.map((a) => [a.teamId, a.points]));
+  // The boxes for fixing a team's total score. A fix is saved as an adjustment, so it can always be seen afterwards.
+  const fixScores = (opts: { bare?: boolean; onPage?: boolean; title?: string; help?: string } = {}) => (
+    <StartScores
+      teams={s.teams}
+      scores={scoreOf}
+      adjusted={adjustedOf}
+      busy={busy}
+      noun="total score"
+      bare={opts.bare}
+      onPage={opts.onPage}
+      title={opts.title ?? ""}
+      help={opts.help ?? ""}
+      onSet={(teamId, total) => act({ type: "setTotal", teamId, total })}
+    />
+  );
 
   return (
     <div style={{ minHeight: "100dvh", background: C.bg, color: C.cream, padding: "16px 16px 40px", maxWidth: 560, margin: "0 auto", fontFamily: "var(--font-archivo), Arial, sans-serif" }}>
@@ -221,16 +265,41 @@ function HostPad({ sessionId }: { sessionId: string }) {
           Code <b style={{ color: C.amber, letterSpacing: 3, fontSize: 18 }}>{s.code}</b> · {s.teams.length} teams
         </span>
       </div>
-      <div style={{ marginBottom: 8, color: C.muted }}>
+      <div style={{ marginBottom: 8, color: C.muted, display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 30 }}>
         <ConnectionBadge state={conn} size={10} fontSize={13} />
+        {/* What the last tap did. It sits here, in line, so it never covers the code or a button. */}
+        {sending !== "idle" && (
+          <span role="status" style={{ borderRadius: 999, padding: "4px 14px", fontSize: 13, fontWeight: 800, background: sending === "done" ? C.green : sending === "failed" ? C.red : C.amber, color: sending === "sending" ? C.bg : C.cream }}>
+            {sending === "sending" ? "Sending..." : sending === "done" ? "Done ✓" : "Not confirmed"}
+          </span>
+        )}
       </div>
       {error && <div style={{ background: C.red, borderRadius: 10, padding: "6px 12px", fontSize: 13, marginBottom: 8 }}>{error.message}</div>}
       {msg && <div style={{ background: C.red, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{msg}</div>}
       {notice && <div style={{ background: C.panel, color: C.amber, borderRadius: 10, padding: "8px 12px", fontSize: 14, marginBottom: 8 }}>{notice}</div>}
-      {sending !== "idle" && (
-        <div style={{ position: "fixed", right: 12, top: 12, zIndex: 40, borderRadius: 999, padding: "6px 14px", fontSize: 13, fontWeight: 800, background: sending === "done" ? C.green : sending === "failed" ? C.red : C.amber, color: sending === "sending" ? C.bg : C.cream }}>
-          {sending === "sending" ? "Sending..." : sending === "done" ? "Done ✓" : "Not confirmed"}
-        </div>
+
+      {reviewWinners && s.phase !== "lobby" && (
+        <section style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 12, border: `2px solid ${C.amber}` }}>
+          <div style={{ fontFamily: DISPLAY, fontSize: 26, color: C.amber }}>BEFORE THE WINNERS</div>
+          <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>Check each team&apos;s total. Fix any that is wrong (it saves when you tap away), then show the winners.</div>
+          {fixScores({ bare: true })}
+          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+            <Btn
+              big
+              color={C.amber}
+              text={C.bg}
+              disabled={busy}
+              onClick={async () => {
+                if (await act({ type: "showWinners" })) setReviewWinners(false);
+              }}
+            >
+              Show winners now
+            </Btn>
+            <Btn disabled={busy} onClick={() => setReviewWinners(false)}>
+              Cancel
+            </Btn>
+          </div>
+        </section>
       )}
 
       {s.phase !== "lobby" && (
@@ -245,7 +314,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <Btn disabled={busy || s.slide === "winners"} onClick={() => act({ type: "showWinners" })}>
+            <Btn disabled={busy || s.slide === "winners"} onClick={() => setReviewWinners(true)}>
               Show winners
             </Btn>
             <Btn disabled={busy || s.slide === "ending"} onClick={() => act({ type: "showEnding" })}>
@@ -436,7 +505,10 @@ function HostPad({ sessionId }: { sessionId: string }) {
               <div style={{ color: C.muted }}>Next question coming up...</div>
             </>
           )}
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+            <Btn color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "continue" })}>
+              {s.questionNo < s.questionCount ? "Next question now" : "Show the round results"}
+            </Btn>
             <Btn disabled={busy} onClick={() => act({ type: "undo" })}>
               Undo
             </Btn>
@@ -448,6 +520,19 @@ function HostPad({ sessionId }: { sessionId: string }) {
         <section>
           <div style={{ fontFamily: DISPLAY, fontSize: 32, marginBottom: 6 }}>ROUND {s.roundNo} DONE</div>
           <p style={{ color: C.muted, marginBottom: 12 }}>{s.scoresHidden ? "The room sees a SECRET screen. The scores below are for you only." : "The leaderboard is on the projector."}</p>
+          {s.roundNo === s.roundCount ? (
+            // The last round: this is the moment to check the final scores, before the winners are shown.
+            <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 14, border: `2px solid ${C.amber}` }}>
+              <div style={{ fontFamily: DISPLAY, fontSize: 24, color: C.amber }}>CHECK THE FINAL SCORES</div>
+              <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>Fix any total that is wrong (it saves when you tap away). Next comes the tie-breaker if two teams are level, otherwise the winners.</div>
+              {fixScores({ bare: true })}
+            </div>
+          ) : (
+            <details style={{ marginBottom: 12 }}>
+              <summary style={{ color: C.amber, fontWeight: 800 }}>Edit scores</summary>
+              {fixScores({ bare: true, onPage: true, help: "Fix any total that is wrong. It saves when you tap away." })}
+            </details>
+          )}
           <Btn big color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "continue" })}>
             {s.roundNo < s.roundCount ? "NEXT ROUND" : "CONTINUE"}
           </Btn>
@@ -481,6 +566,10 @@ function HostPad({ sessionId }: { sessionId: string }) {
           ) : (
             <div style={{ marginTop: 12 }}>
               <div style={{ color: C.amber, fontFamily: DISPLAY, fontSize: 28, marginBottom: 10 }}>Answer {s.tiebreak.answer}</div>
+              <details style={{ marginBottom: 12 }}>
+                <summary style={{ color: C.amber, fontWeight: 800 }}>Edit scores before the winners</summary>
+                {fixScores({ bare: true, onPage: true, help: "Fix any total that is wrong. It saves when you tap away." })}
+              </details>
               <Btn big color={C.amber} text={C.bg} disabled={busy} onClick={() => act({ type: "continue" })}>
                 SHOW THE WINNERS
               </Btn>
@@ -492,13 +581,19 @@ function HostPad({ sessionId }: { sessionId: string }) {
       {(s.phase === "winners" || s.phase === "ending") && (
         <section>
           <div style={{ fontFamily: DISPLAY, fontSize: 36, marginBottom: 8 }}>{s.phase === "ending" ? "THANK-YOU SLIDE ON SCREEN" : "WINNERS ON SCREEN"}</div>
+          {s.phase === "winners" && (
+            <details style={{ marginBottom: 12 }}>
+              <summary style={{ color: C.amber, fontWeight: 800 }}>Spotted a wrong score? Fix it</summary>
+              {fixScores({ bare: true, onPage: true, help: "The winners screen updates as soon as you tap away from a box." })}
+            </details>
+          )}
           {!confirmFinish ? (
             <Btn disabled={busy || s.status === "finished"} onClick={() => setConfirmFinish(true)}>
               {s.status === "finished" ? "Night finished" : "End the night"}
             </Btn>
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
-              <Btn color={C.red} disabled={busy} onClick={() => act({ type: "finish" })}>
+              <Btn color={C.red} disabled={busy} onClick={async () => { if (await act({ type: "finish" })) setConfirmFinish(false); }}>
                 Yes, end the night
               </Btn>
               <Btn onClick={() => setConfirmFinish(false)}>Cancel</Btn>
@@ -598,7 +693,7 @@ function HostPad({ sessionId }: { sessionId: string }) {
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ color: C.muted, fontSize: 14 }}>This stops the quiz and shows the winners screen with the scores so far.</div>
-              <Btn color={C.red} disabled={busy} onClick={() => act({ type: "finish" })}>
+              <Btn color={C.red} disabled={busy} onClick={async () => { if (await act({ type: "finish" })) setConfirmFinish(false); }}>
                 Yes, end it now
               </Btn>
               <Btn onClick={() => setConfirmFinish(false)}>Cancel</Btn>

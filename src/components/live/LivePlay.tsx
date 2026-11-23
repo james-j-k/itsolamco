@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FALSE_START_MS, FALSE_START_SLACK_MS, type LiveTeamState } from "@/lib/liveTypes";
-import { connectionOf, pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached } from "./liveClient";
+import { connectionOf, pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 import { setMuted, sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
@@ -58,6 +58,7 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   // Faster polling while the order of the buzzes is being locked in, so every phone learns the result quickly.
   const fastRef = useRef(false);
   const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveTeamState>(`/api/live/${code}/state?team=${encodeURIComponent(saved.teamId)}`, () => (fastRef.current ? 250 : 700), { "x-team-token": saved.token });
+  useWakeLock(); // a phone that locks itself mid-quiz would stop buzzing
   const sync = useClockSync();
   const conn = connectionOf(failures, sync.rtt);
   const offset = sync.ready ? sync.offset : pollOffset; // this phone's clock vs the server's

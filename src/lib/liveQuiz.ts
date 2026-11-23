@@ -312,7 +312,7 @@ export async function submitGuess(code: string, teamId: string, token: string, v
 // ---------------------------------------------------------------------------
 
 // Taps that don't depend on which step the night is on (scores, hiding, releasing a phone) are never "stale".
-const STEP_FREE = ["setHide", "setCarry", "release"];
+const STEP_FREE = ["setHide", "setCarry", "setTotal", "release"];
 
 export async function hostAction(sessionId: string, action: HostAction, expect?: HostExpect): Promise<Done | Fail> {
   await tick(sessionId);
@@ -325,7 +325,7 @@ export async function hostAction(sessionId: string, action: HostAction, expect?:
         if (expect.step !== stepOf(s)) return { ...fail("The screen had already moved on, so that tap was ignored. Check the screen."), stale: true };
         if (action.type === "undo" && expect.version !== s.version) return { ...fail("Something changed just now, so that Undo was ignored. Check the screen, then tap again."), stale: true };
       }
-      if ((s.status !== "active" || s.phase === "ending") && !["setHide", "reopen", "showEnding", "showWinners", "finish"].includes(action.type)) {
+      if ((s.status !== "active" || s.phase === "ending") && !["setHide", "setTotal", "reopen", "showEnding", "showWinners", "finish"].includes(action.type)) {
         return fail(isFinishedStatus(s.status) ? "This night is finished. Reopen it to carry on." : "The quiz is paused on a slide. Tap Back to the quiz first.");
       }
       const quiz = await loadQuiz(tx, s.quizId);
@@ -343,6 +343,12 @@ export async function hostAction(sessionId: string, action: HostAction, expect?:
         }
 
         case "continue": {
+          if (s.phase === "celebrate" || s.phase === "reveal") {
+            // "Next question now": the same move the timer makes, without waiting for it.
+            const more = !!round && s.pos + 1 < round.questions.length;
+            await bump(more ? { phase: "question", pos: s.pos + 1, questionOpenedAt: openAt(), phaseUntil: null } : { phase: "roundResults", phaseUntil: null });
+            return { ok: true };
+          }
           if (s.phase === "roundIntro") {
             if (!question) return fail("This round has no questions.");
             await bump({ phase: "question", questionOpenedAt: openAt(), phaseUntil: null });
@@ -537,6 +543,20 @@ export async function hostAction(sessionId: string, action: HostAction, expect?:
           return { ok: true };
         }
 
+        case "setTotal": {
+          // The quizmaster fixes a team's total. It is stored as one more score event (an adjustment), so it shows up in the
+          // totals everywhere, never sits inside a round's own points, and can be seen later. Setting the same total again changes nothing.
+          const team = await tx.liveTeam.findFirst({ where: { id: action.teamId, sessionId: s.id } });
+          if (!team) return fail("Team not found", 404);
+          const current = (await totalsByTeam(tx, s.id)).get(team.id) ?? 0;
+          const delta = action.total - current;
+          if (delta !== 0) {
+            await tx.liveScoreEvent.create({ data: { sessionId: s.id, teamId: team.id, roundIdx: -1, points: delta, kind: "adjust" } });
+            await bump();
+          }
+          return { ok: true };
+        }
+
         case "setCarry": {
           // Points a team already earned in rounds played off the system. They count toward the total,
           // but sit outside every round (roundIdx -1) so they never show up in a round's own points.
@@ -708,6 +728,11 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
     step: stepOf(stored),
     phaseUntil: s.phaseUntil?.getTime() ?? null,
     queue,
+    adjusted: host
+      ? (await prisma.liveScoreEvent.groupBy({ by: ["teamId"], where: { sessionId: s.id, kind: "adjust", undoneAt: null }, _sum: { points: true } }))
+          .map((r) => ({ teamId: r.teamId, points: r._sum.points ?? 0 }))
+          .filter((r) => r.points !== 0)
+      : [],
     tie: (() => {
       const pair = phase === "question" ? tieOf(snap.buzzes) : null;
       if (!pair) return null;

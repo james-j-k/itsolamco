@@ -185,6 +185,39 @@ export function useReached(target: number | null, offset: number): boolean {
   return target === null || Date.now() + offset >= target;
 }
 
+// Keeps the screen awake while the page is open. A phone that locks itself in the middle of a quiz stops asking the server
+// for anything, which is exactly what "connection lost" is. The browser lets go of the lock whenever the page is hidden,
+// so it is asked for again each time the page comes back. Browsers without this feature simply carry on as before.
+type WakeSentinel = { released?: boolean; release: () => Promise<void> };
+export function useWakeLock() {
+  useEffect(() => {
+    let lock: WakeSentinel | null = null;
+    let stopped = false;
+    async function grab() {
+      try {
+        const wl = (navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeSentinel> } }).wakeLock;
+        if (!wl || document.visibilityState !== "visible" || (lock && !lock.released)) return;
+        const got = await wl.request("screen");
+        if (stopped) {
+          void got.release().catch(() => {});
+          return;
+        }
+        lock = got;
+      } catch {
+        // not allowed right now (low battery, or the page is hidden): try again next time it is shown
+      }
+    }
+    void grab();
+    const again = () => void grab();
+    document.addEventListener("visibilitychange", again);
+    return () => {
+      stopped = true;
+      document.removeEventListener("visibilitychange", again);
+      void lock?.release().catch(() => {});
+    };
+  }, []);
+}
+
 // When a press really happened, as a time on this device's clock. A phone can be busy for a moment before it runs the
 // tap handler, so the event's own timestamp is used to look back to the real moment of the touch.
 export function pressTime(e: { timeStamp: number }): number {
