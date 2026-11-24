@@ -13,6 +13,23 @@ model Admin {
   email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
+
+  // Two-step login (authenticator app). The secrets are stored encrypted, never in the clear.
+  totpSecret     String?
+  totpPending    String? // a secret that is being set up but not confirmed yet
+  totpEnabledAt  DateTime?
+  totpLastStep   Int? // the last 30-second slot that was accepted, so one code can't be used twice
+  recoveryHashes String[] @default([])
+}
+
+// Shared, database-backed failed-login counters (the old in-memory limiter was per serverless copy).
+model AuthThrottle {
+  key         String    @id
+  count       Int       @default(0)
+  windowStart DateTime  @default(now())
+  strikes     Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @default(now()) @updatedAt
 }
 
 model Event {

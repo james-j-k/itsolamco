@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/session";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +23,19 @@ export default async function AdminPage() {
     prisma.venue.findMany({ orderBy: { order: "asc" } }),
   ]);
 
+  const session = await getCurrentAdmin();
+  const me = session ? await prisma.admin.findUnique({ where: { id: session.adminId }, select: { totpEnabledAt: true } }) : null;
+
   return (
+    <>
+      {me && !me.totpEnabledAt && (
+        <Link
+          href="/admin/security"
+          className="mb-4 block border-2 border-[#B8451D] bg-[#F5F0E6] px-4 py-3 font-mono text-[11px] uppercase tracking-[0.15em] text-[#B8451D]"
+        >
+          Your admin is protected by a password only. Tap to turn on two-step login &rarr;
+        </Link>
+      )}
     <AdminDashboard
       initialEvents={events.map((e) => ({
         id: e.id,
@@ -102,5 +116,6 @@ export default async function AdminPage() {
         area: v.area,
       }))}
     />
+    </>
   );
 }

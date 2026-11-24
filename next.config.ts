@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
   // blocked. That makes the HMR client fail to connect and fall back to
   // reload loops, which look exactly like "buttons don't work": the page
   // keeps resetting itself before a click can register. Only matters in dev.
-  allowedDevOrigins: ["192.168.29.190"],
+  allowedDevOrigins: ["192.168.29.190", "192.168.29.191"],
   async headers() {
     return [
       {

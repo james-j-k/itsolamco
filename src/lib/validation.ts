@@ -72,7 +72,13 @@ export const rsvpSchema = z
 
 export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(1, "Password is required").max(500),
+});
+
+// Second step of a two-step sign-in: the ticket from the password step, plus an authenticator or recovery code.
+export const loginSecondStepSchema = z.object({
+  challenge: z.string().min(10).max(2000),
+  code: z.string().trim().min(6).max(30),
 });
 
 export const quizRoundSchema = z.object({
