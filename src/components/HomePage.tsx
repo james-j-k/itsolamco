@@ -27,7 +27,8 @@ import { useModalA11y } from "@/lib/useModalA11y";
 import type { RecapDTO } from "@/lib/recaps";
 import ProofStrip from "@/components/ProofStrip";
 import FeaturedBanner from "@/components/FeaturedBanner";
-import { registerPath, type NightInfo } from "@/lib/featuredNight";
+import KadavuBanner from "@/components/KadavuBanner";
+import { registerPath, shortVenue, type NightInfo } from "@/lib/featuredNight";
 
 const INSTAGRAM_URL = "https://www.instagram.com/itsolamco/";
 const X_URL = "https://x.com/itsOlamco";
@@ -114,9 +115,11 @@ type Props = {
   recap?: RecapDTO | null;
   // The big night shown first, above everything else (null once it has passed)
   featured?: { night: NightInfo; qrSvg: string; teamsBooked: number; others: EventDTO[] } | null;
+  // The flagship night: it takes the banner, the hero card and the general "book" buttons
+  flagship?: { night: NightInfo; qrSvg: string; teamsBooked: number; others: EventDTO[] } | null;
 };
 
-export default function HomePage({ events, rounds, venues, recap = null, featured = null }: Props) {
+export default function HomePage({ events, rounds, venues, recap = null, featured = null, flagship = null }: Props) {
   // "Past Nights" only appears in the menu once there is a recap to show.
   const navLinks = recap
     ? [...NAV_LINKS.slice(0, 3), { href: "#past-nights", label: "Past Nights" }, ...NAV_LINKS.slice(3)]
@@ -137,6 +140,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
 
   const nextEvent = events[0] ?? null;
   const upcomingCards = events.slice(0, 3);
+  const flagshipId = flagship?.night.id ?? null;
   // The hero card shows the soonest night until a visitor picks another one from the row of dates.
   const [heroPick, setHeroPick] = useState<string | null>(null);
   const heroEvent = events.find((e) => e.id === heroPick) ?? nextEvent;
@@ -145,6 +149,12 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
   const mobileNavRef = useModalA11y(mobileNavOpen, () => setMobileNavOpen(false));
 
   function openBooking(eventId?: string) {
+    // With a flagship night and others on the calendar, a "book" button that names no night must not guess:
+    // show the calendar so the visitor picks.
+    if (!eventId && flagshipId && events.length > 1) {
+      document.getElementById("events")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     // A night whose tickets are sold on another site sends the visitor there.
     const target = eventId ? events.find((e) => e.id === eventId) : nextEvent;
     if (target?.externalUrl) {
@@ -587,6 +597,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
 
       <main id="main-content">
         {/* The next big night, first thing anyone sees */}
+        {flagship && <KadavuBanner night={flagship.night} qrSvg={flagship.qrSvg} teamsBooked={flagship.teamsBooked} others={flagship.others} />}
         {featured && <FeaturedBanner night={featured.night} qrSvg={featured.qrSvg} teamsBooked={featured.teamsBooked} others={featured.others} />}
 
         {/* Hero */}
@@ -633,7 +644,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
                         onClick={() => setHeroPick(ev.id)}
                         className={`min-h-11 border-2 border-[#1C1712] px-2.5 py-1 font-mono text-xs transition-colors ${selected ? "bg-[#1C1712] text-[#F5F0E6]" : "bg-transparent hover:bg-[#1C1712]/10"}`}
                       >
-                        {formatShortDate(new Date(ev.date))}
+                        {formatShortDate(new Date(ev.date))} · {shortVenue(ev.venueName).toUpperCase()}
                       </button>
                     );
                   })}
@@ -697,7 +708,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
         </section>
 
         {/* Proof: clips from the last night, straight under the hero */}
-        {recap && <ProofStrip recap={recap} onBook={() => openBooking(nextEvent?.id)} />}
+        {recap && <ProofStrip recap={recap} onBook={() => openBooking(flagshipId && events.length > 1 ? undefined : nextEvent?.id)} />}
 
         {/* Phones: the intro line and the venue route sit under the clips, so the clips can peek in on the first screen */}
         <section className="section-border md:hidden px-6 py-10 bg-[#F5F0E6]">
@@ -875,6 +886,7 @@ export default function HomePage({ events, rounds, venues, recap = null, feature
                     <div className="flex justify-between items-center mb-10">
                       <div className="font-mono">
                         {formatDayDate(d)} / {formatTime(d)}
+                        {ev.id === flagshipId && <span className="mt-1 block">★ FLAGSHIP NIGHT</span>}
                         {ev.externalUrl && <span className="mt-1 block">TICKETS ON {(ev.externalLabel || "THE TICKET SITE").toUpperCase()}</span>}
                         {!ev.externalUrl && ev.registrationClosed && <span className="mt-1 block">REGISTRATION CLOSED</span>}
                       </div>

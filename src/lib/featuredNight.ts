@@ -106,3 +106,24 @@ export function featuredNightUrl(source?: string): string {
 export function registerPath(eventId: string): string {
   return eventId === FEATURED_NIGHT.id ? FEATURED_NIGHT.path : `/book/${eventId}`;
 }
+
+// "The Orb Restobar" -> "The Orb", "Kadavu - Bar & Kitchen" -> "Kadavu": for small labels and buttons.
+export function shortVenue(name: string): string {
+  return name.replace(/\s*(-\s*)?(waterfront\s+)?(bar\s*&\s*kitchen|restobar)\s*$/i, "").trim() || name;
+}
+
+// The countdown on the home page banners.
+export type TimeLeft = { d: string; h: string; m: string; s: string; started: boolean };
+
+export function timeLeft(startsAt: string, now: number = Date.now()): TimeLeft {
+  const diff = Date.parse(startsAt) - now;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ms = Math.max(0, diff);
+  return {
+    d: pad(Math.floor(ms / 86400000)),
+    h: pad(Math.floor(ms / 3600000) % 24),
+    m: pad(Math.floor(ms / 60000) % 60),
+    s: pad(Math.floor(ms / 1000) % 60),
+    started: diff <= 0,
+  };
+}

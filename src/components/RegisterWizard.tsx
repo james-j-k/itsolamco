@@ -5,6 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays, CalendarPlus, Check, Clock, MapPin, Minus, Plus, Share2, Users } from "lucide-react";
 import FaloodaGlass from "@/components/FaloodaGlass";
+import KadavuScene from "@/components/KadavuScene";
+import { kadavuFonts } from "@/lib/kadavuFonts";
+import { FLAGSHIP } from "@/lib/flagship";
 import { phudu } from "@/lib/faloodaFont";
 import { FALOODA_LOGO, formatNight, registerPath, type NightInfo } from "@/lib/featuredNight";
 import { BUSINESS } from "@/lib/business";
@@ -33,6 +36,12 @@ const THEMES = {
     "--rg-bg": "#FCE8F0", "--rg-ink": "#2C2C2C", "--rg-accent": "#CA4D8C", "--rg-deep": "#B23B79", "--rg-deep-hover": "#A23270",
     "--rg-shadow": "#7d2655", "--rg-soft": "#FCE8F0", "--rg-soft2": "#FFF5F9", "--rg-line": "#F2C2D8", "--rg-input": "#E8B6CD",
     "--rg-alt": "#139186", "--rg-alt-deep": "#0B5F58", "--rg-alt-soft": "#E4F4F1", "--rg-spark": "#FFC93C", "--rg-glow": "rgba(202,77,140,0.22)",
+  },
+  // The Kadavu poster: paper, deep blue, sunset rose and gold
+  kadavu: {
+    "--rg-bg": "#F5E9DD", "--rg-ink": "#221B41", "--rg-accent": "#C93D4F", "--rg-deep": "#B02F47", "--rg-deep-hover": "#93263A",
+    "--rg-shadow": "#5E1D3C", "--rg-soft": "#F0E2D2", "--rg-soft2": "#FBF5EE", "--rg-line": "#E3CFBA", "--rg-input": "#C7AC93",
+    "--rg-alt": "#221B41", "--rg-alt-deep": "#221B41", "--rg-alt-soft": "#ECE7F5", "--rg-spark": "#F2B544", "--rg-glow": "rgba(34,27,65,0.14)",
   },
   // The site's own look: paper, ink and rust
   olam: {
@@ -132,10 +141,14 @@ function googleCalendarLink(n: NightInfo) {
   return `https://calendar.google.com/calendar/render?${q.toString()}`;
 }
 
-export default function RegisterWizard({ night, theme, teamsBooked }: { night: NightInfo; theme: keyof typeof THEMES; teamsBooked: number }) {
+// Another night that comes before this one, so someone who wanted it isn't registered here by mistake.
+export type EarlierNight = { venue: string; startsAt: string; href: string; action: string; external: boolean };
+
+export default function RegisterWizard({ night, theme, teamsBooked, earlier }: { night: NightInfo; theme: keyof typeof THEMES; teamsBooked: number; earlier?: EarlierNight }) {
   const when = formatNight(night.startsAt);
   const [firstWord, ...restWords] = night.title.trim().split(/\s+/);
   const isFalooda = theme === "falooda";
+  const isKadavu = theme === "kadavu";
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
@@ -333,14 +346,18 @@ export default function RegisterWizard({ night, theme, teamsBooked }: { night: N
 
   return (
     <div
-      className={`${isFalooda ? `${phudu.variable} ` : "rg-olam "}fn-page text-[var(--rg-ink)]`}
+      className={`${isFalooda ? `${phudu.variable} ` : isKadavu ? `${kadavuFonts} rg-kadavu ` : "rg-olam "}fn-page text-[var(--rg-ink)]`}
       style={{ backgroundColor: "var(--rg-bg)", ...THEMES[theme] } as React.CSSProperties}
     >
       {/* Top bar: our logo (it takes you home), and the venue's name beside it on the Falooda Nation night */}
-      <header className="border-b-4 border-[var(--rg-alt)]" style={{ backgroundColor: isFalooda ? "#FFFFFF" : "var(--rg-bg)" }}>
+      <header className={`border-b-4 ${isKadavu ? "border-[#F2B544]" : "border-[var(--rg-alt)]"}`} style={{ backgroundColor: isFalooda ? "#FFFFFF" : isKadavu ? "#1B1434" : "var(--rg-bg)" }}>
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-2.5">
           <Link href="/" aria-label="It's Olam Company: back to the home page" className="-ml-1 flex min-h-12 items-center gap-3 rounded-lg px-1">
-            <Image src="/logo.png" alt="It's Olam Company" width={2000} height={1042} priority className="h-11 w-auto" />
+            {/* The logo is dark lettering, so on the Kadavu night's dark bar it sits on a paper tag */}
+            <span className={isKadavu ? "rounded-xl bg-[#F5E9DD] px-2 py-0.5" : "contents"}>
+              <Image src="/logo.png" alt="It's Olam Company" width={2000} height={1042} priority className="h-11 w-auto" />
+            </span>
+            {isKadavu && <span className="kd-mono text-xs uppercase tracking-[0.24em] text-[#D9CDF2]">× Kadavu</span>}
             {isFalooda && (
               <>
                 <span aria-hidden="true" className="text-2xl font-light leading-none text-[var(--rg-ink)]/40">
@@ -356,28 +373,66 @@ export default function RegisterWizard({ night, theme, teamsBooked }: { night: N
               </>
             )}
           </Link>
-          <span className="fn-display hidden text-right text-sm leading-tight tracking-[0.04em] text-[var(--rg-deep)] sm:block">
+          <span className={`fn-display hidden text-right text-sm leading-tight tracking-[0.04em] sm:block ${isKadavu ? "text-[#F2B544]" : "text-[var(--rg-deep)]"}`}>
             {`${when.weekdayShort} ${when.dayMonth} · ${when.shortTime}`.toUpperCase()}
           </span>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-5 pb-16 pt-7 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-12 md:pt-12">
+      {earlier && step !== "done" && (
+        <a
+          href={earlier.href}
+          {...(earlier.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          className="flex min-h-14 items-center justify-center gap-3 bg-[#B8451D] px-4 py-2 text-center text-[15px] font-bold leading-snug text-[#F5F0E6]"
+        >
+          <span>
+            This page is for {FLAGSHIP.shortName}, {when.dayMonth}. Want <span className="font-extrabold">{earlier.venue}</span>,{" "}{formatNight(earlier.startsAt).dayMonth}?{" "}
+            <span className="whitespace-nowrap underline underline-offset-4">{earlier.action}</span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" />
+        </a>
+      )}
+
+      <main className={`mx-auto grid max-w-5xl grid-cols-1 px-5 pb-16 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-12 md:pt-12 ${isKadavu ? "gap-4 pt-4" : "gap-8 pt-7"}`}>
         {/* The night */}
         <section aria-label="About the night" className={`md:sticky md:top-8 md:self-start ${step === "done" ? "hidden md:block" : ""}`}>
-          <div className="fn-display inline-flex items-center gap-2 rounded-full bg-[var(--rg-alt)] px-4 py-1.5 text-[13px] tracking-[0.06em] text-white">
-            <span className="h-2 w-2 rounded-full bg-[var(--rg-spark)]" aria-hidden="true" />
-            REGISTER YOUR TEAM
-          </div>
-          <h1 className="fn-display mt-3 text-[clamp(2.2rem,10.5vw,4.4rem)]">
-            {firstWord}
-            {restWords.length > 0 && <span className="block text-[var(--rg-accent)]">{restWords.join(" ")}</span>}
-          </h1>
-          <p className="mt-2 text-lg font-semibold">
-            at <span className="fn-display text-[var(--rg-deep)]">{night.venueName.toUpperCase()}</span>
-          </p>
+          {isKadavu ? (
+            // The poster, small: sunset, title and venue, short enough that the form is on screen straight away
+            <div className="overflow-hidden rounded-3xl bg-[#2B2146] text-[#F5E9DD] shadow-[0_8px_0_var(--rg-glow)]">
+              <div className="kd-sky-plain px-4 pb-2.5 pt-3">
+                <p className="kd-mono text-[10px] uppercase tracking-[0.24em] text-[#D9CDF2]">Register your team</p>
+                <h1 className="mt-0.5">
+                  <span className="fn-display kd-headline block text-[clamp(2rem,11vw,3.1rem)] text-[#F2B544] md:text-[2.4rem] lg:text-[3.1rem]">MOLLYWOOD</span>
+                  <span className="mt-1 block text-xs font-medium uppercase tracking-[0.34em] md:tracking-[0.2em]">Quiz night · by the river</span>
+                </h1>
+              </div>
+              <KadavuScene id="kd-rg-m" width={600} compact className="-mt-px block aspect-[600/206] w-full md:hidden" />
+              <KadavuScene id="kd-rg" width={560} className="-mt-px hidden aspect-[560/300] w-full md:block" />
+              <div className="flex flex-col items-start gap-2 px-4 pb-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-[#D8272F] px-3 py-1 text-sm font-bold text-white">
+                  <span aria-hidden="true">🍺</span>
+                  {FLAGSHIP.offer} {FLAGSHIP.offerAt}
+                </p>
+                <p className="text-[15px] font-bold leading-snug">{night.venueName}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="fn-display inline-flex items-center gap-2 rounded-full bg-[var(--rg-alt)] px-4 py-1.5 text-[13px] tracking-[0.06em] text-white">
+                <span className="h-2 w-2 rounded-full bg-[var(--rg-spark)]" aria-hidden="true" />
+                REGISTER YOUR TEAM
+              </div>
+              <h1 className="fn-display mt-3 text-[clamp(2.2rem,10.5vw,4.4rem)]">
+                {firstWord}
+                {restWords.length > 0 && <span className="block text-[var(--rg-accent)]">{restWords.join(" ")}</span>}
+              </h1>
+              <p className="mt-2 text-lg font-semibold">
+                at <span className="fn-display text-[var(--rg-deep)]">{night.venueName.toUpperCase()}</span>
+              </p>
+            </>
+          )}
 
-          <ul className="mt-4 grid grid-cols-2 gap-3 text-[15px] font-semibold md:mt-5 md:grid-cols-1">
+          <ul className={`grid grid-cols-2 gap-3 text-[15px] font-semibold md:mt-5 md:grid-cols-1 ${isKadavu ? "mt-3" : "mt-4"}`}>
             <li className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_3px_0_var(--rg-glow)]">
               <CalendarDays className="h-5 w-5 shrink-0 text-[var(--rg-deep)]" aria-hidden="true" />
               <span className="leading-tight">

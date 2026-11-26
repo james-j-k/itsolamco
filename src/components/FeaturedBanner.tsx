@@ -5,23 +5,8 @@ import Link from "next/link";
 import { ArrowRight, MapPin } from "lucide-react";
 import FaloodaGlass from "@/components/FaloodaGlass";
 import { phudu } from "@/lib/faloodaFont";
-import { formatNight, registerPath, type NightInfo } from "@/lib/featuredNight";
+import { formatNight, registerPath, timeLeft, type NightInfo, type TimeLeft } from "@/lib/featuredNight";
 import type { EventDTO } from "@/types/event";
-
-type Left = { d: string; h: string; m: string; s: string; started: boolean };
-
-function timeLeft(startsAt: string): Left {
-  const diff = Date.parse(startsAt) - Date.now();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const ms = Math.max(0, diff);
-  return {
-    d: pad(Math.floor(ms / 86400000)),
-    h: pad(Math.floor(ms / 3600000) % 24),
-    m: pad(Math.floor(ms / 60000) % 60),
-    s: pad(Math.floor(ms / 1000) % 60),
-    started: diff <= 0,
-  };
-}
 
 const SHADOW = "shadow-[0_4px_0_rgba(202,77,140,0.25)]";
 
@@ -40,7 +25,7 @@ export default function FeaturedBanner({
   others: EventDTO[];
 }) {
   // Starts empty so the server and the browser render the same thing; the real numbers appear on mount.
-  const [left, setLeft] = useState<Left | null>(null);
+  const [left, setLeft] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
     const tick = () => setLeft(timeLeft(night.startsAt));

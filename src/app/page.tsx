@@ -6,12 +6,33 @@ import QRCode from "qrcode";
 import { FEATURED_NIGHT, featuredNightUrl, nightIsLive } from "@/lib/featuredNight";
 import { loadFeaturedNight } from "@/lib/featuredNightServer";
 import HomePage from "@/components/HomePage";
+import { BUSINESS } from "@/lib/business";
+import { FLAGSHIP, flagshipInfo } from "@/lib/flagship";
 import type { EventDTO } from "@/types/event";
 import type { QuizRoundDTO, VenueDTO } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
-// The banner at the very top of the page. It must never be the reason the home page fails to load.
+// The flagship night's banner at the very top of the page, while that night is still to come.
+// Neither banner may ever be the reason the home page fails to load.
+async function loadFlagship() {
+  try {
+    const event = await prisma.event.findUnique({ where: { id: FLAGSHIP.eventId } });
+    if (!event) return null;
+    const night = flagshipInfo(event);
+    if (!nightIsLive(night.startsAt)) return null;
+    const [teamsBooked, qrSvg] = await Promise.all([
+      prisma.booking.count({ where: { eventId: FLAGSHIP.eventId, status: { not: "cancelled" }, source: { not: TICKETING_SOURCE } } }),
+      QRCode.toString(`${BUSINESS.siteUrl}/book/${FLAGSHIP.eventId}`, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#1B1434", light: "#FFFFFF" } }),
+    ]);
+    return { night, teamsBooked, qrSvg };
+  } catch (err) {
+    console.error("Couldn't load the flagship banner:", err);
+    return null;
+  }
+}
+
+// The Falooda Nation banner, used when there is no flagship night to show.
 async function loadFeatured() {
   try {
     const night = await loadFeaturedNight();
@@ -29,7 +50,8 @@ async function loadFeatured() {
 
 export default async function Page() {
   // First, so a brand-new night is already in the list the queries below read.
-  const featured = await loadFeatured();
+  const flagship = await loadFlagship();
+  const featured = flagship ? null : await loadFeatured();
   const [events, rounds, venues, unassignedBookingCount, recaps] = await Promise.all([
     prisma.event.findMany({
       where: { date: { gte: new Date() } },
@@ -87,6 +109,12 @@ export default async function Page() {
       rounds={roundDTOs}
       venues={venueDTOs}
       recap={recaps[0] ?? null}
+      flagship={
+        flagship && {
+          ...flagship,
+          others: eventDTOs.filter((e) => e.id !== FLAGSHIP.eventId).slice(0, 5),
+        }
+      }
       featured={
         featured && {
           ...featured,

@@ -331,6 +331,65 @@ body {
   line-height: 0.9;
 }
 
+/* ---------- Kadavu flagship night: the poster's sunset-on-the-river look ---------- */
+/* night #1B1434, deep blue #221B41, river #2B2146, plum #7D2A5D, rose #C93D4F, orange #EB6F3A, gold #F2B544, paper #F5E9DD */
+.kd { font-family: var(--font-kd-body), system-ui, sans-serif; }
+.kd-title { font-family: var(--font-kd-title), var(--font-anton), Impact, sans-serif; font-weight: 400; }
+.kd-mono { font-family: var(--font-kd-mono), "Courier New", monospace; font-weight: 700; }
+.kd-hand { font-family: var(--font-kd-hand), var(--font-malayalam), sans-serif; }
+.kd-sky {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 22%, #F5E9DD 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 33% 8%, #F5E9DD 60%, transparent 100%),
+    radial-gradient(2px 2px at 57% 30%, #F5E9DD 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 71% 12%, #F5E9DD 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 88% 55%, #F5E9DD 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 6% 70%, #F5E9DD 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 46% 74%, #F5E9DD 60%, transparent 100%),
+    linear-gradient(to bottom, #1B1434 0 28%, #231C43 28% 60%, #442060 60% 100%);
+}
+.kd-sky-plain { background: linear-gradient(to bottom, #1B1434 0 28%, #231C43 28% 60%, #442060 60% 100%); }
+.kd-headline { text-shadow: 0.05em 0.05em 0 #7D2A5D; letter-spacing: -0.01em; }
+.kd-spaced { letter-spacing: 0.2em; }
+.kd-bubble {
+  transform: rotate(-2.5deg);
+  border: 2px solid #221B41;
+  border-radius: 18px;
+  background: #F5E9DD;
+  color: #221B41;
+  padding: 0.5rem 0.9rem;
+  box-shadow: 5px 5px 0 #C93D4F;
+}
+.kd-bubble::after {
+  content: "";
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 34%;
+  width: 20px;
+  height: 28px;
+  background: #F5E9DD;
+  clip-path: polygon(0 0, 100% 0, 80% 100%);
+}
+.kd-cta { box-shadow: 0 6px 0 #7D2A5D; transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease; }
+.kd-cta:hover { background-color: #FFC857; }
+.kd-cta:active { transform: translateY(5px); box-shadow: 0 1px 0 #7D2A5D; }
+.kd :focus-visible { outline-color: #F2B544; }
+.kd-bob { animation: kd-bob 4.5s ease-in-out infinite; }
+@keyframes kd-bob { 50% { transform: translateY(4px); } }
+.kd-twinkle { animation: kd-twinkle 2.4s ease-in-out infinite; }
+@keyframes kd-twinkle { 50% { opacity: 0.45; } }
+.kd-shimmer { animation: kd-shimmer 3.5s ease-in-out infinite; }
+@keyframes kd-shimmer { 50% { opacity: 0.7; transform: translateX(5px); } }
+
+/* The Kadavu registration page uses the poster's headline font */
+.rg-kadavu { font-family: var(--font-kd-body), system-ui, sans-serif; }
+.rg-kadavu .fn-display {
+  font-family: var(--font-kd-title), var(--font-anton), Impact, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ambient-hairline::after { animation: none; display: none; }
   [data-reveal] { transition: none; opacity: 1; transform: none; }
@@ -339,4 +398,5 @@ body {
   /* Tailwind's looping pulse / ping / bounce decorations stop for visitors who ask for less motion */
   .animate-pulse, .animate-ping, .animate-bounce { animation: none !important; }
   .fn-marquee, .fn-bob, .fn-float, .fn-float-slow, .fn-blink, .fn-cta::after { animation: none !important; }
+  .kd-bob, .kd-twinkle, .kd-shimmer { animation: none !important; }
 }

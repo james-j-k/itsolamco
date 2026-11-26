@@ -5,24 +5,30 @@ import { prisma } from "@/lib/prisma";
 import { BUSINESS } from "@/lib/business";
 import { TICKETING_SOURCE } from "@/lib/bookingSource";
 import { safeHttpUrl } from "@/lib/eventLinks";
-import { FEATURED_NIGHT, formatNight, nightInfoFrom, nightIsLive } from "@/lib/featuredNight";
-import RegisterWizard from "@/components/RegisterWizard";
+import { FEATURED_NIGHT, formatNight, nightInfoFrom, nightIsLive, registerPath, shortVenue } from "@/lib/featuredNight";
+import { FLAGSHIP, flagshipInfo, isFlagship } from "@/lib/flagship";
+import RegisterWizard, { type EarlierNight } from "@/components/RegisterWizard";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
-export const viewport: Viewport = {
-  themeColor: "#F5F0E6",
-  interactiveWidget: "resizes-content",
-};
+export async function generateViewport({ params }: Props): Promise<Viewport> {
+  const { id } = await params;
+  return { themeColor: isFlagship(id) ? "#1B1434" : "#F5F0E6", interactiveWidget: "resizes-content" };
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const event = await prisma.event.findUnique({ where: { id } }).catch(() => null);
   if (!event) return { title: "Register your team | It's Olam Company" };
-  const n = nightInfoFrom(event);
+  const n = isFlagship(id) ? flagshipInfo(event) : nightInfoFrom(event);
   const when = formatNight(n.startsAt);
+  if (isFlagship(id)) {
+    const title = `${FLAGSHIP.title} by the river | ${when.short}`;
+    const description = `${when.weekdayLong} ${when.dayMonth}, ${when.shortTime}, ${n.venueName}, ${n.venueArea}. Register your team in about a minute.`;
+    return { title, description, openGraph: { title, description, type: "website" } };
+  }
   return {
     title: `Register your team | ${n.title} at ${n.venueName}`,
     description: `${when.weekdayLong} ${when.dayMonth}, ${when.shortTime}, ${n.venueName}, ${n.venueArea}. Register your team in about a minute.`,
@@ -44,7 +50,8 @@ export default async function BookNightPage({ params }: Props) {
   const external = safeHttpUrl(event.externalTicketUrl);
   if (external) redirect(external);
 
-  const night = nightInfoFrom(event);
+  const flagship = isFlagship(id);
+  const night = flagship ? flagshipInfo(event) : nightInfoFrom(event);
   if (!nightIsLive(night.startsAt)) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#F5F0E6] px-6 text-center text-[#1C1712]">
@@ -85,5 +92,23 @@ export default async function BookNightPage({ params }: Props) {
     );
   }
 
-  return <RegisterWizard night={night} theme="olam" teamsBooked={event._count.bookings} />;
+  // On the flagship page, point out the night that comes first (if there is one still to come)
+  let earlier: EarlierNight | undefined;
+  if (flagship) {
+    const first = await prisma.event
+      .findFirst({ where: { id: { not: id }, date: { gte: new Date(), lt: event.date }, registrationClosed: false }, orderBy: { date: "asc" } })
+      .catch(() => null);
+    if (first) {
+      const tickets = safeHttpUrl(first.externalTicketUrl);
+      earlier = {
+        venue: shortVenue(first.venueName),
+        startsAt: first.date.toISOString(),
+        href: tickets ?? registerPath(first.id),
+        action: tickets ? `Book on ${first.externalTicketLabel || "the ticket site"}` : "Register there",
+        external: Boolean(tickets),
+      };
+    }
+  }
+
+  return <RegisterWizard night={night} theme={flagship ? "kadavu" : "olam"} teamsBooked={event._count.bookings} earlier={earlier} />;
 }
