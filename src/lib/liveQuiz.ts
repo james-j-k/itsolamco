@@ -232,6 +232,16 @@ async function authTeam(db: Tx, code: string, teamId: string, token: string) {
 // never before the question opened, never in the future, and never older than MAX_BUZZ_AGE_MS.
 export async function buzz(code: string, teamId: string, token: string, input: { questionId?: string; pressedAt?: number } = {}): Promise<Done<{ place: number }> | Fail> {
   await pollHead({ code });
+  try {
+    return await recordBuzz(code, teamId, token, input);
+  } catch (e) {
+    // The two copies of one buzz landed at the same instant and the other got in first: read the place it was given.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return recordBuzz(code, teamId, token, input);
+    throw e;
+  }
+}
+
+async function recordBuzz(code: string, teamId: string, token: string, input: { questionId?: string; pressedAt?: number }): Promise<Done<{ place: number }> | Fail> {
   return prisma.$transaction(async (tx) => {
     const auth = await authTeam(tx, code, teamId, token);
     if (!auth) return fail("This phone isn't part of the quiz. Rejoin with your team name.", 403);
@@ -318,6 +328,9 @@ export async function hostAction(sessionId: string, action: HostAction, expect?:
   await tick(sessionId);
   return prisma.$transaction(
     async (tx): Promise<Done | Fail> => {
+      // A tap can arrive twice at the same instant (it is sent both ways when the first is slow). Holding the night's
+      // row makes the second wait for the first, then see that the step has moved on and do nothing.
+      await tx.$queryRaw`SELECT id FROM "LiveSession" WHERE id = ${sessionId} FOR NO KEY UPDATE`;
       const s = await tx.liveSession.findUnique({ where: { id: sessionId } });
       if (!s) return fail("Session not found", 404);
       // The tap was made on a screen that is out of date (a slow connection, a double tap, a retry): ignore it.

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FALSE_START_MS, FALSE_START_SLACK_MS, type LiveTeamState } from "@/lib/liveTypes";
-import { connectionOf, pressTime, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
+import { connectionOf, liveFetch, pressTime,useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 import { setMuted, sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
@@ -144,12 +144,15 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
   useEffect(() => {
     const ping = () => {
       if (document.visibilityState !== "visible") return;
-      fetch(`/api/live/${code}/buzz`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-team-token": saved.token },
-        body: JSON.stringify({ teamId: saved.teamId, warm: true, ...(rttRef.current !== null ? { rttMs: rttRef.current } : {}), offsetMs: Math.round(offsetRef.current) }),
-        signal: AbortSignal.timeout(5000),
-      }).catch(() => {});
+      liveFetch(
+        `/api/live/${code}/buzz`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-team-token": saved.token },
+          body: JSON.stringify({ teamId: saved.teamId, warm: true, ...(rttRef.current !== null ? { rttMs: rttRef.current } : {}), offsetMs: Math.round(offsetRef.current) }),
+        },
+        { backupAfter: 1500, timeout: 5000 }
+      ).catch(() => {});
     };
     const first = setTimeout(ping, 2500); // after the first clock check has had time to finish
     const every = setInterval(ping, 10_000);
@@ -168,9 +171,8 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
     setBusy(true);
     setMsg("");
     try {
-      const res = await fetch(`/api/live/${code}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", "x-team-token": saved.token }, body: JSON.stringify(body) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) setMsg(data.error ?? "That didn't work.");
+      const res = await liveFetch(`/api/live/${code}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", "x-team-token": saved.token }, body: JSON.stringify(body) }, { backupAfter: 1500, timeout: 8000 });
+      if (!res.ok) setMsg(res.data.error ?? "That didn't work.");
       poke();
       return res.ok;
     } catch {
@@ -188,13 +190,16 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
     const started = Date.now();
     for (let attempt = 0; ; attempt++) {
       try {
-        const res = await fetch(`/api/live/${code}/buzz`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-team-token": saved.token },
-          body: JSON.stringify({ teamId: saved.teamId, questionId: qid, pressedAt }),
-          signal: AbortSignal.timeout(2500),
-        });
-        const data = await res.json().catch(() => ({}));
+        // If this one isn't answered in a moment, a second copy goes the other way, soon enough to keep its place.
+        const res = await liveFetch(
+          `/api/live/${code}/buzz`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-team-token": saved.token },
+            body: JSON.stringify({ teamId: saved.teamId, questionId: qid, pressedAt }),
+          },
+          { backupAfter: 400, timeout: 2500 }
+        );
         if (res.ok) {
           setPressed((p) => (p && p.qid === qid ? { qid, state: "sent" } : p));
           poke();
@@ -203,7 +208,7 @@ function Joined({ code, saved, onLost }: { code: string; saved: Saved; onLost: (
         if (res.status >= 400 && res.status < 500) {
           // The server said no (not open yet, question over, not your phone): trying again won't change that.
           setPressed((p) => (p && p.qid === qid ? null : p));
-          setMsg(data.error ?? "That didn't work.");
+          setMsg(res.data.error ?? "That didn't work.");
           poke();
           return;
         }

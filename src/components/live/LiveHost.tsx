@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { photoUrls, type HostAction, type LiveState } from "@/lib/liveTypes";
-import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
+import { LIVE_PASS_HEADER, photoUrls, type HostAction, type LiveState } from "@/lib/liveTypes";
+import { clock, connectionOf, liveFetch, seconds,useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 
 // The quizmaster's phone. Everything here is a big thumb-sized button.
@@ -165,9 +165,9 @@ function TeamHealth({ sessionId }: { sessionId: string }) {
   );
 }
 
-function HostPad({ sessionId }: { sessionId: string }) {
+function HostPad({ sessionId, pass }: { sessionId: string; pass: string }) {
   const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
-  const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700));
+  const { state: s, error, offset: pollOffset, confirmedAt, failures, poke } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=host`, () => (fastRef.current ? 250 : 700), { [LIVE_PASS_HEADER]: pass });
   useWakeLock(); // the quizmaster's phone must not lock itself mid-quiz
   const sync = useClockSync();
   const conn = connectionOf(failures, sync.rtt);
@@ -200,16 +200,23 @@ function HostPad({ sessionId }: { sessionId: string }) {
     setNotice("");
     setSending("sending");
     try {
-      const res = await fetch(`/api/admin/live/sessions/${sessionId}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...a, expect: { step: s.step, version: s.version } }),
-        signal: AbortSignal.timeout(10_000),
-      });
-      const data = await res.json().catch(() => ({}));
+      const res = await liveFetch(
+        `/api/admin/live/sessions/${sessionId}/action`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", [LIVE_PASS_HEADER]: pass },
+          body: JSON.stringify({ ...a, expect: { step: s.step, version: s.version } }),
+        },
+        { backupAfter: 1200, timeout: 10_000 }
+      );
+      const data = res.data;
       if (res.ok) {
         setSending("done");
         setTimeout(() => setSending((x) => (x === "done" ? "idle" : x)), 1500);
+      } else if (res.sentTwice && res.status === 409) {
+        // The tap went both ways and this is the second copy being turned down, most likely because the first one
+        // already did it. Say nothing: the pad shows where the night is.
+        setSending("idle");
       } else if (data.stale) {
         setNotice(data.error ?? "The screen had already moved on.");
         setSending("idle");
@@ -711,10 +718,10 @@ function HostPad({ sessionId }: { sessionId: string }) {
 }
 
 // Full-bleed, so the admin page header and padding around it don't get in the way on a phone.
-export default function LiveHost({ sessionId }: { sessionId: string }) {
+export default function LiveHost({ sessionId, pass }: { sessionId: string; pass: string }) {
   return (
     <div style={{ position: "fixed", inset: 0, overflowY: "auto", background: C.bg, zIndex: 30 }}>
-      <HostPad sessionId={sessionId} />
+      <HostPad sessionId={sessionId} pass={pass} />
     </div>
   );
 }

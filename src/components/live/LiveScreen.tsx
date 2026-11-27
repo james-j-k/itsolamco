@@ -3,8 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { BUSINESS } from "@/lib/business";
-import { photoUrls, type LiveQueueItem, type LiveState } from "@/lib/liveTypes";
-import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
+import { LIVE_PASS_HEADER, photoUrls, type LiveQueueItem, type LiveState } from "@/lib/liveTypes";
+import { clock, connectionOf, liveFetch, seconds,useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 import { isMuted, setMuted, sfx, unlockSounds } from "./liveSounds";
 import { LiveThemeContext, liveThemeFor, useLiveTheme, type LiveThemeId } from "./liveTheme";
@@ -350,11 +350,11 @@ function Stage({ children, bg, color }: { children: React.ReactNode; bg?: string
   );
 }
 
-export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: string; theme?: LiveThemeId }) {
+export default function LiveScreen({ sessionId, theme = "olam", pass }: { sessionId: string; theme?: LiveThemeId; pass: string }) {
   const T = liveThemeFor(theme);
   const { C, DISPLAY, DW, BODY, D } = T;
   const fastRef = useRef(false); // poll faster while the order of the buzzes is being locked in
-  const { state: s, error, failures, offset: pollOffset, confirmedAt } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=screen`, () => (fastRef.current ? 250 : 600));
+  const { state: s, error, failures, offset: pollOffset, confirmedAt } = useLivePoll<LiveState>(`/api/admin/live/sessions/${sessionId}/state?view=screen`, () => (fastRef.current ? 250 : 600), { [LIVE_PASS_HEADER]: pass });
   useWakeLock(); // the projector laptop must not go to sleep either
   const sync = useClockSync();
   const conn = connectionOf(failures, sync.rtt);
@@ -412,8 +412,12 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
     const type = cur.phase === "lobby" ? "start" : ["roundIntro", "roundResults", "tiebreak", "tiebreakReveal", "celebrate", "reveal"].includes(cur.phase) ? "continue" : null;
     if (!type) return;
     // The tap says which step it was made on, so a repeat press can't skip past the next screen.
-    await fetch(`/api/admin/live/sessions/${sessionId}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, expect: { step: cur.step, version: cur.version } }) }).catch(() => {});
-  }, [sessionId]);
+    await liveFetch(
+      `/api/admin/live/sessions/${sessionId}/action`,
+      { method: "POST", headers: { "Content-Type": "application/json", [LIVE_PASS_HEADER]: pass }, body: JSON.stringify({ type, expect: { step: cur.step, version: cur.version } }) },
+      { backupAfter: 1200, timeout: 10_000 }
+    ).catch(() => {});
+  }, [sessionId, pass]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import { verifyLivePass } from "@/lib/liveKey";
+import { LIVE_PASS_HEADER } from "@/lib/liveTypes";
 import { ORB_PITCH_EXPIRES_AT } from "@/lib/orbPitch";
 import { KADAVU_PITCH_EXPIRES_AT } from "@/lib/kadavuPitch";
 
@@ -39,6 +41,12 @@ export async function middleware(request: NextRequest) {
   if (isLoginPage || (isAdminApi && isLoginApi)) {
     return NextResponse.next();
   }
+
+  // The projector page and host pad also have a second route to the server that carries no cookies. There, a signed
+  // pass for that one night stands in for the sign-in, and only for that night's state and host buttons.
+  const live = pathname.match(/^\/api\/admin\/live\/sessions\/([^/]+)\/(state|action)$/);
+  const pass = live && request.headers.get(LIVE_PASS_HEADER);
+  if (live && pass && (await verifyLivePass(pass, live[1]))) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const session = token ? await verifySessionToken(token) : null;

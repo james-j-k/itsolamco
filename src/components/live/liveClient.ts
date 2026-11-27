@@ -2,6 +2,88 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// Two routes to the server. A browser keeps one long-lived connection to a site, and now and then that connection goes
+// quiet for many seconds while the internet is perfectly fine: the screen says "no internet" and falls behind the
+// others. Requests sent without cookies travel on a second connection of their own. So every request goes down the
+// route that last worked, and if no answer comes quickly the same request is also sent down the other one. Whichever
+// answers first is used, and that route is preferred from then on. The server ignores a repeated tap or buzz.
+type Route = 0 | 1; // 0 = the usual connection, 1 = the one without cookies
+let preferred: Route = 0;
+
+export type Answer<T = unknown> = { status: number; ok: boolean; data: T; sentTwice: boolean };
+
+export function liveFetch<T = { error?: string; stale?: boolean }>(
+  url: string,
+  init: { method?: string; headers?: Record<string, string>; body?: string },
+  { backupAfter, timeout }: { backupAfter: number; timeout: number }
+): Promise<Answer<T>> {
+  return new Promise((resolve, reject) => {
+    const first: Route = preferred;
+    const second: Route = first === 0 ? 1 : 0;
+    const controllers: AbortController[] = [];
+    let waiting = 0;
+    let sentTwice = false;
+    let done = false;
+    let serverError: Answer<T> | null = null; // not worth stopping for while the other route may still answer properly
+
+    const finish = (settle: () => void) => {
+      if (done) return;
+      done = true;
+      clearTimeout(backupTimer);
+      clearTimeout(giveUp);
+      controllers.forEach((c) => c.abort());
+      settle();
+    };
+    const noAnswer = () => finish(() => (serverError ? resolve(serverError) : reject(new Error("No answer"))));
+
+    function send(route: Route) {
+      const controller = new AbortController();
+      controllers.push(controller);
+      waiting++;
+      fetch(url, { ...init, cache: "no-store", credentials: route === 1 ? "omit" : "same-origin", signal: controller.signal })
+        .then(async (res) => {
+          const text = await res.text(); // the whole answer, so one that stops half way counts as no answer
+          let data = {} as T;
+          try {
+            data = JSON.parse(text) as T;
+          } catch {
+            // not JSON (an error page): the status says enough
+          }
+          waiting--;
+          const answer = { status: res.status, ok: res.ok, data, sentTwice };
+          if (res.status >= 500) serverError = answer;
+          // (a 401 on the second route only means it had no valid pass: wait for the first route instead)
+          if (res.status >= 500 || (route === 1 && res.status === 401)) return tryOther();
+          preferred = route;
+          finish(() => resolve(answer));
+        })
+        .catch(() => {
+          waiting--;
+          tryOther();
+        });
+    }
+    function backup() {
+      if (done || sentTwice) return;
+      sentTwice = true;
+      clearTimeout(backupTimer);
+      send(second);
+    }
+    // that attempt got nowhere: try the other route now, or give up if both have been tried
+    function tryOther() {
+      if (done) return;
+      if (!sentTwice) backup();
+      else if (waiting === 0) noAnswer();
+    }
+
+    const backupTimer = setTimeout(backup, backupAfter);
+    const giveUp = setTimeout(() => {
+      preferred = second;
+      noAnswer();
+    }, timeout);
+    send(first);
+  });
+}
+
 // Asks the server for the night's state over and over, but only gets the full picture back when
 // something changed (the server answers a repeat of the same version with a tiny "unchanged").
 // `offset` is how far the server's clock is from this device's clock, so timers agree everywhere.
@@ -35,9 +117,9 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
       try {
         const known = versionRef.current;
         const sep = url!.includes("?") ? "&" : "?";
-        // A request that never answers (weak signal, a phone that slept) must not freeze the screen: give up and ask again.
-        const res = await fetch(known === null ? url! : `${url}${sep}v=${known}`, { cache: "no-store", headers: headersRef.current, signal: AbortSignal.timeout(6000) });
-        const data = await res.json().catch(() => ({}));
+        // A request that never answers must not freeze the screen: the other route is tried within a second.
+        const res = await liveFetch<{ error?: string; now?: number; state?: T }>(known === null ? url! : `${url}${sep}v=${known}`, { headers: headersRef.current }, { backupAfter: 900, timeout: 5000 });
+        const data = res.data;
         if (stopped) return;
         if (!res.ok) {
           setError({ status: res.status, message: data.error ?? "Connection problem" });
@@ -53,7 +135,7 @@ export function useLivePoll<T extends { version: number; now: number }>(url: str
           }
           if (data.state) {
             versionRef.current = data.state.version;
-            setState(data.state as T);
+            setState(data.state);
           }
         }
       } catch {
@@ -115,11 +197,13 @@ export function useClockSync(): { offset: number; ready: boolean; rtt: number | 
     let running = false;
     const samples: { rtt: number; offset: number; at: number }[] = [];
     const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let turn = 0;
 
     async function sample() {
       const t0 = Date.now();
       try {
-        const res = await fetch("/api/live/time", { cache: "no-store", signal: AbortSignal.timeout(4000) });
+        // both routes take turns, which also keeps the second connection open and ready
+        const res = await fetch("/api/live/time", { cache: "no-store", credentials: turn++ % 2 ? "omit" : "same-origin", signal: AbortSignal.timeout(2000) });
         const data = (await res.json()) as { now?: number };
         const t1 = Date.now();
         if (typeof data.now !== "number") return;

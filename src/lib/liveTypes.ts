@@ -111,6 +111,8 @@ export function stepOf(s: { status: string; phase: string; roundIdx: number; pos
   return `${s.status}|${s.phase}|${s.roundIdx}|${s.pos}`;
 }
 
+export const LIVE_PASS_HEADER = "x-live-pass"; // carries the night's pass (see liveKey) on requests sent without cookies
+
 // A photo question ("image") keeps its pictures in the same field a song question keeps its clip (audioUrl):
 // "the photo to show" and, optionally after a "|", "the photo to show with the answer".
 export function photoUrls(media: string | null | undefined): string[] {
