@@ -3,14 +3,19 @@ import { z } from "zod";
 import { importQuiz } from "@/lib/liveQuiz";
 
 // Behind the admin login (middleware covers /api/admin/*).
-const questionSchema = z.object({
-  kind: z.enum(["text", "emoji", "audio"]),
-  prompt: z.string().trim().min(1).max(600),
-  hint: z.string().trim().max(200).nullish(),
-  answer: z.string().trim().min(1).max(200),
-  note: z.string().trim().max(400).nullish(),
-  audioUrl: z.string().trim().max(500).nullish(),
-});
+// A photo question's pictures are files on this site: "/quiz-photos/a.jpg", or "…a.jpg|…b.jpg" to show a second one with the answer.
+const PHOTOS = /^\/quiz-photos\/[\w-]+\.(jpg|jpeg|png|webp)(\|\/quiz-photos\/[\w-]+\.(jpg|jpeg|png|webp))?$/;
+
+const questionSchema = z
+  .object({
+    kind: z.enum(["text", "emoji", "audio", "image"]),
+    prompt: z.string().trim().min(1).max(600),
+    hint: z.string().trim().max(200).nullish(),
+    answer: z.string().trim().min(1).max(200),
+    note: z.string().trim().max(400).nullish(),
+    audioUrl: z.string().trim().max(500).nullish(),
+  })
+  .refine((q) => q.kind !== "image" || PHOTOS.test(q.audioUrl ?? ""), { message: "A photo question needs its picture in audioUrl", path: ["audioUrl"] });
 
 const quizSchema = z.object({
   title: z.string().trim().min(1).max(160),

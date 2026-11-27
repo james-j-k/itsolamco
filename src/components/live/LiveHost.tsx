@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { HostAction, LiveState } from "@/lib/liveTypes";
+import { photoUrls, type HostAction, type LiveState } from "@/lib/liveTypes";
 import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 
@@ -374,6 +374,11 @@ function HostPad({ sessionId }: { sessionId: string }) {
           <div style={{ background: C.panel, borderRadius: 16, padding: 14, marginBottom: 12 }}>
             <div style={{ color: C.muted, fontSize: 12, letterSpacing: 2 }}>QUESTION</div>
             <div style={{ fontWeight: 700, margin: "4px 0 10px" }}>{s.question?.prompt}</div>
+            {s.question?.kind === "image" && (
+              // which photo is up, so the quizmaster can check the projector matches
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrls(s.question.audioUrl)[0]} alt="Photo on the screen" style={{ display: "block", height: 110, maxWidth: "100%", objectFit: "contain", borderRadius: 10, marginBottom: 10 }} />
+            )}
             <div style={{ color: C.muted, fontSize: 12, letterSpacing: 2 }}>ANSWER</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 30, color: C.amber, lineHeight: 1.1 }}>{s.answer?.text}</div>
             {s.answer?.note && <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>{s.answer.note}</div>}

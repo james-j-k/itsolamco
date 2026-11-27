@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { BUSINESS } from "@/lib/business";
-import type { LiveQueueItem, LiveState } from "@/lib/liveTypes";
+import { photoUrls, type LiveQueueItem, type LiveState } from "@/lib/liveTypes";
 import { clock, connectionOf, seconds, useClockSync, useLivePoll, useNow, useOrderFinal, useReached, useWakeLock } from "./liveClient";
 import { ConnectionBadge } from "./LiveConnection";
 import { isMuted, setMuted, sfx, unlockSounds } from "./liveSounds";
@@ -225,6 +225,72 @@ function QueueStrip({ s, elapsed, serverNow, locking, tie }: { s: LiveState; ela
   );
 }
 
+// Every photo in the quiz is fetched as soon as the projector page opens and kept in memory (as a data: address),
+// so showing one later needs no internet at all. Any that failed are tried again as the night moves on.
+const KeptPhotos = createContext<Record<string, string>>({});
+
+function useKeptPhotos(list: string[], retryWhen: string | undefined) {
+  const [kept, setKept] = useState<Record<string, string>>({});
+  const asked = useRef(new Set<string>());
+  const key = list.join(",");
+  useEffect(() => {
+    for (const src of key ? key.split(",") : []) {
+      if (asked.current.has(src)) continue;
+      asked.current.add(src);
+      fetch(src, { signal: AbortSignal.timeout(15_000) })
+        .then((r) => {
+          if (!r.ok) throw new Error(String(r.status));
+          return r.blob();
+        })
+        .then(
+          (blob) =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(blob);
+            })
+        )
+        .then((data) => setKept((k) => ({ ...k, [src]: data })))
+        .catch(() => asked.current.delete(src));
+    }
+  }, [key, retryWhen]);
+  return kept;
+}
+
+// A quiz photo. If it isn't in memory and can't be fetched either, it keeps trying, so the picture turns up by itself.
+function Photo({ src, height, maxWidth }: { src: string; height: number; maxWidth: number }) {
+  const { C } = useLiveTheme();
+  const kept = useContext(KeptPhotos)[src];
+  const [tries, setTries] = useState(0);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={kept ?? (tries ? `${src}?again=${tries}` : src)}
+      data-photo={src}
+      alt=""
+      onError={() => setTimeout(() => setTries((t) => t + 1), 1500)}
+      style={{ height, width: "auto", maxWidth, objectFit: "contain", borderRadius: 24, background: C.panel, boxShadow: "0 12px 40px rgba(0,0,0,.35)", animation: "olamrise .4s ease-out" }}
+    />
+  );
+}
+
+// The photo question's two pictures together, shown with the answer.
+function ThenAndNow({ media, height }: { media: string | null; height: number }) {
+  const { C, BODY } = useLiveTheme();
+  const urls = photoUrls(media);
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", gap: 48 }}>
+      {urls.map((u, i) => (
+        <div key={u} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          {urls.length > 1 && <span style={{ fontFamily: BODY, fontWeight: 800, fontSize: 26, letterSpacing: 8, padding: "2px 22px", borderRadius: 999, background: C.panel, color: C.cream }}>{i === 0 ? "THEN" : "NOW"}</span>}
+          <Photo src={u} height={height} maxWidth={760} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function QuestionBody({ s }: { s: LiveState }) {
   const { C, DISPLAY, DW, BODY, D, id: themeId } = useLiveTheme();
   const q = s.question;
@@ -235,6 +301,18 @@ function QuestionBody({ s }: { s: LiveState }) {
     return (
       <div style={{ ...box, justifyContent: "center" }}>
         <div style={{ fontSize: n > 7 ? 170 : n > 5 ? 200 : 240, letterSpacing: 18, whiteSpace: "nowrap", textAlign: "center" }}>{q.prompt}</div>
+      </div>
+    );
+  }
+  if (q.kind === "image") {
+    const src = photoUrls(q.audioUrl)[0];
+    return (
+      <div style={{ ...box, top: 250, bottom: 320, justifyContent: "center", gap: 80 }}>
+        {src && <Photo key={src} src={src} height={510} maxWidth={900} />}
+        <div style={{ maxWidth: 760 }}>
+          {q.hint && <div style={{ fontFamily: BODY, fontWeight: 700, fontSize: 30, letterSpacing: 4, color: themeId === "falooda" ? C.amber : C.red, marginBottom: 18 }}>{q.hint}</div>}
+          <div style={{ fontFamily: BODY, fontWeight: 700, fontSize: 80, lineHeight: 1.18, color: C.cream }}>{q.prompt}</div>
+        </div>
       </div>
     );
   }
@@ -359,7 +437,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
 
   // The song plays by itself the moment its question appears, and stops when the question ends.
   // Once a team has buzzed the song carries on, but quietly, so the room can hear the answers.
-  const wantAudio = s?.phase === "question" && opened ? (s.question?.audioUrl ?? null) : null;
+  const wantAudio = s?.phase === "question" && opened && s.question?.kind !== "image" ? (s.question?.audioUrl ?? null) : null;
   const questionId = s?.question?.id ?? null;
   const ducked = (s?.queue.length ?? 0) > 0;
   useEffect(() => {
@@ -381,6 +459,8 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = ducked ? 0.15 : 1;
   }, [ducked, questionId]);
+
+  const keptPhotos = useKeptPhotos(s?.photos ?? [], s?.phase);
 
   // Sound effects for what just changed. The first picture after loading is only a starting point.
   const seen = useRef<{ key: string; phase: string; maxBuzz: number; outcomes: Map<number, string>; teams: number } | null>(null);
@@ -541,6 +621,20 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
         );
 
       case "reveal":
+        if (st.question?.kind === "image") {
+          return (
+            <Stage bg={T.bgs.reveal} color={C.ink}>
+              <Brand onLight />
+              <div style={{ position: "absolute", right: 104, top: 64, fontFamily: BODY, fontWeight: 700, fontSize: 26, letterSpacing: 3, textTransform: "uppercase", color: C.red }}>Round {st.roundNo} · {st.roundName}</div>
+              <div style={{ position: "absolute", left: 0, right: 0, top: 160, textAlign: "center", fontFamily: BODY, fontWeight: 700, fontSize: 36, letterSpacing: 6, color: C.red }}>NOBODY GOT IT · THE ANSWER</div>
+              <div style={{ position: "absolute", left: 80, right: 80, top: 240 }}>
+                <ThenAndNow key={st.question.id} media={st.question.audioUrl} height={560} />
+              </div>
+              <div style={{ position: "absolute", left: 80, right: 80, top: 880, textAlign: "center", fontFamily: DISPLAY, fontWeight: DW, fontSize: D(120), lineHeight: 1.1, color: C.red, whiteSpace: "nowrap" }}>{st.answer?.text}</div>
+              {st.answer?.note && <div style={{ position: "absolute", left: 160, right: 160, bottom: 30, textAlign: "center", fontFamily: BODY, fontSize: 30, color: C.soft }}>{st.answer.note}</div>}
+            </Stage>
+          );
+        }
         return (
           <Stage bg={T.bgs.reveal} color={C.ink}>
             <Brand onLight />
@@ -552,6 +646,25 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
         );
 
       case "celebrate":
+        if (st.question?.kind === "image") {
+          const points = st.celebration?.points;
+          return (
+            <Stage bg={T.bgs.celebrate}>
+              <Confetti />
+              <Header s={st} />
+              <div style={{ position: "absolute", left: 0, right: 0, top: 130, textAlign: "center", fontFamily: BODY, fontWeight: 800, fontSize: 36, letterSpacing: 10, color: C.amber }}>CORRECT</div>
+              <div style={{ position: "absolute", left: 80, right: 80, top: 180, textAlign: "center", fontFamily: DISPLAY, fontWeight: DW, fontSize: D(110), lineHeight: 1.15, color: C.cream, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", animation: "olampop .5s ease-out" }}>
+                {st.celebration?.teamName}
+                {points ? <span style={{ color: C.pos, marginLeft: 40 }}>+{points}</span> : null}
+              </div>
+              <div style={{ position: "absolute", left: 80, right: 80, top: 340 }}>
+                <ThenAndNow key={st.question.id} media={st.question.audioUrl} height={500} />
+              </div>
+              <div style={{ position: "absolute", left: 80, right: 80, top: 915, textAlign: "center", fontFamily: DISPLAY, fontWeight: DW, fontSize: D(90), lineHeight: 1.1, color: C.amber, whiteSpace: "nowrap" }}>{st.celebration?.answer}</div>
+              {st.celebration?.note && <div style={{ position: "absolute", left: 160, right: 160, bottom: 24, textAlign: "center", fontFamily: BODY, fontSize: 28, color: C.muted }}>{st.celebration.note}</div>}
+            </Stage>
+          );
+        }
         return (
           <Stage bg={T.bgs.celebrate}>
             <Confetti />
@@ -695,6 +808,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
 
   return (
     <LiveThemeContext.Provider value={T}>
+    <KeptPhotos.Provider value={keptPhotos}>
     <div style={{ position: "fixed", inset: 0, background: "#000", overflow: "hidden" }}>
       <style>{css}</style>
       <div style={{ position: "absolute", left: "50%", top: "50%", width: 1920, height: 1080, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: "center center" }}>
@@ -727,6 +841,7 @@ export default function LiveScreen({ sessionId, theme = "olam" }: { sessionId: s
       )}
       <audio ref={audioRef} preload="auto" />
     </div>
+    </KeptPhotos.Provider>
     </LiveThemeContext.Provider>
   );
 }

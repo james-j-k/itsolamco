@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { closestGuessers, pointsForRight, pointsForWrong, rankTeams, tiedForFirst } from "@/lib/liveScoring";
-import { ANSWER_MS, EARLY_BUZZ_MS, LOCK_MS, MAX_BUZZ_AGE_MS, OPEN_LEAD_MS, TIE_MS, stepOf, type HostAction, type HostExpect, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
+import { ANSWER_MS, EARLY_BUZZ_MS, LOCK_MS, MAX_BUZZ_AGE_MS, OPEN_LEAD_MS, TIE_MS, photoUrls, stepOf, type HostAction, type HostExpect, type LiveQueueItem, type LiveState, type LiveTeamState } from "@/lib/liveTypes";
 
 // The brain of a live quiz night. Every change happens inside one database
 // transaction and bumps `version`, so the projector and the phones only ask for
@@ -722,6 +722,7 @@ export async function getLiveState(sessionId: string, view: "host" | "screen"): 
     question: question && ["question", "reveal", "celebrate"].includes(phase)
       ? { id: question.id, kind: question.kind, prompt: question.prompt, hint: question.hint, audioUrl: question.audioUrl }
       : null,
+    photos: quiz.rounds.flatMap((r) => r.questions).filter((q) => q.kind === "image").flatMap((q) => photoUrls(q.audioUrl)),
     answer: ["question", "reveal", "celebrate"].includes(phase) ? answer : null,
     openedAt: s.questionOpenedAt?.getTime() ?? null,
     lockUntil: phase === "question" ? lockAtOf(snap.buzzes) : null,

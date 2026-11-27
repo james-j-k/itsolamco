@@ -36,7 +36,8 @@ export type LiveState = {
   questionNo: number; // 1-based, within the round
   questionCount: number;
   question: { id: string; kind: string; prompt: string; hint: string | null; audioUrl: string | null } | null;
-  answer: { text: string; note: string | null } | null; // the host always gets it; the projector only once it is revealed
+  photos: string[]; // every photo in the quiz, so the projector can load them before they are needed
+  answer:{ text: string; note: string | null } | null; // the host always gets it; the projector only once it is revealed
   openedAt: number | null; // when the buzzer opens, on the server's clock. It is a moment slightly in the future after the host moves on, so every screen and phone opens at the same instant.
   lockUntil: number | null; // once a team has buzzed: when the order is final. Until then nobody is "answering" yet, so a slow connection can still get its place.
   step: string; // which step of the night this is (see stepOf). The quizmaster's taps carry it, so a repeated or late tap can't skip a question.
@@ -108,6 +109,12 @@ export type HostExpect = { step: string; version: number };
 
 export function stepOf(s: { status: string; phase: string; roundIdx: number; pos: number }): string {
   return `${s.status}|${s.phase}|${s.roundIdx}|${s.pos}`;
+}
+
+// A photo question ("image") keeps its pictures in the same field a song question keeps its clip (audioUrl):
+// "the photo to show" and, optionally after a "|", "the photo to show with the answer".
+export function photoUrls(media: string | null | undefined): string[] {
+  return (media ?? "").split("|").map((u) => u.trim()).filter(Boolean);
 }
 
 export const ANSWER_MS = 15_000; // how long a team has to answer once it is up
